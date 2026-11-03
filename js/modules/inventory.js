@@ -40,7 +40,7 @@
 
 import { getLocalToday } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { escapeHtml } from '../utils/helpers.js';
-import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
+import { InventoryService } from "../services/inventory.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time
@@ -54,6 +54,23 @@ function _colRef()    { return (window.__store || {}).colRef; }
 function _invRef()    { return (window.__store || {}).invRef; }
 /** Club ID hiện tại */
 function _clubId()    { return (window.__store || {}).clubId; }
+function _financialContext() { return window.FinanceService?.captureFinancialWriteContext?.() || null; }
+function _financialContextCurrent(ctx) { return !!ctx && window.FinanceService?.isFinancialWriteContextCurrent?.(ctx) === true; }
+function _financialIntent(action, payload) {
+    try {
+        const intent = window.guardFinancialWriteIntent?.(action, payload);
+        return window.isFinancialWriteAllowed?.(intent) === true ? intent : null;
+    } catch (_) { return null; }
+}
+function _financialAudit(action, stage, payload, intent) {
+    try {
+        const pending = window.recordFinancialActionAudit?.(action, stage, payload, intent ? { intent } : undefined);
+        if (pending && typeof pending.catch === 'function') pending.catch(e => console.warn(`[${action}] audit:`, e));
+    } catch (e) { console.warn(`[${action}] audit:`, e); }
+}
+function _staleInventorySuccess(message) {
+    window.showToast?.(message || '✅ Thao tác Kho đã được ghi tại CLB trước. Phiên hiện tại đã thay đổi; không thực hiện lại thao tác.', 7000);
+}
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang InventoryService */
 
 // ════════════════════════════════════════════════════════════════
@@ -440,11 +457,10 @@ export function initInventory() {
             if (!['Nhập kho', 'Xuất bán'].includes(type) || !Number.isInteger(qty) || qty <= 0
                 || !Number.isFinite(amount) || amount < 0 || (isUnpaid && amount <= 0)
                 || !validDate || !category.trim()) return window.showToast('⚠️ Dữ liệu Kho không hợp lệ.');
-            try {
-                if (typeof window.guardFinancialWriteIntent !== 'function'
-                    || typeof window.isFinancialWriteAllowed !== 'function'
-                    || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('inventory.create', { amount, qty, type, category })) !== true) return;
-            } catch (_) { return; }
+            const operationContext = _financialContext();
+            if (!_financialContextCurrent(operationContext)) return window.showToast?.('⚠️ CLB hoặc phiên hiện tại đã thay đổi. Kho chưa được ghi. Vui lòng thử lại.');
+            const auditIntent = _financialIntent('inventory.create', { amount, qty, type, category });
+            if (!auditIntent) return;
 
             _invFormEl.dataset.atomicSubmitInFlight = '1';
             try {
@@ -490,6 +506,10 @@ export function initInventory() {
                 throw new Error('[Inventory] Finance owner chưa sẵn sàng.');
             const financeTx = txData ? financeOwner.prepareTransactionMutation(txData, 'inventory-form') : null;
             await InventoryService.commitPreparedAddItem({ prepared, financeTx });
+            if (!_financialContextCurrent(operationContext)) {
+                _staleInventorySuccess('✅ Kho đã được ghi tại CLB trước. Phiên hiện tại đã thay đổi nên biểu mẫu này không được làm mới. Không thực hiện lại thao tác.');
+                return true;
+            }
 
             // Reset form về trạng thái mặc định
             e.target.reset();
@@ -575,23 +595,23 @@ export function initInventory() {
     window.markInvPaid = async (invId) => {
         if (window.userRole !== 'admin') return;
         if (window.markInvPaid.__inFlight) return;
-        try {
-            if (typeof window.guardFinancialWriteIntent !== 'function'
-                || typeof window.isFinancialWriteAllowed !== 'function'
-                || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('inventory.markPaid', { invId })) !== true) return;
-        } catch (_) { return; }
+        const operationContext = _financialContext();
+        if (!_financialContextCurrent(operationContext)) return;
+        const auditIntent = _financialIntent('inventory.markPaid', { invId });
+        if (!auditIntent) return;
         if (!confirm('Xác nhận đã thu tiền cho đơn hàng nợ này?')) return;
         const audit = (stage, extra = {}) => {
-            try {
-                const pending = window.recordFinancialActionAudit?.('inventory.markPaid', stage, { invId, ...extra });
-                if (pending && typeof pending.catch === 'function') pending.catch(e => console.warn('[inventory.markPaid] audit:', e));
-            } catch (e) { console.warn('[inventory.markPaid] audit:', e); }
+            _financialAudit('inventory.markPaid', stage, { invId, ...extra }, auditIntent);
         };
         window.markInvPaid.__inFlight = true;
         try {
             audit('before');
             const result = await InventoryService.markPaid(invId);
             audit('after', { txId: result?.txId || '', alreadyPaid: !!result?.alreadyPaid });
+            if (!_financialContextCurrent(operationContext)) {
+                _staleInventorySuccess('✅ Khoản thu Kho đã được ghi tại CLB trước. Phiên hiện tại đã thay đổi nên màn hình này không được làm mới. Không thu lại khoản tiền này.');
+                return true;
+            }
             if (result && result.alreadyPaid) {
                 window.showToast('ℹ️ Đơn này đã được thu trước đó');
             } else {
@@ -641,11 +661,10 @@ export function initInventory() {
             || !Number.isInteger(qty) || qty <= 0 || !Number.isFinite(amount) || amount < 0
             || !validDate || (Number(previous.amount) === 0) !== (amount === 0))
             return window.showToast('⚠️ Chuyển trạng thái Kho này chưa được hỗ trợ. Dữ liệu chưa thay đổi.');
-        try {
-            if (typeof window.guardFinancialWriteIntent !== 'function'
-                || typeof window.isFinancialWriteAllowed !== 'function'
-                || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('inventory.edit', { invId, txId, amount })) !== true) return;
-        } catch (_) { return; }
+        const operationContext = _financialContext();
+        if (!_financialContextCurrent(operationContext)) return window.showToast?.('⚠️ CLB hoặc phiên hiện tại đã thay đổi. Dữ liệu Kho chưa được sửa. Vui lòng mở lại thao tác.');
+        const auditIntent = _financialIntent('inventory.edit', { invId, txId, amount });
+        if (!auditIntent) return;
 
         const invPayload = { category: eiCat, size, type, qty, date, desc, description: desc, amount };
         if (type === 'Xuất bán') {
@@ -667,6 +686,10 @@ export function initInventory() {
                 previous: previousTx
             }
         });
+        if (!_financialContextCurrent(operationContext)) {
+            _staleInventorySuccess('✅ Dữ liệu Kho đã được cập nhật tại CLB trước. Phiên hiện tại đã thay đổi nên màn hình này không được làm mới. Không sửa lại thao tác.');
+            return true;
+        }
         window.__editingInventoryOriginal = null;
         window.__editingInventoryTransactionOriginal = null;
 

@@ -1,0 +1,24 @@
+{
+  "protectedFinanceFiles": [
+    {
+      "js/modules/finance.js": true
+    },
+    {
+      "js/services/finance.service.js": true
+    },
+    {
+      "js/ui/render/computation/financeRenderer.js": true
+    },
+    {
+      "js/core/clubStatsAutoCache.js": true
+    }
+  ],
+  "targetedGates": [
+    "financial-action-audit-guard PASS",
+    "firestore-read-attribution canonical boundary 34/34 PASS",
+    "dashboard single-read 38/38 PASS"
+  ],
+  "fullRegression": "PASS",
+  "bStatsChanged": false,
+  "conclusion": "Finance calculation owners byte-identical; policy patch only removes unauthorized migration/promotion side effects."
+}

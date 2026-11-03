@@ -1,0 +1,11172 @@
+// Phase 4K-6V4D1A: profile-canonical-store-runtime-recovery-20260628
+    /* Firestore security rules source of truth: ./firestore.rules */
+// LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
+// Responsibilities kept in app.js for now:
+// - Firebase/Auth bootstrap
+// - onAuthStateChanged
+// - initSaaSDatabase
+// - root Firestore listeners
+// - __store bridge sync
+// - legacy renderApp/scheduleRender fallback
+// - compatibility window globals
+//
+// Business logic should continue migrating to js/modules,
+// js/core, js/services, js/ui in small safe phases.
+    const { initializeApp } = window._fb_init;
+    const { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt } = window._fb_init;
+    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously } = window._fb_init;
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfxbFrMabJHbARXpAqStIrSFlSAcCxgGY",
+      authDomain: "quanly-tst.firebaseapp.com",
+      projectId: "quanly-tst",
+      storageBucket: "quanly-tst.firebasestorage.app",
+      messagingSenderId: "981970279440",
+      appId: "1:981970279440:web:8ac137ec4f72a39faa7e95",
+      measurementId: "G-Z1M9YYDZL1"
+    };
+    const app = initializeApp(firebaseConfig);
+    window._firebaseApp = app; // Phase 4K-6I-H: expose default app for Firebase Functions callable helpers
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+    const secondaryAuth = getAuth(secondaryApp);
+    window._secondaryAuth = secondaryAuth; // Phase 4.0B: expose for superadmin.js module
+    window.userRole = 'viewer';
+    window.coachBranch = '';   // Mã cơ sở HLV bắt buộc: CS1...CS10; rỗng = cấu hình không hợp lệ
+    // Phase 4K-6V5U4 — legacy ROOT email is only a bootstrap identity hint.
+    // Firestore authorization converges to super_admins/{uid} before mounting SuperAdmin data.
+    const _SUPER_ADMIN_BOOTSTRAP_EMAIL = 'admin@tstquynhon.com';
+    window.SUPERADMIN_AUTH_PATCH_VERSION = '4K-6V5U5-canonical-security-truth-20260811';
+    let currentClubId = "";
+    let clubData = {};
+    let allProfiles = {};
+    let allTransactions = [];
+    let allInventory = [];
+    let inventoryStats = {};
+    let clubConfig = { bankId: "AGRIBANK", accountNo: "4300205305756", accountName: "TRUONG SANH TINH - CLB TAEKWONDO TST", branchCount: 2, location: "Quy Nhơn" };
+    let colRef = null;
+    let profRef = null;
+    let invRef = null;
+    let currentTxUnsub = null;
+    let financeChartInstance = null;
+    let memberChartInstance = null;
+    let logoCanvasData = null;
+    let logoLoaded = false;
+    let activeListeners = [];
+    let renderTimeout = null;
+
+    // V5U6G: observable secondary/projection failure; never retry canonical writes.
+    const _recordSecondaryConsistencyFailure = (classification, error, extra = {}) => {
+        const details = Object.assign({ classification: String(classification || 'secondary-write-failed'), secondaryWrite: true, reconciliationNeeded: true }, extra || {});
+        console.warn('[SecondaryConsistency]', details.classification, details, error || '');
+        const runtimeRecorder = window['recordRuntimeError'];
+        if (typeof runtimeRecorder === 'function') runtimeRecorder('secondary-consistency:' + details.classification, error || new Error(details.classification), details);
+    };
+
+    // Phase 4K-6V4B — one canonical branch code at every client boundary.
+    const _canonicalBranch = (value, fallback = 'CS1') => {
+        if (window.BranchIdentity && typeof window.BranchIdentity.normalize === 'function') {
+            return window.BranchIdentity.normalize(value, { fallback });
+        }
+        const raw = String(value || '').trim();
+        if (!raw) return fallback;
+        if (/^(mặc định|mac dinh|default)$/i.test(raw)) return 'CS1';
+        const match = raw.match(/^CS0*([1-9]|10)$/i);
+        return match ? ('CS' + Number(match[1])) : fallback;
+    };
+    const _branchAliases = (value) => {
+        if (window.BranchIdentity && typeof window.BranchIdentity.aliases === 'function') {
+            return window.BranchIdentity.aliases(value);
+        }
+        const code = _canonicalBranch(value, '');
+        return code === 'CS1' ? ['CS1', 'Mặc định'] : (code ? [code] : []);
+    };
+    // Phase 4K-6V4B11: dùng chung cho Báo nợ/Đang tập legacy render.
+    // Direct compare safeBranch !== selBranch làm sót võ sinh nếu dữ liệu cũ lưu
+    // branch bằng Mặc định / tên cơ sở trong khi filter dùng CS1..CS10.
+    const _branchMatchesFilter = (profileBranch, selectedBranch) => {
+        const sel = String(selectedBranch || 'all').trim();
+        if (!sel || sel === 'all') return true;
+        const raw = String(profileBranch || '').trim();
+        if (!raw) return false;
+        if (raw === sel) return true;
+        try {
+            const rawCanonical = _canonicalBranch(raw, '');
+            const selCanonical = _canonicalBranch(sel, '');
+            if (rawCanonical && selCanonical && rawCanonical === selCanonical) return true;
+            const aliases = new Set([].concat(_branchAliases(sel), _branchAliases(selCanonical)).map(v => String(v || '').trim()).filter(Boolean));
+            if (aliases.has(raw) || aliases.has(rawCanonical)) return true;
+        } catch (_) {}
+        const fold = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+        return fold(raw) === fold(sel) || fold(window.getBranchNameDisplay ? window.getBranchNameDisplay(raw) : raw) === fold(sel);
+    };
+    window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
+// Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
+window.invCustomCategories = [];
+    // Compatibility marker: window.APP_PATCH_VERSION = '4K-6V5U-2-tuition-command-cutover-20260730';
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5U-2E'; window.APP_PATCH_VERSION = '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    // Phase 4K-6V5U4 SuperAdmin principal alignment: superadmin-auth-principal-20260811-v5u4
+    // Compatibility marker retained: 4K-6V5S-quit-context-render-loop-guard-20260722 / quit-context-render-loop-guard-20260722-v5s
+    // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
+    window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
+    window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
+    // Phase 4K-6V5U6E: canonical transaction coverage belongs to the transaction
+    // listener owner and travels with its RAM snapshot. A size equal to the query
+    // limit is never proof of completeness.
+    function _buildTransactionCoverage(input) {
+        const src = input && typeof input === 'object' ? input : {};
+        const readMode = String(src.readMode || 'unknown');
+        const limitValue = Math.max(1, Number(src.limit) || 1200);
+        const seen = src.sourceSeen && typeof src.sourceSeen === 'object' ? src.sourceSeen : {};
+        const countsIn = src.sourceCounts && typeof src.sourceCounts === 'object' ? src.sourceCounts : {};
+        const required = readMode === 'canonical'
+            ? ['canonical']
+            : ['byDate', 'byTxMonth', 'byPackageMonth'];
+        const sourceCounts = {};
+        required.forEach(function(key) {
+            sourceCounts[key] = Math.max(0, Number(countsIn[key]) || 0);
+        });
+        const ready = required.every(function(key) { return seen[key] === true; });
+        const hitLimit = required.some(function(key) {
+            return seen[key] === true && sourceCounts[key] >= limitValue;
+        });
+        return {
+            clubId: String(src.clubId || ''),
+            month: String(src.month || ''),
+            readMode: readMode,
+            ready: ready,
+            complete: ready && !hitLimit,
+            hitLimit: hitLimit,
+            mergedCount: Math.max(0, Number(src.mergedCount) || 0),
+            sourceCounts: sourceCounts,
+            limit: limitValue,
+            updatedAt: Number(src.updatedAt) || Date.now(),
+            reason: String(src.reason || ''),
+        };
+    }
+    function _resetTransactionCoverage(reason, overrides) {
+        if (!window.__store) return null;
+        const extra = overrides && typeof overrides === 'object' ? overrides : {};
+        const reset = _buildTransactionCoverage({
+            clubId: extra.clubId || '',
+            month: extra.month || '',
+            readMode: extra.readMode || 'unknown',
+            limit: extra.limit || ((window.__scaleConfig || {}).txListenerLimit) || 1200,
+            sourceSeen: {},
+            sourceCounts: {},
+            mergedCount: 0,
+            reason: reason || 'reset',
+        });
+        window.__store.transactionCoverage = reset;
+        return reset;
+    }
+    // Phase 4K-6V3A canonical transaction boundary; fallback preserves legacy/file mode.
+    const _canonicalTxPayload = (d, r) => typeof window.canonicalizeTransactionForWrite === 'function' ? window.canonicalizeTransactionForWrite(d, r || 'app-transaction-write') : (d && typeof d === 'object' ? { ...d } : d);
+
+    // H8R2 F3: fail-closed local fallback only. Do not publish a competing
+    // global escape authority. User-controlled text must never fall back to raw.
+    function _legacyEscapeHtmlFailClosed(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+    const _canonicalTxPatch = (d, e, r) => typeof window.canonicalizeTransactionPatch === 'function' ? window.canonicalizeTransactionPatch(d, e, r || 'app-transaction-patch') : (d && typeof d === 'object' ? { ...d } : d);
+    // ── Phase 4.0B-4C: App Context Ready state + helper ──────────────────────
+    // Idempotent — nếu đã khởi tạo (ví dụ: HMR) thì giữ nguyên generation.
+    window.__appContextReadyState = window.__appContextReadyState || {
+        ready: false,
+        clubId: null,
+        dispatchedAt: null,
+        generation: 0,
+        reason: ''
+    };
+    function dispatchAppContextReady(reason) {
+        reason = reason || 'unknown';
+        const st = window.__store || {};
+        const ready =
+            !!db &&
+            !!st.db &&
+            !!(st.clubId || st.currentClubId || window.currentClubId);
+        if (!ready) {
+            console.warn('[AppContextReady] skipped — context not ready', {
+                reason,
+                hasDb:      !!db,
+                hasStoreDb: !!st.db,
+                clubId:     st.clubId || st.currentClubId || window.currentClubId || ''
+            });
+            return false;
+        }
+        const clubId = st.clubId || st.currentClubId || window.currentClubId;
+        // Guard: không dispatch lại nếu cùng clubId + reason đã ready
+        if (
+            window.__appContextReadyState.ready &&
+            window.__appContextReadyState.clubId === clubId &&
+            window.__appContextReadyState.reason === reason
+        ) {
+            return true;
+        }
+        window.__appContextReadyState.ready       = true;
+        window.__appContextReadyState.clubId      = clubId;
+        window.__appContextReadyState.dispatchedAt = Date.now();
+        window.__appContextReadyState.reason      = reason;
+        window.__appContextReadyState.generation  =
+            (window.__appContextReadyState.generation || 0) + 1;
+        // Phase 4.0B-4D: Cập nhật hydration metrics khi context ready
+        _updateHydrationMetrics({ appContextReady: true, clubId, lastReason: reason });
+        window.dispatchEvent(new CustomEvent('app:context-ready', {
+            detail: {
+                clubId,
+                currentClubId: clubId,
+                reason,
+                generation: window.__appContextReadyState.generation
+            }
+        }));
+        // Phase 4.0B-4J-8A: Mark contextReady milestone
+        if (typeof markLoginPerf === 'function') markLoginPerf('contextReady');
+        console.info('[AppContextReady] dispatched', {
+            clubId,
+            reason,
+            generation: window.__appContextReadyState.generation
+        });
+        return true;
+    }
+    window.dispatchAppContextReady = dispatchAppContextReady;
+    // ── End Phase 4.0B-4C helper ─────────────────────────────────────────────
+    // ── Phase 4.0B-4D: Data Hydration Metrics ────────────────────────────────
+    // Đọc-only diagnostics — KHÔNG ghi Firestore, KHÔNG log PII.
+    window.__dataHydrationMetrics = window.__dataHydrationMetrics || {
+        clubId:                   '',
+        appContextReady:          false,
+        profilesSnapshotCount:    0,
+        profilesDocCount:         0,
+        transactionsSnapshotCount: 0,
+        transactionsDocCount:     0,
+        inventorySnapshotCount:   0,
+        inventoryDocCount:        0,
+        settingsLoaded:           false,
+        clubLoaded:               false,
+        lastUpdatedAt:            0,
+        lastReason:               ''
+    };
+    function _updateHydrationMetrics(patch) {
+        const m = window.__dataHydrationMetrics;
+        Object.assign(m, patch);
+        m.lastUpdatedAt = Date.now();
+    }
+    // ── End Phase 4.0B-4D metrics init ───────────────────────────────────────
+    // ── Phase 4.0B-4J-8A: Login Performance Metrics ──────────────────────────
+    // Đo thời gian từng bước login để tối ưu mobile. Không ghi Firestore.
+    window.__loginPerfMetrics = window.__loginPerfMetrics || {
+        loginStartAt:          0,
+        authReadyAt:           0,
+        shellShownAt:          0,
+        contextReadyAt:        0,
+        firstTabRenderedAt:    0,
+        dataHydratedAt:        0,
+        heavyWorkDeferredAt:   0,
+        totalToShellMs:        0,
+        totalToFirstTabMs:     0,
+        totalToDataHydratedMs: 0,
+        warnings:              [],
+    };
+    function markLoginPerf(name) {
+        const m   = window.__loginPerfMetrics || (window.__loginPerfMetrics = {});
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        m[name + 'At'] = now;
+        if (m.loginStartAt && m.shellShownAt)        m.totalToShellMs        = Math.round(m.shellShownAt        - m.loginStartAt);
+        if (m.loginStartAt && m.firstTabRenderedAt)  m.totalToFirstTabMs     = Math.round(m.firstTabRenderedAt  - m.loginStartAt);
+        if (m.loginStartAt && m.dataHydratedAt)      m.totalToDataHydratedMs = Math.round(m.dataHydratedAt      - m.loginStartAt);
+    }
+    window.markLoginPerf = window.markLoginPerf || markLoginPerf;
+    window.printLoginPerfMetrics = function printLoginPerfMetrics() {
+        const m = window.__loginPerfMetrics || {};
+        console.group('[LoginPerfMetrics] Phase 4.0B-4J-8A');
+        console.log('loginStart     →  0ms (reference)');
+        if (m.loginStartAt) {
+            const _t = n => m[n + 'At'] ? Math.round(m[n + 'At'] - m.loginStartAt) + 'ms' : '—';
+            console.log('authReady      → ', _t('authReady'));
+            console.log('shellShown     → ', _t('shellShown'), '  (totalToShell:', m.totalToShellMs, 'ms)');
+            console.log('contextReady   → ', _t('contextReady'));
+            console.log('firstTabRender → ', _t('firstTabRendered'), '  (totalToFirstTab:', m.totalToFirstTabMs, 'ms)');
+            console.log('dataHydrated   → ', _t('dataHydrated'), '  (totalToData:', m.totalToDataHydratedMs, 'ms)');
+            console.log('heavyDeferred  → ', _t('heavyWorkDeferred'));
+        }
+        console.groupEnd();
+        return m;
+    };
+    // runIdle: defer non-critical work — requestIdleCallback khi có, fallback 800ms
+    const runIdle = (typeof requestIdleCallback === 'function')
+        ? (fn) => requestIdleCallback(fn, { timeout: 1500 })
+        : (fn) => setTimeout(fn, 800);
+    window.runIdle = window.runIdle || runIdle;
+    // ── End Phase 4.0B-4J-8A: Login Performance Metrics ─────────────────────
+    // ── Phase 4J-8: Firestore Read Scale — Global Config + Metrics ──────────
+    // Scale config: tập trung tất cả hard limits tại một chỗ để dễ điều chỉnh.
+    // Các giá trị này kiểm soát limit() calls và page size ở khắp app.
+    window.__scaleConfig = window.__scaleConfig || {
+        profilesPageSize:        50,    // cursor page size cho tab Võ sinh
+        transactionsPageSize:    100,   // cursor page size cho tab Tài chính
+        inventoryPageSize:       100,   // cursor page size cho tab Kho
+        attendanceDailyLimit:       1200,  // max records/ngày (nên chọn ca nếu chạm limit)
+        attendanceMonthlyPageSize:  1000,  // cursor page size cho thống kê tháng
+        attendanceMonthlyMaxPages: 200,   // safety ceiling: 200.000 records, không trả dữ liệu thiếu
+        attendanceMonthlyLimit:    10000, // deprecated compatibility key — không còn dùng làm fixed cap
+        txListenerLimit:         1200,  // real-time tx listener hard cap (up from 500)
+        invListenerLimit:        500,   // inventory display listener (OK — display only)
+        legacyFallbackLimit:     1200,  // legacy-root read limit per collection
+        exportBatchSize:         200,   // fetchAllPagesForExport() page size per iteration
+        warnThresholdProfiles:   1200,  // log warning khi snapshot size vượt ngưỡng này
+    };
+    // Read scale metrics: ghi lại mỗi Firestore read quan trọng để diagnostics.
+    window.__readScaleMetrics = window.__readScaleMetrics || { reads: [] };
+    // [Phase 4K] Transaction Listener Metrics — track attach/detach/duplicate for read cost control.
+    // Xem: window.printTxListenerMetrics() trong DevTools để diagnostics.
+    window.__txListenerMetrics = window.__txListenerMetrics || {
+        txListenerAttached:              0, // tổng số lần listener được attach
+        txListenerDetached:              0, // tổng số lần listener được cleanup
+        txListenerDuplicatePrevented:    0, // số lần duplicate bị ngăn (same key, same month)
+        txStatsRead:                     0, // số lần đọc stats doc thành công (dashboard historical)
+        txStatsFallbackScan:             0, // số lần fallback sang scan transactions (stats doc missing)
+        txStatsFallbackDocsReadEstimate: 0, // ước lượng docs đã đọc khi fallback
+        superAdminStatsRead:             0, // SuperAdmin đọc stats docs thành công
+        dashboardStatsRead:              0, // Dashboard đọc stats docs thành công
+        lastAttachedMonth:               '',
+        lastAttachedAt:                  0,
+        lastDetachedAt:                  0,
+        txListenerSkippedUntilFinanceTab:0, // số lần listener CHƯA attach vì Finance tab chưa mở (lazy-mount)
+        dashboardCurrentMonthStatsRead:  0, // Dashboard đọc stats doc tháng hiện tại thành công
+    };
+    window.printTxListenerMetrics = function() {
+        console.table(window.__txListenerMetrics);
+        return window.__txListenerMetrics;
+    };
+    /* API details: docs/APP_API_NOTES.md. */
+    window.recordReadMetric = function(collection, docCount, reason) {
+        const _m = window.__readScaleMetrics;
+        if (!_m) return;
+        _m.reads.push({ collection: String(collection), docCount: docCount | 0, reason: String(reason || ''), at: Date.now() });
+        if (_m.reads.length > 200) _m.reads = _m.reads.slice(-200); // keep last 200
+        const _cfg = window.__scaleConfig || {};
+        if (collection === 'profiles' && docCount > (_cfg.warnThresholdProfiles || 1200)) {
+            console.warn('[Scale] ⚠️ profiles snapshot lớn: ' + docCount + ' docs (ngưỡng cảnh báo ' + (_cfg.warnThresholdProfiles || 1200) + '). Kiểm tra club size hoặc pagination config.');
+        }
+    };
+    /**
+     * In tóm tắt read metrics theo collection.
+     * Gọi từ DevTools console: window.printReadScaleMetrics()
+     */
+    window.printReadScaleMetrics = function() {
+        const _reads = (window.__readScaleMetrics || {}).reads || [];
+        const _byCol = {};
+        _reads.forEach(function(r) {
+            if (!_byCol[r.collection]) _byCol[r.collection] = { count: 0, total: 0, max: 0 };
+            _byCol[r.collection].count++;
+            _byCol[r.collection].total += (r.docCount || 0);
+            _byCol[r.collection].max    = Math.max(_byCol[r.collection].max, r.docCount || 0);
+        });
+        console.group('[ReadScaleMetrics] Phase 4J-8');
+        Object.keys(_byCol).forEach(function(col) {
+            const s = _byCol[col];
+            console.log('  ' + col + ': reads=' + s.count + ', totalDocs=' + s.total + ', maxDocs=' + s.max);
+        });
+        console.groupEnd();
+        return _byCol;
+    };
+    /**
+     * In scale readiness summary — config + live state.
+     * Gọi từ DevTools console: window.printScaleReadiness()
+     */
+    window.printScaleReadiness = function() {
+        const _cfg = window.__scaleConfig || {};
+        console.group('[ScaleReadiness] Phase 4J-8');
+        console.log('profilesPageSize      :', _cfg.profilesPageSize);
+        console.log('transactionsPageSize  :', _cfg.transactionsPageSize);
+        console.log('inventoryPageSize     :', _cfg.inventoryPageSize);
+        console.log('attendanceDailyLimit      :', _cfg.attendanceDailyLimit);
+        console.log('attendanceMonthlyPageSize :', _cfg.attendanceMonthlyPageSize);
+        console.log('attendanceMonthlyMaxPages :', _cfg.attendanceMonthlyMaxPages);
+        console.log('txListenerLimit       :', _cfg.txListenerLimit);
+        console.log('invListenerLimit      :', _cfg.invListenerLimit);
+        console.log('legacyFallbackLimit   :', _cfg.legacyFallbackLimit);
+        console.log('exportBatchSize       :', _cfg.exportBatchSize);
+        console.log('warnThresholdProfiles :', _cfg.warnThresholdProfiles);
+        const _latest = ((window.__readScaleMetrics || {}).reads || []).slice(-5);
+        if (_latest.length) {
+            console.log('Recent reads (last ' + _latest.length + '):');
+            _latest.forEach(function(r) { console.log('  [' + r.collection + '] ' + r.docCount + ' docs — ' + r.reason); });
+        }
+        console.groupEnd();
+        return { config: _cfg, recentReads: _latest };
+    };
+    /* API details: docs/APP_API_NOTES.md. */
+    window.fetchAllPagesForExport = async function(fetchPage, options) {
+        const _opts       = options || {};
+        const _batchSize  = _opts.pageSize || ((window.__scaleConfig || {}).exportBatchSize) || 200;
+        const _maxPages   = _opts.maxPages || 50;
+        const _collection = _opts.collection || 'unknown';
+        const _results    = [];
+        let _cursor = null;
+        let _page   = 0;
+        while (_page < _maxPages) {
+            let _snap;
+            try {
+                _snap = await fetchPage({ pageSize: _batchSize, cursor: _cursor, direction: _cursor ? 'next' : 'first' });
+            } catch (_e) {
+                console.warn('[fetchAllPagesForExport] page ' + _page + ' error:', _e && _e.message ? _e.message.slice(0, 80) : _e);
+                break;
+            }
+            if (!_snap || !_snap.docs || _snap.docs.length === 0) break;
+            const _docs    = _snap.docs;
+            const _hasNext = _docs.length > _batchSize;
+            const _pageDocs = _hasNext ? _docs.slice(0, _batchSize) : _docs;
+            _pageDocs.forEach(function(d) { _results.push(Object.assign({ id: d.id }, d.data())); });
+            if (typeof window.recordReadMetric === 'function') {
+                window.recordReadMetric(_collection, _pageDocs.length, 'fetchAllPagesForExport:page' + _page);
+            }
+            if (!_hasNext || _pageDocs.length < _batchSize) break;
+            _cursor = _pageDocs[_pageDocs.length - 1];
+            _page++;
+        }
+        if (_page >= _maxPages) {
+            console.warn('[fetchAllPagesForExport] Hit maxPages (' + _maxPages + ') for ' + _collection + '. Total docs: ' + _results.length);
+        }
+        return _results;
+    };
+    // ── End Phase 4J-8 Scale Config ──────────────────────────────────────────
+    // ── Phase 4.0B-4F — Phase 1: Runtime Recovery State ──────────────────────
+    // Diagnostics-only. Không log PII. Không ghi Firestore.
+    window.__runtimeRecoveryState = window.__runtimeRecoveryState || {
+        checked:          false,
+        running:          false,
+        completed:        false,
+        activeDataSource: '',
+        recoveryUsed:     false,
+        reason:           '',
+        error:            '',
+        checkedAt:        0,
+        completedAt:      0
+    };
+    // ── End Phase 4.0B-4F Phase 1 ────────────────────────────────────────────
+      // Phase 4.0A-2: window.getAppContext — Cung cấp app context cho modules
+      // Không log dữ liệu cá nhân. Không crash nếu biến chưa sẵn sàng.
+      // Không phá window.__store (backward compatible).
+      window.getAppContext = function(reason) {
+          // reason dùng để debug — không log giá trị cá nhân
+          try {
+              // Phase 4K-6V5U5: once verified, auth role/club/branch come only from
+              // the canonical committed context. Legacy globals remain compatibility mirrors.
+              const _verifiedAuth = window.__verifiedAuthContextState;
+              const _verifiedReady = !!(_verifiedAuth && _verifiedAuth.ready === true);
+              return {
+                  db,
+                  auth,
+                  currentClubId: _verifiedReady ? (_verifiedAuth.clubId || '') : currentClubId,
+                  currentUser: _verifiedReady ? ((window.__store && window.__store.currentUser) || (auth ? auth.currentUser : null)) : (auth ? auth.currentUser : null),
+                  clubData:       clubData        || {},
+                  clubConfig:     clubConfig      || {},
+                  userRole:       _verifiedReady ? (_verifiedAuth.role || 'viewer') : (window.userRole || 'viewer'),
+                  coachBranch:    _verifiedReady ? (_verifiedAuth.coachBranch || '') : (window.coachBranch || ''),
+                  colRef:         colRef,
+                  profRef:        profRef,
+                  invRef:         invRef,
+                  allProfiles:    allProfiles     || {},
+                  allTransactions: allTransactions || [],
+                  allInventory:   allInventory    || [],
+                  inventoryStats: inventoryStats  || {},
+                  helpers: {
+                      showToast:                      window.showToast,
+                      ensureAllProfilesForExport:     window.ensureAllProfilesForExport,
+                      ensureInventoryForFeature:      window.ensureInventoryForFeature,
+                      loadTransactionsForDateRange:   window.loadTransactionsForDateRange,
+                      loadTransactionsForTxMonthRange: window.loadTransactionsForTxMonthRange,
+                      loadInventoryForDateRange:      window.loadInventoryForDateRange,
+                      dedupeDocsById:                 window.dedupeDocsById,
+                  },
+              };
+          } catch (_e) {
+              // Không crash — trả về rỗng để fallback __store
+              return {};
+          }
+      };
+    let _lastSizeSelectHtml = '';
+    let _tabHtmlCache = {};
+    const _TAB_LISTS = {
+        tx:        ['txList'],
+        debt:      ['debtList'],
+        active:    ['activeList'],
+        quit:      ['quitList'],
+        inventory: ['uniformTxList', 'inventoryList'],
+        expense:   ['expenseList'],
+        exam:      ['examExpenseList'],
+        dashboard: ['reportList']
+    };
+    let _dataVersion = 0, _lastRenderedVersion = -1;
+    // Phase 4K-6I-B: flushOrQueueDomainInvalidation — safe wrapper
+    // Gọi invalidate function ngay nếu có, hoặc push vào pendingDomainInvalidations queue.
+    window.__pendingDomainInvalidations = window.__pendingDomainInvalidations || [];
+    window.queueDomainInvalidation = function(domain, reason, meta) {
+        window.__pendingDomainInvalidations.push({ domain, reason, at: Date.now(), meta: meta || {} });
+        console.debug('[DomainQueue] Queued:', domain, reason);
+    };
+    window.flushOrQueueDomainInvalidation = function(domain, reason, meta) {
+        const fnMap = {
+            finance:    window.invalidateFinance,
+            students:   window.invalidateStudents,
+            dashboard:  window.invalidateDashboard,
+            inventory:  window.invalidateInventory,
+            debt:       window.invalidateFinance,
+            exam:       window.invalidateCurrentTab,
+            attendance: window.invalidateCurrentTab,
+        };
+        const fn = fnMap[domain];
+        if (typeof fn === 'function') {
+            fn(reason);
+        } else {
+            window.queueDomainInvalidation(domain, reason, meta);
+        }
+    };
+    window.scheduleRender = (reason, opts) => {
+        // [Phase 4K-6H] Metrics
+        window.LegacyRenderEntrypoints?.recordLegacyRenderCall?.(
+            'scheduleRender',
+            reason || 'unknown',
+            { source: 'app.js' }
+        );
+        // [Phase 4K-6H] Route sang domain invalidation nếu không ép full render
+        const reasonText = String(reason || '').trim();
+        if (!opts?.forceLegacyRender && window.LegacyRenderEntrypoints?.routeLegacyRenderReason) {
+            const routed = window.LegacyRenderEntrypoints.routeLegacyRenderReason(reasonText, {
+                source: 'scheduleRender'
+            });
+            if (routed && routed.routed) {
+                return;
+            }
+        }
+        // Fallback legacy: tăng dataVersion + schedule renderApp
+        _dataVersion++;
+        if (window.__store) window.__store._dataVersion = _dataVersion;
+        if(renderTimeout) clearTimeout(renderTimeout);
+        renderTimeout = setTimeout(renderApp, 250);
+    };
+    // [PERF] Tải thêm dữ liệu — tăng page của tab tương ứng rồi re-render.
+    // Được gọi bởi nút "⬇ Tải thêm" trong mỗi list. Khi lọc/tìm kiếm thay đổi,
+    // switchTab và window.filterStudents sẽ reset page về 1 tự động.
+    // Phase 3.5D: list-level invalidation replaces direct renderApp for loadMore
+    window._loadMore = (tab) => {
+        // Giữ nguyên logic tăng page — không đổi behavior
+        if(tab === 'active') window._activePage = (window._activePage || 1) + 1;
+        else if(tab === 'debt') window._debtPage = (window._debtPage || 1) + 1;
+        else if(tab === 'quit') window._quitPage = (window._quitPage || 1) + 1;
+        _dataVersion++; if (window.__store) window.__store._dataVersion = _dataVersion;
+        // [3.5D] Metrics
+        if (window.__renderLegacyMetrics) window.__renderLegacyMetrics.loadMoreCalls = (window.__renderLegacyMetrics.loadMoreCalls || 0) + 1;
+        // [3.5D] Prefer list-level invalidation → tab-level → legacy renderApp fallback
+        if (window.invalidateLoadMoreTab) {
+            window.invalidateLoadMoreTab(tab, 'load-more-' + tab);
+        } else if (window.invalidateTab) {
+            window.invalidateTab(tab, 'load-more-fallback-' + tab);
+        } else {
+            // Fallback cuối: renderApp() legacy (chỉ khi invalidation layer chưa load)
+            if (window.__renderLegacyMetrics) window.__renderLegacyMetrics.loadMoreFallbackRenderAppCalls = (window.__renderLegacyMetrics.loadMoreFallbackRenderAppCalls || 0) + 1;
+            renderApp();
+        }
+    };
+    // Reset page khi search/filter thay đổi (kết quả mới nên quay về trang 1)
+    window._resetListPages = () => {
+        window._activePage = 1;
+        window._debtPage   = 1;
+        window._quitPage   = 1;
+    };
+    function getLocalToday() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; }
+    function formatDate(dateStr) { if (!dateStr) return ""; if (dateStr.includes('/')) return dateStr; return dateStr.split('-').reverse().join('/'); }
+    function formatMonth(monthStr) { return monthStr ? monthStr.split('-').reverse().join('/') : ""; }
+    function addMonthsToYYYYMM(yymm, count) {
+        if(!yymm) return getLocalToday().substring(0, 7);
+        let [y, m] = yymm.split('-').map(Number);
+        m += count;
+        while(m > 12) { m -= 12; y++; }
+        while(m < 1) { m += 12; y--; }
+        return `${y}-${String(m).padStart(2, '0')}`;
+    }
+    // [THÊM BƯỚC 2] Chuẩn hóa tháng về dạng YYYY-MM có zero-pad
+    // Phòng trường hợp Firestore trả về "2025-1" thay vì "2025-01"
+    // → đảm bảo so sánh string YYYY-MM luôn chính xác 100%
+    function normalizeYYYYMM(s) {
+        if (!s) return '';
+        let raw = String(s || '').trim();
+        if (!raw) return '';
+        if (raw && typeof raw.toDate === 'function') {
+            try {
+                const d = raw.toDate();
+                if (d && !Number.isNaN(d.getTime())) {
+                    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                }
+            } catch (_) {}
+        }
+
+        // Phase 4K-6V4B8/B9: chuẩn hóa cả tháng tiếng Việt dạng chữ.
+        // Ví dụ: "Tháng tư 2026", "Tháng Tư năm 2026", "thang muoi mot 2026".
+        // Lỗi cũ: các chuỗi này parse rỗng → Báo nợ chỉ tính 1 tháng hoặc bị ẩn
+        // khi bật bộ lọc nợ từ 2 tháng trở lên.
+        function _foldMonthText(v) {
+            return String(v || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, ' ')
+                .trim();
+        }
+        function _monthWordToNumber(phrase) {
+            let key = _foldMonthText(phrase)
+                .replace(/\b(thang|month|t)\b/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (!key) return 0;
+
+            // Phase 4K-6V4B9: “Tháng năm 2026” means month 5.
+            // V4B8 stripped a trailing “nam” as the word “year” before checking the
+            // month map, so “thang nam 2026” became empty and the debt engine missed
+            // June debt. Parse numeric/exact month words first; strip a trailing
+            // year marker only when another month token remains.
+            const map = {
+                'mot': 1, 'm ot': 1, 'hai': 2, 'ba': 3, 'bon': 4, 'tu': 4,
+                'nam': 5, 'lam': 5, 'sau': 6, 'bay': 7, 'tam': 8, 'chin': 9,
+                'muoi': 10, 'muoi mot': 11, 'muoi hai': 12,
+                'thu mot': 1, 'thu hai': 2, 'thu ba': 3, 'thu bon': 4, 'thu tu': 4,
+                'thu nam': 5, 'thu sau': 6, 'thu bay': 7, 'thu tam': 8, 'thu chin': 9,
+                'jan': 1, 'january': 1, 'feb': 2, 'february': 2, 'mar': 3, 'march': 3,
+                'apr': 4, 'april': 4, 'may': 5, 'jun': 6, 'june': 6,
+                'jul': 7, 'july': 7, 'aug': 8, 'august': 8, 'sep': 9, 'sept': 9, 'september': 9,
+                'oct': 10, 'october': 10, 'nov': 11, 'november': 11, 'dec': 12, 'december': 12,
+            };
+            function read(k) {
+                const text = String(k || '').replace(/\s+/g, ' ').trim();
+                if (!text) return 0;
+                const numeric = text.match(/\b(1[0-2]|0?[1-9])\b/);
+                if (numeric) return Number(numeric[1]);
+                if (map[text] >= 1 && map[text] <= 12) return map[text];
+                if (/\bmuoi\s+hai\b/.test(text)) return 12;
+                if (/\bmuoi\s+mot\b/.test(text)) return 11;
+                if (/^muoi$/.test(text)) return 10;
+                return 0;
+            }
+            const direct = read(key);
+            if (direct) return direct;
+            const strippedYearMarker = key.replace(/\b(year)\b\s*$/g, '').replace(/\s+/g, ' ').trim();
+            const strippedVietnameseYear = key.replace(/\bnam\b\s*$/g, '').replace(/\s+/g, ' ').trim();
+            // Only treat a trailing “nam” as the word “year” if something remains.
+            // Otherwise keep it as tháng năm = month 5.
+            return read(strippedYearMarker) || (strippedVietnameseYear ? read(strippedVietnameseYear) : 0);
+        }
+
+
+        const foldedRaw = _foldMonthText(raw);
+        const yearMatch = foldedRaw.match(/\b(20\d{2})\b/);
+        if (yearMatch) {
+            const year = yearMatch[1];
+            const beforeYear = foldedRaw.slice(0, yearMatch.index).trim();
+            const afterYear = foldedRaw.slice(yearMatch.index + year.length).trim();
+            let wordMonth = _monthWordToNumber(beforeYear) || _monthWordToNumber(afterYear);
+            if (wordMonth >= 1 && wordMonth <= 12) return year + '-' + String(wordMonth).padStart(2, '0');
+        }
+
+        raw = raw
+            .replace(/tháng/gi, '')
+            .replace(/thang/gi, '')
+            .replace(/^t\s*/i, '')
+            .replace(/\s+/g, '')
+            .replace(/[.]/g, '-')
+            .trim();
+        let m = raw.match(/^(20\d{2})[-\/](\d{1,2})(?:[-\/]\d{1,2})?$/);
+        if (m) {
+            const mo = Number(m[2]);
+            if (mo >= 1 && mo <= 12) return m[1] + '-' + String(mo).padStart(2, '0');
+        }
+        m = raw.match(/^(\d{1,2})[-\/](20\d{2})$/);
+        if (m) {
+            const mo = Number(m[1]);
+            if (mo >= 1 && mo <= 12) return m[2] + '-' + String(mo).padStart(2, '0');
+        }
+        m = raw.match(/^(?:T)?(\d{1,2})[-\/]?(20\d{2})$/i);
+        if (m) {
+            const mo = Number(m[1]);
+            if (mo >= 1 && mo <= 12) return m[2] + '-' + String(mo).padStart(2, '0');
+        }
+        return '';
+    }
+    window.normalizeTuitionMonth = normalizeYYYYMM;
+    // Phase 4K-5M — getChargeableTuitionMonths: nguồn chuẩn tính tháng học phí cần thu
+    // Dùng chung cho BÁO NỢ và Thu Gộp khoản, tự động loại trừ skippedMonths
+    window.getChargeableTuitionMonths = function(profile, selectedMonth, options) {
+        const p = profile || {};
+        const selMonth = normalizeYYYYMM(selectedMonth || '');
+        // Phase 4K-6V4C: route Báo nợ/Học phí through one canonical debt boundary.
+        // The canonical helper is read-only and preserves the V4B11 revenue-safe rule:
+        // paidUntil is the authoritative displayed paid boundary; stale future paidMonths
+        // must not hide debt unless a caller explicitly opts in.
+        if (typeof window.computeTuitionDebtCanonical === 'function') {
+            const canonical = window.computeTuitionDebtCanonical(p, selMonth, Object.assign({ reason: 'getChargeableTuitionMonths' }, options || {}));
+            return Array.isArray(canonical && canonical.chargeableMonths) ? canonical.chargeableMonths : [];
+        }
+        if (!selMonth) return [];
+        if (p.feeExempt === true) return [];
+        const statusKind = typeof window.classifyProfileStatus === 'function'
+            ? window.classifyProfileStatus(p)
+            : (
+                p.status === 'quit' || p.status === 'inactive' ||
+                p.active === false || p.isActive === false
+                ? 'quit' : 'active'
+            );
+        if (statusKind === 'quit') return [];
+        const skipped = Array.isArray(p.skippedMonths)
+            ? p.skippedMonths.map(function(m) { return normalizeYYYYMM(m); }).filter(Boolean)
+            : [];
+        // Phase 4K-6V4B7: paidMonths/skippedMonths must be normalized with the
+        // same canonical month parser as paidUntil. Legacy values like 05/2026
+        // or T5/2026 previously caused missing debt rows.
+        const rawPaidMonths = Array.isArray(p.paidMonths)
+            ? p.paidMonths.map(function(m) { return normalizeYYYYMM(m); }).filter(Boolean)
+            : [];
+        const paidUntil = normalizeYYYYMM(p.paidUntil || '');
+        // Phase 4K-6V4B11: Báo nợ lấy `paidUntil` làm ranh giới canonical.
+        // Lỗi thực tế: hồ sơ hiển thị “Đã đóng tới tháng = Tháng Năm 2026”
+        // nhưng `paidMonths` legacy/stale vẫn chứa 2026-06, làm tháng 6 bị che mất.
+        // Khi paidUntil tồn tại, các paidMonths SAU paidUntil không được tự động
+        // xóa nợ, trừ khi caller chủ động bật trustFuturePaidMonths.
+        const trustFuturePaidMonths = !!(options && options.trustFuturePaidMonths === true);
+        const paidMonths = paidUntil && !trustFuturePaidMonths
+            ? rawPaidMonths.filter(function(m) { return m <= paidUntil; })
+            : rawPaidMonths;
+        let startMonth = '';
+        if (paidUntil) {
+            startMonth = addMonthsToYYYYMM(paidUntil, 1);
+        }
+        if (!startMonth) {
+            const joinLike = p.admissionDate || p.joinDate || p.joinedAt || p.createdAt || p.enrollDate || selMonth;
+            startMonth = normalizeYYYYMM(joinLike) || selMonth;
+        }
+        const result = [];
+        let cur = startMonth;
+        let guard = 0;
+        while (cur && cur <= selMonth && guard < 36) {
+            if (!skipped.includes(cur) && !paidMonths.includes(cur)) result.push(cur);
+            cur = addMonthsToYYYYMM(cur, 1);
+            guard++;
+        }
+        // Stale legacy flags (isOwed=false / owedMonths=[]) must never suppress
+        // canonical debt. Only merge legacy owed months when they ADD evidence.
+        if (p.isOwed === true && Array.isArray(p.owedMonths)) {
+            p.owedMonths.map(function(m) { return normalizeYYYYMM(m); }).filter(Boolean).forEach(function(m) {
+                if (m <= selMonth && !skipped.includes(m) && !paidMonths.includes(m) && !result.includes(m)) result.push(m);
+            });
+            result.sort();
+        }
+        return result;
+    };
+    // Phase 4K-5M — formatTuitionMonthList: format danh sách tháng học phí
+    window.formatTuitionMonthList = function(months) {
+        const arr = Array.isArray(months) ? months : [];
+        if (!arr.length) return '';
+        if (typeof window.formatMonthCompact === 'function') {
+            return window.formatMonthCompact(arr.join(','));
+        }
+        return arr.map(function(m) {
+            const parts = String(m).split('-');
+            return parts.length === 2 ? parts[1] + '/' + parts[0] : m;
+        }).join(', ');
+    };
+    // Phase 4K-6S: low-risk UI rollback implementations moved to
+    // js/legacy/legacyUiFallbacks.js (classic script loaded before app.js).
+    // app.js remains the legacy business kernel but no longer duplicates these UI bodies.
+    if (!window.__legacyUiFallbacksInstalled) {
+        console.warn('[4K-6S] legacyUiFallbacks.js was not loaded; module layer must provide low-risk UI globals.');
+    }
+    window.openAddModal = () => {
+        document.getElementById('addModal').style.display = 'flex';
+        const d = document.getElementById('add_date'); if(d) d.value = getLocalToday();
+        document.getElementById('add_name').value = '';
+        document.getElementById('add_memberId').value = '';
+        document.getElementById('add_belt').value = 'Trắng';
+        document.getElementById('add_dob').value = '';
+        document.getElementById('add_gender').value = 'Nam';
+        document.getElementById('add_phone').value = '';
+        document.getElementById('add_cccd').value = '';
+        document.getElementById('add_notes').value = '';
+        // [THÊM] Reset trường biệt danh khi mở form thêm mới
+        const _addNick = document.getElementById('add_nickname'); if (_addNick) _addNick.value = '';
+        document.getElementById('add_package').value = '1';
+        document.getElementById('add_discount').checked = false;
+        document.getElementById('add_fee_default_display').value = '';
+        document.getElementById('add_fee_default_actual').value = '';
+        document.getElementById('add_fee_display').value = '';
+        document.getElementById('add_fee_actual').value = '';
+        document.getElementById('add_uniform_size').value = '';
+        document.getElementById('add_uniform_display').value = '';
+        document.getElementById('add_uniform_actual').value = '';
+        document.getElementById('add_uniform_gift').checked = false;
+        document.getElementById('add_uniform_display').disabled = false;
+        // Reset lịch học khi mở form thêm mới
+        document.querySelectorAll('.add_trainingDay').forEach(cb => cb.checked = false);
+        // [SỬA ĐỒNG BỘ] Đảm bảo shifts đã load kể cả khi chưa mở tab Điểm Danh
+        const _addShiftSel = document.getElementById('add_shift');
+        if (_addShiftSel) {
+            (window._ensureClubShiftsLoaded ? window._ensureClubShiftsLoaded() : Promise.resolve()).then(function() {
+                _addShiftSel.replaceChildren(new Option('-- Chọn ca tập --', ''));
+                (window._getClubShifts ? window._getClubShifts() : []).forEach(function(s) {
+                    const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
+                    _addShiftSel.add(new Option(String(s.name || '') + _t, String(s.id || '')));
+                });
+                _addShiftSel.value = '';
+            });
+        }
+    };
+    window.closeAddModal = () => document.getElementById('addModal').style.display = 'none';
+    // Phase 4K-6S: openComboModal/closeModal/tax modal fallbacks are installed
+    // by js/legacy/legacyUiFallbacks.js before this legacy kernel executes.
+    // [Phase 2a] Bridge: expose _legacySwitchTab để ui/tabs.js có thể delegate về đây
+    window._legacySwitchTab = window.switchTab = (tabId) => {
+        tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId;
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab_' + tabId).classList.add('active'); document.getElementById('btn_' + tabId).classList.add('active');
+        // [PERF] Reset pagination về trang 1 khi đổi tab — tránh hiện "Tải thêm"
+        // sai khi người dùng từ tab đang trang 3 chuyển sang tab khác rồi quay lại.
+        if(tabId === 'active') window._activePage = 1;
+        else if(tabId === 'debt') window._debtPage = 1;
+        // [Phase 3.8A] Inventory feature gate when entering inventory tab
+        if (tabId === 'inventory') {
+            window.ensureInventoryForFeature?.('inventoryTab', 'enter-inventory-tab');
+            window.ensureInventoryHistoryLoaded?.('legacy-switch-inventory-tab')
+                .catch?.((err) => console.warn('[Phase 4K-6V2] inventory tab load failed:', err));
+        }
+        // [Phase 3.8A] Dashboard feature gate
+        if (tabId === 'dashboard') {
+            window.ensureInventoryForFeature?.('dashboard', 'enter-dashboard-tab');
+        }
+        else if(tabId === 'quit') window._quitPage = 1;
+        // V5R: the quit tab must never be restored from legacy tabHtmlCache
+        // in module runtime. That cache can be active-only/partial and was one of
+        // the sources that repeatedly overwrote the complete Đã nghỉ list.
+        if (tabId === 'quit' && window.QuitProfileBoundary) {
+            const quitEl = document.getElementById('quitList');
+            if (quitEl && !quitEl.querySelector('tr[data-quit-id]')) {
+                quitEl.innerHTML = '<tr data-quit-loading="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Đang đối chiếu toàn bộ danh sách đã nghỉ...</td></tr>';
+            }
+            Promise.resolve(window.QuitProfileBoundary.ensureComplete?.('legacy-switch-tab-quit'))
+                .then(ok => {
+                    try {
+                        if (ok === true && window.QuitProfileBoundary?.isComplete?.() === true) {
+                            window.renderQuitList?.({ reason: 'legacy-switch-tab-quit-complete' });
+                        }
+                    } catch (_) {}
+                })
+                .catch(() => {});
+        } else {
+            (_TAB_LISTS[tabId] || []).forEach(listId => {
+                const el = document.getElementById(listId);
+                if(el && _tabHtmlCache[listId] !== undefined) el.innerHTML = _tabHtmlCache[listId];
+            });
+        }
+        if(tabId === 'dashboard') {
+            const cd = _tabHtmlCache._chartData;
+            if(cd && typeof Chart === 'undefined') {
+                window.ensureChartJsReady?.('legacy-dashboard-tab-switch')
+                    .then(() => { try { window.switchTab?.('dashboard'); } catch (_) {} })
+                    .catch((err) => console.warn('[legacy dashboard] Chart.js lazy load failed:', err));
+            }
+            if(cd && typeof Chart !== 'undefined') {
+                if(financeChartInstance) { financeChartInstance.data.labels = cd.labels; financeChartInstance.data.datasets[0].data = cd.income; financeChartInstance.data.datasets[1].data = cd.expense; financeChartInstance.update('none'); }
+                else { financeChartInstance = new Chart(document.getElementById('financeChart'), { type: 'bar', data: { labels: cd.labels, datasets: [{ label: 'Tổng Thu', data: cd.income, backgroundColor: 'rgba(16, 185, 129, 0.9)', borderRadius: 6 }, { label: 'Tổng Chi', data: cd.expense, backgroundColor: 'rgba(244, 63, 94, 0.9)', borderRadius: 6 }]}, options: { animation: false, maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, grid: { color: '#f8fafc' } }, x: { grid: { display: false } } }, plugins: { legend: { labels: { font: { family: "'Inter', sans-serif", weight: 'bold' } } } } } }); }
+                if(memberChartInstance) { memberChartInstance.data.labels = cd.labels; memberChartInstance.data.datasets[0].data = cd.active; memberChartInstance.update('none'); }
+                else { memberChartInstance = new Chart(document.getElementById('memberChart'), { type: 'line', data: { labels: cd.labels, datasets: [{ label: 'Võ sinh Đang tập', data: cd.active, borderColor: '#0033A0', backgroundColor: 'rgba(0, 51, 160, 0.08)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2 }]}, options: { animation: false, maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, grid: { color: '#f8fafc' } }, x: { grid: { display: false } } }, plugins: { legend: { labels: { font: { family: "'Inter', sans-serif", weight: 'bold' } } } } } }); }
+            }
+        }
+        if (window.__store) { window.__store.financeChartInstance = financeChartInstance; window.__store.memberChartInstance = memberChartInstance; } // [Phase 2c] sync chart instances
+        if(tabId === 'exam' && typeof window.renderExamList === 'function') { window.renderExamList(); if(typeof window.updateNextBeltPreview === 'function') window.updateNextBeltPreview(); }
+        if(tabId === 'attendance') { const _attD = document.getElementById('att_date'); if(_attD && !_attD.value) _attD.value = getLocalToday(); if(typeof window.renderAttendanceList === 'function') window.renderAttendanceList(); }
+        window.scrollTo({top: 0, behavior: 'smooth'});
+        // [Phase 4K-STUDENT-LIST] Dùng domain invalidation thay vì scheduleRender() toàn app.
+        // Fallback về scheduleRender() nếu invalidateCurrentTab chưa load (backward compat).
+        if (typeof window.invalidateCurrentTab === 'function') {
+            window.invalidateCurrentTab('tab-switch-' + tabId);
+        } else {
+            scheduleRender();
+        }
+    };
+    window.getBranchNameDisplay = (code) => {
+        const canonicalCode = _canonicalBranch(code, String(code || '').trim());
+        for(let _bi = 1; _bi <= 10; _bi++) {
+            if(canonicalCode === 'CS' + _bi) return clubConfig['branchName' + _bi] || ('Cơ sở ' + _bi);
+        }
+        return canonicalCode;
+    };
+    window.applyClubConfigUI = () => {
+        let style = document.getElementById('dynamicStyles');
+        if (!style) { style = document.createElement('style'); style.id = 'dynamicStyles'; document.head.appendChild(style); }
+        let branchCountVal = clubConfig.branchCount !== undefined ? clubConfig.branchCount : 2;
+        if (branchCountVal === 1) {
+            style.innerHTML = `.col-branch, .input-branch { display: none !important; }`;
+        } else {
+            style.innerHTML = ``;
+        }
+        if(clubConfig.logoBase64) {
+            document.querySelectorAll('.club-logo-img').forEach(img => { img.src = clubConfig.logoBase64; img.style.display = ''; });
+            logoCanvasData = clubConfig.logoBase64;
+            // Cache logo for login screen on next visit
+            try { localStorage.setItem('clb_logo_cache', clubConfig.logoBase64); } catch(e) {}
+        } else {
+            document.querySelectorAll('.club-logo-img').forEach(img => { img.src = ''; img.style.display = 'none'; });
+            logoCanvasData = '';
+            try { localStorage.removeItem('clb_logo_cache'); } catch(e) {}
+        }
+        // Build branch names array for all active branches
+        const _branchNames = [];
+        for(let _i = 1; _i <= branchCountVal; _i++) {
+            _branchNames.push(clubConfig['branchName' + _i] || ('Cơ sở ' + _i));
+        }
+        // Update filterBranch dropdown
+        const fb = document.getElementById('filterBranch');
+        if(fb) {
+            const a=window.__verifiedAuthContextState,k=JSON.stringify([currentClubId,a?.uid,a?.generation]),v=a?.ready&&fb.dataset.filterScope===k?fb.value:'all';
+            let fbHtml = `<option value="all">🏢 Tất cả cơ sở</option>`;
+            for(let _i = 1; _i <= branchCountVal; _i++) {
+                fbHtml += `<option value="CS${_i}">📍 ${_branchNames[_i-1]}</option>`;
+            }
+            fb.innerHTML = fbHtml;
+            fb.dataset.filterScope=k;if([...fb.options].some(o=>o.value===v))fb.value=v;
+        }
+        // Đồng bộ cơ sở cho tab Điểm danh (att_branch + att_month_branch)
+        ['att_branch', 'att_month_branch'].forEach(function(selId) {
+            const selEl = document.getElementById(selId);
+            if (!selEl) return;
+            // [SỬA LỖI - KHÓA CƠ SỞ HLV] Nếu HLV được giao cơ sở cụ thể,
+            // CHỈ tạo duy nhất 1 option cho cơ sở đó — không hiển thị cơ sở khác.
+            // Điều này ngăn HLV thấy danh sách điểm danh của cơ sở khác,
+            // dù Firestore snapshot có chạy lại để reset select hay không.
+            if (window.userRole === 'coach') {
+                window.CoachBranchRuntimeRepair.renderCoachBranchSelectors();
+            } else {
+                // Chỉ Admin được xem và lọc toàn bộ cơ sở
+                let html = '<option value="all">🏢 Tất cả cơ sở</option>';
+                for (let _i = 1; _i <= branchCountVal; _i++) {
+                    html += '<option value="CS' + _i + '">📍 ' + _branchNames[_i-1] + '</option>';
+                }
+                selEl.innerHTML = html;
+            }
+        });
+        // Rebuild each branch select dynamically for up to 10 branches
+        const selectsToUpdate = ['branch', 'm_branch', 'add_branch', 'exp_branch', 'eexp_branch'];
+        selectsToUpdate.forEach(id => {
+            const el = document.getElementById(id);
+            if(!el) return;
+            const hasChung = Array.from(el.options).some(o => o.value === 'Chung');
+            let html = '';
+            for(let _i = 1; _i <= branchCountVal; _i++) {
+                html += `<option value="CS${_i}">${_branchNames[_i-1]}</option>`;
+            }
+            if(hasChung) html += `<option value="Chung">Chung / Khác</option>`;
+            el.innerHTML = html;
+        });
+        // Phase 4K-6V4B: mỗi HLV phải thuộc đúng một cơ sở.
+        // Không còn option "Tất cả cơ sở" vì đó không thể là security boundary an toàn.
+        window.CoachBranchRuntimeRepair?.renderCreateBranchChoices?.();
+        const coachBranchEl = document.getElementById('coach_branch');
+        if (coachBranchEl) {
+            let cbHtml = '';
+            for (let _i = 1; _i <= branchCountVal; _i++) {
+                cbHtml += `<option value="CS${_i}">📍 ${_branchNames[_i-1]}</option>`;
+            }
+            coachBranchEl.innerHTML = cbHtml;
+            if (!coachBranchEl.value) coachBranchEl.value = 'CS1';
+        }
+    };
+    // [THÊM] Hiển thị lỗi đăng nhập inline — không dùng alert(), tự ẩn sau 6 giây
+    function _setLoginError(msg) {
+        const el = document.getElementById('loginErrorMsg');
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.add('visible');
+        // Tự ẩn sau 6 giây
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(() => {
+            el.classList.remove('visible');
+        }, 6000);
+    }
+    // [THÊM] Xóa thông báo lỗi đăng nhập — gọi khi người dùng bắt đầu gõ lại
+    window._clearLoginError = function() {
+        const el = document.getElementById('loginErrorMsg');
+        if (!el) return;
+        clearTimeout(el._hideTimer);
+        el.classList.remove('visible');
+    };
+    window.handleLogin = async () => {
+        // [SỬA] Chống double-submit: nếu đang xử lý thì bỏ qua
+        const btn = document.getElementById('btnLogin');
+        if (btn && btn.disabled) return;
+        const email = document.getElementById('emailInput').value.trim();
+        const pass = document.getElementById('passInput').value;
+        // [SỬA] Dùng inline error thay alert()
+        if (!email && !pass) return _setLoginError("Vui lòng nhập Email và Mật khẩu!");
+        // [SỬA] Dùng inline error thay alert()
+        if (!email) return _setLoginError("Vui lòng nhập Email quản trị!");
+        // [SỬA] Dùng inline error thay alert()
+        if (!pass) return _setLoginError("Vui lòng nhập Mật khẩu truy cập!");
+        const loading = document.getElementById('loginLoading');
+        const text = document.getElementById('loginText');
+        // [SỬA] Xóa lỗi cũ và hiện loading ngay lập tức — phản hồi tức thì cho người dùng
+        window._clearLoginError && window._clearLoginError();
+        // Phase 4.0B-4J-8A: Mark login start milestone
+        if (typeof markLoginPerf === 'function') markLoginPerf('loginStart');
+        btn.disabled = true; text.innerText = "Đang đăng nhập..."; loading.classList.remove('hidden');
+        try {
+            // Chỉ đăng nhập Firebase — onAuthStateChanged sẽ đọc Firestore
+            // và gọi initSaaSDatabase với đúng role. Không gọi initSaaSDatabase ở đây
+            // để tránh race condition gây nhầm role giữa super_admin và CLB.
+            await signInWithEmailAndPassword(auth, email, pass);
+            // Thành công → onAuthStateChanged tự xử lý, không cần làm gì thêm
+        } catch (error) {
+            console.error(error);
+            btn.disabled = false; text.innerText = "ĐĂNG NHẬP"; loading.classList.add('hidden');
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                // [SỬA] Dùng inline error thay alert()
+                _setLoginError("Sai Email hoặc Mật khẩu truy cập!");
+            } else if (error.code === 'auth/invalid-email') {
+                // [SỬA] Dùng inline error thay alert()
+                _setLoginError("Định dạng Email không hợp lệ!");
+            } else {
+                // [SỬA] Dùng inline error thay alert()
+                _setLoginError("Lỗi kết nối máy chủ! Vui lòng kiểm tra mạng.");
+            }
+        }
+    };
+    window.handleLogout = () => signOut(auth).then(() => location.reload());
+    window.openNewClubModal = () => {
+        // Phase 4K-5Q: SuperAdmin-only guard
+        if (typeof window.isSuperAdminRole === 'function' && !window.isSuperAdminRole()) {
+            console.warn('[openNewClubModal] blocked: not super admin', {
+                userRole:  window.userRole,
+                storeRole: window.__store && window.__store.userRole
+            });
+            alert('Chỉ tài khoản SuperAdmin mới được phép mở CLB mới.');
+            return;
+        }
+        tempLogoBase64 = "";
+        document.getElementById('nc_logoPreview').classList.add('hidden');
+        document.getElementById('newClubModal').style.display = 'flex';
+    };
+    window.createNewClubSystem = async () => {
+        const clubName = document.getElementById('nc_clubName').value.trim();
+        let clubId = document.getElementById('nc_clubId').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        const email = document.getElementById('nc_adminEmail').value.trim();
+        const pass = document.getElementById('nc_adminPass').value.trim();
+        const branchCount = parseInt(document.getElementById('nc_branchCount').value) || 1;
+        if(!clubName || !clubId || !email || !pass) return alert("Vui lòng điền đầy đủ thông tin!");
+        if(pass.length < 6) return alert("Mật khẩu phải từ 6 ký tự trở lên!");
+        const btn = document.getElementById('btnCreateClubAction');
+        btn.innerHTML = `<div class="loading-spinner"></div> Đang xử lý...`; btn.disabled = true;
+        try {
+            const clubDoc = await getDoc(doc(db, "clubs", clubId));
+            if(clubDoc.exists()) throw new Error("Club ID exists");
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+            const newUid = userCredential.user.uid;
+            await setDoc(doc(db, "users", newUid), { email: email, role: "admin", clubId: clubId });
+            const batch = writeBatch(db);
+            // Phase 4K-6V5U5: Firebase Authentication is the only password authority.
+            // Never copy the temporary admin password into Firestore.
+            batch.set(doc(db, "clubs", clubId), {
+                clubName: clubName,
+                adminEmail: email,
+                createdAt: new Date().toISOString(),
+                expiryDate: "2027-04-30",
+                accountStatus: "active"
+            });
+            let configData = { bankId: "", accountNo: "", accountName: "", branchCount: branchCount, location: "Quy Nhơn" };
+            if(tempLogoBase64) configData.logoBase64 = tempLogoBase64;
+            batch.set(doc(db, "clubs", clubId, "settings", "main_config"), configData);
+            batch.set(doc(db, "clubs", clubId, "settings", "inventory_stats"), {});
+            await batch.commit();
+            alert(`TẠO CLB THÀNH CÔNG!\n\nClub Name: ${clubName}\nID: ${clubId}\nEmail: ${email}\n\nMật khẩu chỉ được lưu trong Firebase Authentication và không được sao chép vào Firestore.`);
+            document.getElementById('newClubModal').style.display = 'none';
+            ['nc_clubName', 'nc_clubId', 'nc_adminEmail', 'nc_adminPass', 'nc_logoFile'].forEach(id => document.getElementById(id).value = '');
+            tempLogoBase64 = "";
+            window.loadSuperAdminData();
+
+        } catch (error) {
+            if(error.code === 'auth/email-already-in-use') alert("Email này đã được đăng ký cho CLB khác. Vui lòng đổi email!");
+            else if(error.message === "Club ID exists") alert("Mã Hệ Thống này đã tồn tại, vui lòng chọn mã khác!");
+            else alert("Đã xảy ra lỗi: " + error.message);
+        } finally {
+            btn.innerHTML = `<span>⚡ KHỞI TẠO DỮ LIỆU</span>`; btn.disabled = false; await signOut(secondaryAuth);
+        }
+    };
+
+    window.switchSATab = (tab) => {
+        const tabs = ['list', 'revenue', 'loginlog'];
+        tabs.forEach(t => {
+            const btn = document.getElementById('saTab_' + t);
+            const panel = document.getElementById('saTabContent_' + t);
+            const isActive = t === tab;
+            if (btn) {
+                btn.style.background = isActive ? '#fff' : 'transparent';
+                btn.style.color = isActive ? '#4338ca' : '#94a3b8';
+                btn.style.boxShadow = isActive ? '0 1px 6px rgba(0,0,0,0.1)' : 'none';
+            }
+            if (panel) panel.style.display = isActive ? 'block' : 'none';
+        });
+        // [SỬA ĐỒNG BỘ] Tải lại dữ liệu mỗi khi chuyển tab để đảm bảo đồng bộ mới nhất
+        if (tab === 'loginlog') window.loadLoginHistory();
+        // [SỬA ĐỒNG BỘ] Tải lại danh sách CLB khi chuyển sang tab list
+        if (tab === 'list') window.loadSuperAdminData();
+        // [SỬA ĐỒNG BỘ] Tự động tải doanh thu nếu đã chọn tháng trước đó
+        if (tab === 'revenue') {
+            const _mEl = document.getElementById('sa_revenue_month');
+            if (_mEl && _mEl.value) window.loadSARevenue();
+        }
+    };
+
+    // ── Helper: reset trạng thái DOM (xóa inline styles do JS ghi khi đã login) ──
+    function _resetHtmlStateForExport(rawHtml) {
+        // ── Bước 1: Sửa inline styles bằng regex (nhanh, chạy trước) ──────
+        // loginOverlay: display:none → display:flex
+        rawHtml = rawHtml.replace(
+            /(<div\s[^>]*id="loginOverlay"[^>]*style=")([^"]*)"/,
+            (m, prefix, style) => prefix + style.replace(/display\s*:\s*none\s*;?\s*/g, 'display:flex;') + '"'
+        );
+        // mainApp: display:block → xóa (CSS tự đặt display:none qua .app-container)
+        rawHtml = rawHtml.replace(
+            /(<div\s[^>]*id="mainApp"[^>]*style=")([^"]*)"/,
+            (m, prefix, style) => prefix + style.replace(/display\s*:\s*block\s*;?\s*/g, '') + '"'
+        );
+
+        // ── Bước 2: Inject script cleanup đồng bộ ngay trước </body> ───────
+        // Script này chạy SAU khi DOM đã được parse đầy đủ nhưng TRƯỚC khi
+        // module Firebase khởi động (vì <script type="module"> luôn bị defer).
+        // Mục tiêu: reset mọi trạng thái runtime mà regex không thể bắt được:
+        //   - btnLogin đang disabled + text "Đang xử lý..."
+        //   - loginLoading spinner đang hiện
+        //   - emailInput còn lưu email cũ
+        //   - superAdminView đang display:block
+        //   - btnDownloadObfuscated đang disabled
+        const _cleanup = `<script id="_sa_export_reset">(function(){
+    var g=function(id){return document.getElementById(id);};
+    var lo=g('loginOverlay');
+    if(lo){lo.style.display='flex';}
+    var ma=g('mainApp');
+    if(ma){ma.style.display='none';}
+    var bl=g('btnLogin');
+    if(bl){bl.disabled=false;bl.style.opacity='';}
+    var lt=g('loginText');
+    if(lt){lt.textContent='ĐĂNG NHẬP';}
+    var ll=g('loginLoading');
+    if(ll&&!/\\bhidden\\b/.test(ll.className)){ll.className+=' hidden';}
+    var ei=g('emailInput');
+    if(ei){ei.value='';}
+    var sv=g('superAdminView');
+    if(sv){sv.style.display='none';}
+    // [SỬA] Dọn sạch thông báo lỗi đăng nhập khi export file
+    var em=g('loginErrorMsg');if(em){em.classList.remove('visible');em.textContent='';clearTimeout(em._hideTimer);}
+    var ob=g('btnDownloadObfuscated');
+    if(ob){ob.disabled=false;ob.style.opacity='';}
+    var mw=g('mainTabsWrapper');
+    if(mw&&mw.style.display==='none'){mw.style.display='';}
+})();<\/script>`;
+        rawHtml = rawHtml.replace('</body>', _cleanup + '\n</body>');
+        return rawHtml;
+    }
+
+    // ── Tải bản gốc: đọc DOM hiện tại, không cần server ─────────────────
+    window.saDownloadOriginal = () => {
+        let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        html = _resetHtmlStateForExport(html);
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'smartpay-edu-integrated.html';
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+        window.showToast('✅ Đã tải bản gốc thành công!');
+    };
+
+    // ── Tải bản làm rối: dùng javascript-obfuscator browser build (CDN) ──
+    window.saDownloadObfuscated = async () => {
+        const btn = document.getElementById('btnDownloadObfuscated');
+        const origHtml = btn.innerHTML;
+        const setBtn = (label, disabled) => {
+            btn.innerHTML = label; btn.disabled = disabled; btn.style.opacity = disabled ? '0.75' : '1';
+        };
+
+        setBtn('<div class="loading-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></div> Đang tải thư viện...', true);
+
+        try {
+            // Tải browser build của javascript-obfuscator từ CDN nếu chưa có
+            if (!window.JavascriptObfuscator) {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdn.jsdelivr.net/npm/javascript-obfuscator@4.1.1/dist/index.browser.js';
+                    s.onload = resolve;
+                    s.onerror = () => reject(new Error('Không tải được thư viện từ CDN. Kiểm tra kết nối internet.'));
+                    document.head.appendChild(s);
+                });
+            }
+
+            setBtn('<div class="loading-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></div> Đang làm rối mã...', true);
+
+            // Nhường luồng cho trình duyệt render spinner trước khi chạy tác vụ nặng
+            await new Promise(r => setTimeout(r, 50));
+
+            let rawHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            // Reset trạng thái DOM: loginOverlay phải hiển thị, mainApp phải ẩn
+            rawHtml = _resetHtmlStateForExport(rawHtml);
+
+            // Chỉ obfuscate khối <script> thông thường (KHÔNG phải type="module" và KHÔNG phải src=...)
+            // Lý do: script type="module" dùng ES import statements — nếu obfuscator chèn bootstrap
+            // string-array trước import → sai cú pháp module → lỗi Firebase / đăng nhập bị hỏng.
+            const scriptRegex = /<script(?![^>]*\bsrc\s*=)(?![^>]*\btype\s*=\s*['"]module['"])[^>]*>([\s\S]*?)<\/script>/gi;
+            const obfuscated = rawHtml.replace(scriptRegex, (fullMatch, jsCode) => {
+                const trimmed = jsCode.trim();
+                if (!trimmed) return fullMatch;
+                const openTagMatch = fullMatch.match(/^(<script[^>]*>)/i);
+                const openTag = openTagMatch ? openTagMatch[1] : '<script>';
+                try {
+                    const result = window.JavascriptObfuscator.obfuscate(trimmed, {
+                        compact: true,
+                        controlFlowFlattening: false,
+                        deadCodeInjection: false,
+                        debugProtection: false,
+                        disableConsoleOutput: false,
+                        identifierNamesGenerator: 'hexadecimal',
+                        renameGlobals: false,
+                        selfDefending: false,
+                        stringArray: true,
+                        stringArrayThreshold: 0.75,
+                        stringArrayEncoding: ['base64'],
+                        stringArrayRotate: true,
+                        stringArrayShuffle: true,
+                        splitStrings: false,
+                        transformObjectKeys: false,
+                        unicodeEscapeSequence: false,
+                    });
+                    return `${openTag}\n${result.getObfuscatedCode()}\n<\/script>`;
+                } catch { return fullMatch; }
+            });
+
+            const blob = new Blob([obfuscated], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'smartpay-edu-integrated-obfuscated.html';
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+            window.showToast('✅ Đã tạo và tải bản làm rối thành công!');
+        } catch (e) {
+            alert('❌ Lỗi khi tạo bản làm rối:\n' + e.message);
+        } finally {
+            setBtn(origHtml, false);
+        }
+    };
+
+    window.loadSuperAdminData = async function() {
+        // [HOTFIX] Phase 4.0B-1: fallback wrapper — hardened retry + clear error display.
+        // Gọi từ nhiều nơi (initSaaSDatabase, tab switch, toolbar) → phải robust.
+        if (window.SuperAdminModule?.loadSuperAdminDashboard) {
+            if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.fallbackCalls++;
+            return window.SuperAdminModule.loadSuperAdminDashboard();
+        }
+        // ensureSuperAdminModule chưa sẵn sàng (main.js chưa bootstrap xong) → retry 15× × 150ms
+        for (let _r = 0; _r < 15; _r++) {
+            if (typeof window.ensureSuperAdminModule === 'function') break;
+            await new Promise(res => setTimeout(res, 150));
+        }
+        if (typeof window.ensureSuperAdminModule === 'function') {
+            const loaded = await window.ensureSuperAdminModule('loadSuperAdminData-fallback');
+            if (loaded && window.SuperAdminModule?.loadSuperAdminDashboard) {
+                if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.fallbackCalls++;
+                return window.SuperAdminModule.loadSuperAdminDashboard();
+            }
+        }
+        // Sau retry vẫn fail → hiển thị lỗi rõ trong #sysClubListMain thay vì silent
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] loadSuperAdminData: module not loaded after retry');
+        const _errEl = document.getElementById('sysClubListMain');
+        if (_errEl) {
+            _errEl.innerHTML = '<div class="text-center py-10 text-rose-500 px-4"><div class="text-3xl mb-3">⚠️</div>' +
+                '<p class="font-bold text-sm mb-2">Không tải được module SuperAdmin.</p>' +
+                '<p class="text-xs text-slate-500">Hãy refresh trang (F5) hoặc kiểm tra main.js đã load chưa.</p>' +
+                '<button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold">🔄 Refresh trang</button></div>';
+        }
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    // ── Tải & hiển thị lịch sử đăng nhập (Super Admin) ──────────────────
+    // ── Hàm hiển thị hướng dẫn sửa Firestore Rules ──────────────────────
+    function _showLoginHistoryRulesGuide(contentEl, errorMsg, writeFailed) {
+        // Phase 4K-6V5U4: never suggest a broad login_history allow rule from the UI.
+        // login_history and clubs share the same canonical isSuperAdmin() principal.
+        const user = auth.currentUser;
+        const uid = user?.uid || '(không xác định)';
+        const email = user?.email || '(không xác định)';
+        const safeErrorMsg = window.escapeHtml(String(errorMsg || 'permission-denied'));
+        const safeUid = window.escapeHtml(String(uid));
+        const safeEmail = window.escapeHtml(String(email));
+        const permissionHint = writeFailed
+            ? 'Quyền ghi audit cũng chưa sẵn sàng trong phiên này.'
+            : 'Không thay đổi Rules riêng cho login_history.';
+        contentEl.innerHTML = `
+            <div style="padding:16px;">
+                <div style="text-align:center;margin-bottom:14px;color:#dc2626;font-size:0.85rem;font-weight:800;">❌ Không đọc được lịch sử đăng nhập: ${safeErrorMsg}</div>
+                <div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:12px;padding:16px;color:#7c2d12;">
+                    <div style="font-weight:900;font-size:0.82rem;margin-bottom:10px;">🔐 SuperAdmin authorization chưa hội tụ</div>
+                    <div style="font-size:0.76rem;line-height:1.65;color:#475569;">
+                        <p style="margin:0 0 7px;">${permissionHint}</p>
+                        <p style="margin:0 0 7px;">1. Deploy đúng file <code style="background:#ffedd5;padding:1px 5px;border-radius:4px;">firestore.rules</code> của bản V5U4.</p>
+                        <p style="margin:0 0 7px;">2. Đăng xuất rồi đăng nhập lại. ROOT bootstrap chỉ được phép tạo <code style="background:#ffedd5;padding:1px 5px;border-radius:4px;">super_admins/{uid}</code> của chính tài khoản đã định danh.</p>
+                        <p style="margin:0;">3. Không dùng <code style="background:#ffedd5;padding:1px 5px;border-radius:4px;">allow read/write: if request.auth != null</code> và không mở public Rules.</p>
+                    </div>
+                    <div style="margin-top:12px;background:#fff;border:1px solid #fed7aa;border-radius:8px;padding:9px 10px;font-size:0.7rem;color:#64748b;">
+                        UID: <span style="font-family:monospace;font-weight:800;">${safeUid}</span><br>
+                        Email: <span style="font-family:monospace;font-weight:800;">${safeEmail}</span>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    window.loadLoginHistory = async () => {
+        const contentEl = document.getElementById('loginlog_content');
+        const filterClub = (document.getElementById('loginlog_filter_club') || {}).value || '';
+        if (!contentEl) return;
+        contentEl.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.82rem;padding:20px 0;">⏳ Đang tải lịch sử đăng nhập...</p>';
+
+        const writeFailed = false;
+        try {
+            const q = query(collection(db, "login_history"), orderBy("timestamp", "desc"), limit(500)); // OK_UI_DISPLAY_LIMIT [3.8D-Phase6]
+            const snap = await getDocs(q);
+
+            // Populate club filter dropdown (first load only)
+            const filterEl = document.getElementById('loginlog_filter_club');
+            if (filterEl && filterEl.options.length <= 1) {
+                const allClubIds = new Set();
+                snap.forEach(d => { if(d.data().clubId && !d.data()._test) allClubIds.add(d.data().clubId); });
+                allClubIds.forEach(cid => {
+                    const opt = document.createElement('option');
+                    opt.value = cid; opt.textContent = '🏢 ' + cid;
+                    filterEl.appendChild(opt);
+                });
+            }
+
+            // Lọc phía client nếu có filterClub (tránh cần composite index)
+            let docs = [];
+            snap.forEach(d => { if (!d.data()._test) docs.push(d.data()); });
+            if (filterClub) docs = docs.filter(item => item.clubId === filterClub);
+
+            if (docs.length === 0) {
+                if (writeFailed) {
+                    _showLoginHistoryRulesGuide(contentEl,
+                        'Chưa có dữ liệu — quyền ghi bị chặn nên không có bản ghi nào', true);
+                } else {
+                    contentEl.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.82rem;font-style:italic;padding:24px 0;">Chưa có lịch sử đăng nhập nào.<br><span style="font-size:0.72rem;">Đăng xuất rồi đăng nhập lại để tạo bản ghi đầu tiên.</span></p>';
+                }
+                return;
+            }
+
+            const safeFilterClub = window.escapeHtml(String(filterClub || ''));
+            const rows = docs.map(item => {
+                const safeEmail = window.escapeHtml(String(item.email || '—'));
+                const safeClubId = window.escapeHtml(String(item.clubId || 'System'));
+                const safeDeviceName = window.escapeHtml(String(item.deviceName || ''));
+                const safeOs = window.escapeHtml(String(item.os || '—'));
+                const safeBrowser = window.escapeHtml(String(item.browser || '—'));
+                const dt = item.loginAt ? new Date(item.loginAt) : null;
+                const dateStr = dt ? dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                const timeStr = dt ? dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
+                const roleLabel = item.role === 'super_admin'
+                    ? '<span style="background:#ede9fe;color:#6d28d9;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:800;white-space:nowrap;">SUPER</span>'
+                    : item.role === 'admin'
+                    ? '<span style="background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:800;white-space:nowrap;">ADMIN</span>'
+                    : '<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:700;white-space:nowrap;">VIEWER</span>';
+                const deviceIcon = item.deviceType === 'Mobile' ? '📱' : '🖥️';
+                const browserIcon = { 'Chrome': '🟡', 'Firefox': '🟠', 'Safari': '🔵', 'Edge': '💙' }[item.browser] || '🌐';
+                const deviceLabel = item.deviceName
+                    ? `<span style="font-weight:800;color:#0f172a;">${safeDeviceName}</span>`
+                    : `<span style="color:#475569;">${safeOs}</span>`;
+                return `
+                    <div style="padding:10px 14px;border-bottom:1px solid #f1f5f9;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">
+                            <div style="min-width:0;flex:1;">
+                                <div style="font-weight:700;color:#0033A0;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeEmail}</div>
+                                <div style="font-size:0.65rem;color:#64748b;margin-top:1px;">${safeClubId}</div>
+                            </div>
+                            <div style="flex-shrink:0;">${roleLabel}</div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+                            <div>
+                                <span style="font-size:0.78rem;font-weight:800;color:#1e293b;">${timeStr}</span>
+                                <span style="font-size:0.65rem;color:#94a3b8;margin-left:6px;">${dateStr}</span>
+                            </div>
+                            <div style="font-size:0.72rem;color:#475569;display:flex;align-items:center;gap:4px;">
+                                <span>${deviceIcon}</span>
+                                <span style="background:${item.deviceName ? '#eef2ff' : '#f1f5f9'};padding:2px 8px;border-radius:6px;font-size:0.68rem;">${deviceLabel}</span>
+                                <span>${browserIcon} ${safeBrowser}</span>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+
+            contentEl.innerHTML = `
+                <div style="padding:7px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Lịch Sử Đăng Nhập</div>
+                    <div style="font-size:0.65rem;color:#94a3b8;">${rows.length} bản ghi${filterClub ? ' — CLB: ' + safeFilterClub : ''}</div>
+                </div>
+                ${rows.join('')}
+                <div style="padding:10px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;">Hiển thị ${rows.length} bản ghi${filterClub ? ' cho CLB: ' + safeFilterClub : ' gần nhất'}</div>`;
+
+        } catch(e) {
+            console.error('[login_history] Lỗi đọc:', e);
+            const isPermission = e?.code === 'permission-denied' || (e?.message && (e.message.includes('permission') || e.message.includes('Missing')));
+            const isIndex = e.message && e.message.includes('index');
+            let errMsg = e.message;
+            if (isIndex) errMsg = 'Thiếu Composite Index (cần tạo index trong Firebase Console)';
+            _showLoginHistoryRulesGuide(contentEl, errMsg, writeFailed);
+        }
+    };
+
+    window.openExpiryModal = async function(clubId, clubName, currentExpiry) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.openExpiryModal) return window.SuperAdminModule.openExpiryModal(clubId, clubName, currentExpiry);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('openExpiryModal');
+            if (loaded && window.SuperAdminModule?.openExpiryModal) return window.SuperAdminModule.openExpiryModal(clubId, clubName, currentExpiry);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] openExpiryModal: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    window.saveClubExpiry = async () => {
+        const clubId = document.getElementById('em_clubId').value;
+        const newExpiry = document.getElementById('em_expiryDate').value;
+        if (!newExpiry) return alert("Vui lòng chọn ngày hết hạn!");
+        try {
+            await updateDoc(doc(db, "clubs", clubId), { expiryDate: newExpiry, accountStatus: 'active' });
+            window.showToast("✅ Đã cập nhật hạn sử dụng thành công!");
+            document.getElementById('expiryModal').style.display = 'none';
+            window.loadSuperAdminData();
+        } catch (e) { console.error(e); alert("Lỗi cập nhật: " + e.message); }
+    };
+
+    window.lockClubAccount = async function(clubId, clubName) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.lockClub) return window.SuperAdminModule.lockClub(clubId, clubName);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('lockClubAccount');
+            if (loaded && window.SuperAdminModule?.lockClub) return window.SuperAdminModule.lockClub(clubId, clubName);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] lockClubAccount: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    window.unlockClubAccount = async function(clubId) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.unlockClub) return window.SuperAdminModule.unlockClub(clubId);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('unlockClubAccount');
+            if (loaded && window.SuperAdminModule?.unlockClub) return window.SuperAdminModule.unlockClub(clubId);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] unlockClubAccount: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    window.toggleExamFeature = async function(clubId, clubName, currentEnabled) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.toggleClubStatus) return window.SuperAdminModule.toggleClubStatus(clubId, clubName, currentEnabled);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('toggleExamFeature');
+            if (loaded && window.SuperAdminModule?.toggleClubStatus) return window.SuperAdminModule.toggleClubStatus(clubId, clubName, currentEnabled);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] toggleExamFeature: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    window.saOpenDeleteTxModal = async function(clubId, clubName) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.saOpenDeleteTxModal) return window.SuperAdminModule.saOpenDeleteTxModal(clubId, clubName);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('saOpenDeleteTxModal');
+            if (loaded && window.SuperAdminModule?.saOpenDeleteTxModal) return window.SuperAdminModule.saOpenDeleteTxModal(clubId, clubName);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] saOpenDeleteTxModal: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    window.saDeleteTransactions = async () => {
+        const clubId = document.getElementById('deleteTxModal_clubId').value;
+        const beforeDate = document.getElementById('deleteTxModal_before').value;
+        if (!beforeDate) return alert('Vui lòng chọn ngày!');
+        const clubName = document.getElementById('deleteTxModal_clubName').innerText;
+        const resultEl = document.getElementById('deleteTxModal_result');
+        if (!confirm(`⚠️ XÁC NHẬN XÓA BIÊN LAI\n\nCLB: ${clubName}\nXóa tất cả giao dịch TRƯỚC ngày: ${beforeDate}\n\nDữ liệu bị xóa KHÔNG THỂ PHỤC HỒI!\nBấm OK để tiếp tục.`)) return;
+        const btn = document.getElementById('deleteTxModal_btn');
+        btn.disabled = true; btn.innerText = '⏳ Đang xóa...';
+        resultEl.innerHTML = '';
+        try {
+            const txRef = collection(db, 'clubs', clubId, 'transactions');
+            // [4.0B-4J-8A] Fixed: thay limit(500) đơn bằng vòng lặp paginated — xóa đầy đủ mọi tx trước ngày dù CLB có hàng nghìn giao dịch.
+            // Pattern: getDocs(limit(400)) → batch.delete() → lặp lại cho đến khi snap.empty.
+            // Mỗi iteration xóa 1 batch → snap sau iteration không còn các docs đã xóa → an toàn.
+            let _totalDeleted = 0;
+            let _delPage      = 0;
+            const _DEL_PAGE   = 400;
+            while (_delPage < 100) {
+                const _ds = await getDocs(query(txRef, where('date', '<', beforeDate), limit(_DEL_PAGE)));
+                if (_ds.empty) break;
+                const _delBatch = writeBatch(db);
+                _ds.docs.forEach(d => _delBatch.delete(d.ref));
+                await _delBatch.commit();
+                _totalDeleted += _ds.size;
+                resultEl.innerHTML = `<div style="color:#0033A0;font-weight:700;font-size:0.82rem;margin-top:10px;">⏳ Đã xóa ${_totalDeleted} giao dịch...</div>`;
+                if (_ds.size < _DEL_PAGE) break;
+                _delPage++;
+            }
+            if (_totalDeleted === 0) {
+                resultEl.innerHTML = '<div style="color:#16a34a;font-weight:700;font-size:0.82rem;margin-top:10px;">✅ Không có giao dịch nào trước ngày này.</div>';
+                btn.disabled = false; btn.innerText = '🗑️ Xóa Giao Dịch';
+                return;
+            }
+            const total = _totalDeleted;
+            let deleted = _totalDeleted;
+            const batchSize = 400; // kept for success message below
+            // SECURITY TODO: XSS risk — clubName và beforeDate đến từ Firestore/input.
+            // Dùng window.escapeHtml() khi available. Phase 4.1: patch toàn bộ.
+            const _esc = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+            resultEl.innerHTML = `<div style="color:#16a34a;font-weight:800;font-size:0.85rem;margin-top:10px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;">✅ Đã xóa thành công <strong>${total} giao dịch</strong> trước ngày ${_esc(beforeDate)} của CLB "${_esc(clubName)}".</div>`;
+            window.showToast(`✅ Đã xóa ${total} giao dịch!`);
+            window.loadSuperAdminData();
+        } catch (e) {
+            console.error(e);
+            // SECURITY TODO: e.message có thể chứa ký tự đặc biệt từ Firestore error.
+            const _esc2 = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+            resultEl.innerHTML = `<div style="color:#dc2626;font-weight:700;font-size:0.82rem;margin-top:10px;">❌ Lỗi: ${_esc2(e.message)}</div>`;
+        } finally {
+            btn.disabled = false; btn.innerText = '🗑️ Xóa Giao Dịch';
+        }
+    };
+
+    window.filterSAClubs = async function() {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.filterClubs) return window.SuperAdminModule.filterClubs();
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('filterSAClubs');
+            if (loaded && window.SuperAdminModule?.filterClubs) return window.SuperAdminModule.filterClubs();
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] filterSAClubs: module not loaded');
+    };
+
+    window._renderSAClubRows = async function(clubDataList, today, in30Days) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.renderClubList) return window.SuperAdminModule.renderClubList(clubDataList, today, in30Days);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('_renderSAClubRows');
+            if (loaded && window.SuperAdminModule?.renderClubList) return window.SuperAdminModule.renderClubList(clubDataList, today, in30Days);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] _renderSAClubRows: module not loaded');
+    };
+
+    // ── Toggle dropdown cho nút Cấu hình CLB (SuperAdmin) ────────────
+    window._toggleSAConfig = function(cid, ev) {
+        // Phase 4.0B: legacy fallback only — see js/modules/superadmin.js
+        console.warn('[SuperAdminFallback] _toggleSAConfig: module not loaded');
+    };
+    if (!window._saCfgOutside) {
+        window._saCfgOutside = true;
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.sa-cfg-btn') && !e.target.closest('.sa-cfg-dd')) {
+                document.querySelectorAll('.sa-cfg-dd').forEach(el => { el.style.display = 'none'; });
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') document.querySelectorAll('.sa-cfg-dd').forEach(el => { el.style.display = 'none'; });
+        });
+    }
+
+    window.forceReplaceAdmin = async function(clubId) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.forceReplaceAdmin) return window.SuperAdminModule.forceReplaceAdmin(clubId);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('forceReplaceAdmin');
+            if (loaded && window.SuperAdminModule?.forceReplaceAdmin) return window.SuperAdminModule.forceReplaceAdmin(clubId);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] forceReplaceAdmin: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    window.editClubName = async function(clubId, currentName) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.editClubName) return window.SuperAdminModule.editClubName(clubId, currentName);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('editClubName');
+            if (loaded && window.SuperAdminModule?.editClubName) return window.SuperAdminModule.editClubName(clubId, currentName);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] editClubName: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    function loadLogoForReceipt() {
+        // Logo được quản lý bởi applyClubConfigUI() — hàm này giữ lại để tương thích
+    }
+
+    // Phase 4K-6V5U6B — ONE clubs/{clubId} authority:
+    // first onSnapshot owns bootstrap access decision and the SAME listener stays realtime.
+    const _clubAccessBootstrapState = window.__clubAccessBootstrapState || {
+        generation: 0,
+        clubId: '',
+        listenerKey: '',
+        status: 'idle',
+        firstSnapshotSeen: false,
+        ready: false,
+        blockedReason: '',
+        snapshotSource: '',
+        readyAt: 0,
+        legacyExpiryFallback: false,
+        registrationDiagnostic: '',
+    };
+    if (!window.__clubAccessBootstrapState) {
+        Object.defineProperty(window, '__clubAccessBootstrapState', {
+            value: _clubAccessBootstrapState,
+            writable: false,
+            configurable: true,
+        });
+    }
+    let _clubAccessBootstrapFlight = null;
+    let _listenerRegistryReadinessPromise = null;
+    const _LISTENER_REGISTRY_READY_TIMEOUT_MS = 10000;
+
+    // Phase 4K-6V5U6H5 — Listener Registry is a mandatory bootstrap dependency.
+    // Wait once for main.js to expose the canonical registry bridge; never create a
+    // direct onSnapshot/getDoc fallback while the registry is unavailable.
+    const _waitForListenerRegistryReady = () => {
+        if (typeof window['safeRegisterSnapshot'] === 'function') {
+            return Promise.resolve({ ready: true, reason: 'registry-ready' });
+        }
+        if (window['__LISTENER_REGISTRY_FAILED'] === true || window['__MAIN_JS_LOAD_FAILED'] === true) {
+            return Promise.resolve({ ready: false, reason: 'registry-not-ready' });
+        }
+        if (_listenerRegistryReadinessPromise) return _listenerRegistryReadinessPromise;
+
+        _listenerRegistryReadinessPromise = new Promise(resolve => {
+            let settled = false;
+            let timeoutId = null;
+            const finish = (result) => {
+                if (settled) return;
+                settled = true;
+                if (timeoutId !== null) clearTimeout(timeoutId);
+                window.removeEventListener('app:listener-registry-ready', onReady);
+                window.removeEventListener('app:listener-registry-failed', onFailed);
+                resolve(result);
+            };
+            const onReady = () => finish({
+                ready: typeof window['safeRegisterSnapshot'] === 'function',
+                reason: typeof window['safeRegisterSnapshot'] === 'function' ? 'registry-ready' : 'registry-not-ready',
+            });
+            const onFailed = () => finish({ ready: false, reason: 'registry-not-ready' });
+
+            window.addEventListener('app:listener-registry-ready', onReady, { once: true });
+            window.addEventListener('app:listener-registry-failed', onFailed, { once: true });
+            timeoutId = setTimeout(() => finish({ ready: false, reason: 'registry-timeout' }), _LISTENER_REGISTRY_READY_TIMEOUT_MS);
+        });
+        return _listenerRegistryReadinessPromise;
+    };
+
+    const _commitClubAccessBootstrapState = (patch = {}) => {
+        Object.assign(_clubAccessBootstrapState, patch);
+        return _clubAccessBootstrapState;
+    };
+
+    const _isCurrentClubBootstrapGeneration = (identity) => {
+        const authState = window.__verifiedAuthContextState;
+        const currentUid = String(auth.currentUser?.uid || '');
+        return !!identity && !!authState && authState.ready === true &&
+            String(identity.uid || '') === currentUid &&
+            String(identity.uid || '') === String(authState.uid || '') &&
+            String(identity.clubId || '') === String(authState.clubId || '') &&
+            Number(identity.authGeneration || 0) === Number(authState.generation || 0);
+    };
+
+    const _hideClubProtectedUI = () => {
+        window.AttendanceModule?.closeMemberHistory?.();
+        ['mainTabsWrapper','filterArea','btnSettings','exportTaxBtn','exportBtn'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.style.display = 'none';
+        });
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.desktop-action-btns .btn-sm, .desktop-action-btns button:not([onclick*="Logout"]):not([onclick*="logout"])').forEach(el => el.style.display = 'none');
+    };
+
+    const _cleanupProtectedTenantRuntimeKeepClubRoot = (clubKey, reason) => {
+        // Registry owns modern listeners. Preserve the canonical root listener so a future
+        // server snapshot cannot resurrect runtime automatically, but diagnostics remain live.
+        try {
+            const metrics = window.getListenerMetrics ? window.getListenerMetrics() : null;
+            const entries = Array.isArray(metrics?.activeEntries) ? metrics.activeEntries : [];
+            entries.forEach(entry => {
+                if (entry?.key && entry.key !== clubKey && !!window.removeListener) {
+                    window.removeListener(entry.key, 'club-access-blocked:' + reason);
+                }
+            });
+        } catch (cleanupErr) {
+            console.warn('[ClubAccessGate] registry cleanup warning:', cleanupErr);
+        }
+        // Legacy fallbacks are never used for the root authority in V5U6B, so they can all be
+        // stopped without removing the canonical clubs/{clubId} listener.
+        activeListeners.forEach(fn => { try { fn(); } catch (_) {} });
+        activeListeners = [];
+    };
+
+    const _renderClubAccessBlocked = (reason, expiryDate = '') => {
+        _hideClubProtectedUI();
+        const loginOverlay = document.getElementById('loginOverlay'); if (loginOverlay) loginOverlay.style.display = 'none';
+        const mainApp = document.getElementById('mainApp'); if (mainApp) mainApp.style.display = 'block';
+        const previous = document.getElementById('clubAccessBlockBanner'); if (previous) previous.remove();
+        const banner = document.createElement('div');
+        banner.id = 'clubAccessBlockBanner';
+        banner.style.cssText = 'padding:20px 16px;';
+        let icon = '⚠️', title = 'Không thể xác minh quyền truy cập CLB', body = 'Không thể tải thông tin CLB an toàn. Vui lòng đăng xuất, kiểm tra kết nối và thử lại.';
+        if (reason === 'locked') {
+            icon = '🔒'; title = 'Tài khoản đã bị khóa';
+            body = 'Tài khoản phần mềm quản lý CLB của bạn đã bị khóa bởi Super Admin.<br>Vui lòng liên hệ <strong>0905.109.344 (Tình)</strong> để được hỗ trợ mở khóa và tiếp tục sử dụng.';
+        } else if (reason === 'expired') {
+            icon = '⛔'; title = 'Tài khoản đã hết hạn sử dụng';
+            body = `Phần mềm quản lý CLB của bạn đã hết hạn${expiryDate ? ` vào ngày <strong>${formatDate(expiryDate)}</strong>` : ''}.<br>Vui lòng liên hệ <strong>0905.109.344 (Tình)</strong> để gia hạn tài khoản và tiếp tục sử dụng.`;
+        } else if (reason === 'missing') {
+            title = 'Không tìm thấy dữ liệu CLB';
+            body = 'Hồ sơ CLB không tồn tại hoặc chưa được cấp quyền. Không có dữ liệu nghiệp vụ nào được tải trong phiên này.';
+        } else if (reason === 'permission-denied') {
+            title = 'Không đủ quyền truy cập CLB';
+            body = 'Firestore từ chối đọc hồ sơ CLB. Vui lòng đăng xuất và liên hệ quản trị viên để kiểm tra phân quyền.';
+        } else if (reason === 'listener-registration-failed') {
+            title = 'Không thể khởi tạo phiên dữ liệu CLB';
+            body = 'Listener bảo vệ hồ sơ CLB không đăng ký được. Hệ thống đã dừng trước khi tải dữ liệu nghiệp vụ.';
+        }
+        banner.innerHTML = `<div style="margin:0 auto;max-width:520px;background:#fff1f2;border:2px solid #fecaca;border-radius:20px;padding:32px 24px;text-align:center;box-shadow:0 8px 32px rgba(200,16,46,0.10);">
+            <div style="font-size:3rem;margin-bottom:12px;">${icon}</div>
+            <h2 style="color:#991b1b;font-size:1.15rem;font-weight:900;margin-bottom:8px;text-transform:uppercase;">${title}</h2>
+            <p style="color:#7f1d1d;font-size:0.92rem;line-height:1.6;margin-bottom:16px;">${body}</p>
+            <button onclick="window.handleLogout()" style="background:#991b1b;color:#fff;border:none;padding:10px 28px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">🚪 Đăng xuất</button>
+        </div>`;
+        if (mainApp) mainApp.prepend(banner);
+    };
+
+    const _validateClubAccessSnapshot = (snap) => {
+        const source = snap?.metadata?.fromCache === true ? 'cache' : 'server';
+        if (!snap || typeof snap.exists !== 'function' || !snap.exists()) {
+            return { accepted: false, reason: 'missing', source, data: null, expiryDate: '', expiryMissing: false, warning: false };
+        }
+        const data = snap.data() || {};
+        const accountStatus = String(data.accountStatus || 'active').trim().toLowerCase();
+        const expiryMissing = !data.expiryDate;
+        // Backward compatible with pre-expiry documents; V5U6B does not migrate data.
+        const expiryDate = String(data.expiryDate || '2027-04-30');
+        const today = getLocalToday();
+        const in30Days = (() => { const d = new Date(); d.setDate(d.getDate() + 30); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; })();
+        if (accountStatus === 'locked') return { accepted: false, reason: 'locked', source, data, expiryDate, expiryMissing, warning: false };
+        if (expiryDate < today) return { accepted: false, reason: 'expired', source, data, expiryDate, expiryMissing, warning: false };
+        return { accepted: true, reason: '', source, data, expiryDate, expiryMissing, warning: expiryDate <= in30Days };
+    };
+
+    const _applyAcceptedClubRootSnapshot = (data, access) => {
+        clubData = data || {};
+        if (window.__store) window.__store.clubData = clubData;
+        _updateHydrationMetrics({ clubLoaded: true, lastReason: 'club-snapshot' });
+        const cName = clubData.clubName || 'HỆ THỐNG QUẢN LÝ CLB';
+        const displayClubName = document.getElementById('displayClubName'); if (displayClubName) displayClubName.innerText = cName.toUpperCase();
+        const receiptClubName = document.getElementById('r_club_name'); if (receiptClubName) receiptClubName.innerText = cName.toUpperCase();
+        const mobileClubName = document.getElementById('mhbClubName'); if (mobileClubName) mobileClubName.innerText = cName.toUpperCase();
+        const examEnabled = clubData.examEnabled !== false;
+        const btnExam = document.getElementById('btn_exam');
+        const tabExam = document.getElementById('tab_exam');
+        if (btnExam) btnExam.style.display = (examEnabled && window.userRole !== 'coach') ? '' : 'none';
+        if (tabExam && (!examEnabled || window.userRole === 'coach') && tabExam.classList.contains('active')) window.switchTab('attendance');
+        const warningBanner = document.getElementById('expiryWarningBanner');
+        const warningText = document.getElementById('expiryWarningText');
+        if (warningBanner) warningBanner.style.display = access.warning ? 'block' : 'none';
+        if (access.warning && warningText) warningText.innerText = `Phần mềm quản lý của CLB sẽ hết hạn vào ngày ${formatDate(access.expiryDate)}.`;
+    };
+
+    const _transitionClubAccessBlocked = (identity, clubKey, reason, expiryDate = '') => {
+        if (!_isCurrentClubBootstrapGeneration(identity)) return false;
+        if (_clubAccessBootstrapState.status === 'blocked' || _clubAccessBootstrapState.status === 'error') return false;
+        _commitClubAccessBootstrapState({
+            status: reason === 'listener-error' || reason === 'listener-registration-failed' || reason === 'permission-denied' ? 'error' : 'blocked',
+            ready: false,
+            blockedReason: reason,
+            readyAt: 0,
+        });
+        _cleanupProtectedTenantRuntimeKeepClubRoot(clubKey, reason);
+        _renderClubAccessBlocked(reason, expiryDate);
+        return true;
+    };
+
+    const _mountClubRootAuthority = (clubId, verifiedAuth) => {
+        const uid = String(verifiedAuth?.uid || '');
+        const authGeneration = Number(verifiedAuth?.generation || 0);
+        const clubKey = 'global:club:' + clubId;
+        const identity = { uid, clubId: String(clubId || ''), authGeneration };
+
+        if (_clubAccessBootstrapFlight &&
+            _clubAccessBootstrapFlight.clubId === identity.clubId &&
+            _clubAccessBootstrapFlight.uid === identity.uid &&
+            _clubAccessBootstrapFlight.authGeneration === identity.authGeneration) {
+            return _clubAccessBootstrapFlight;
+        }
+
+        _commitClubAccessBootstrapState({
+            generation: authGeneration,
+            clubId: identity.clubId,
+            listenerKey: clubKey,
+            status: 'waiting',
+            firstSnapshotSeen: false,
+            ready: false,
+            blockedReason: '',
+            snapshotSource: '',
+            readyAt: 0,
+            legacyExpiryFallback: false,
+            registrationDiagnostic: typeof window['safeRegisterSnapshot'] === 'function' ? 'registry-ready' : 'registry-not-ready',
+        });
+
+        let settled = false;
+        let settleFirst;
+        const firstSnapshotPromise = new Promise(resolve => { settleFirst = resolve; });
+        const finishFirst = result => {
+            if (settled) return;
+            settled = true;
+            settleFirst(result);
+        };
+
+        // Commit the ONE canonical flight before any async readiness wait/registration.
+        // Re-entrant calls for the same uid/club/authGeneration now reuse this flight.
+        const flight = { ...identity, listenerKey: clubKey, firstSnapshotPromise };
+        _clubAccessBootstrapFlight = flight;
+
+        const clubRef = doc(db, 'clubs', clubId);
+        const handleSnapshot = (snap) => {
+            if (!_isCurrentClubBootstrapGeneration(identity)) return;
+            if (window.markListenerSnapshot) window.markListenerSnapshot(clubKey);
+            const access = _validateClubAccessSnapshot(snap);
+            const firstSeenNow = _clubAccessBootstrapState.firstSnapshotSeen !== true;
+            _commitClubAccessBootstrapState({
+                firstSnapshotSeen: true,
+                snapshotSource: access.source,
+                legacyExpiryFallback: access.expiryMissing === true,
+            });
+
+            // Once blocked in a session, an unlock/renew snapshot does not auto-remount runtime.
+            if (_clubAccessBootstrapState.status === 'blocked' || _clubAccessBootstrapState.status === 'error') {
+                finishFirst({ accepted: false, reason: _clubAccessBootstrapState.blockedReason || 'blocked' });
+                return;
+            }
+            if (!access.accepted) {
+                _transitionClubAccessBlocked(identity, clubKey, access.reason, access.expiryDate);
+                finishFirst({ accepted: false, reason: access.reason, source: access.source });
+                return;
+            }
+
+            _applyAcceptedClubRootSnapshot(access.data, access);
+            window.acceptCoachAclSignal?.(snap,clubId);
+            if (_clubAccessBootstrapState.status !== 'ready') {
+                _commitClubAccessBootstrapState({ status: 'ready', ready: true, blockedReason: '', readyAt: Date.now() });
+            }
+            if (firstSeenNow || !settled) finishFirst({ accepted: true, source: access.source, data: access.data });
+        };
+        const handleError = (err) => {
+            if (!_isCurrentClubBootstrapGeneration(identity)) return;
+            const code = String(err?.code || 'listener-error');
+            const reason = code === 'permission-denied' ? 'permission-denied' : 'listener-error';
+            _commitClubAccessBootstrapState({ firstSnapshotSeen: _clubAccessBootstrapState.firstSnapshotSeen === true, snapshotSource: 'error' });
+            _transitionClubAccessBlocked(identity, clubKey, reason);
+            finishFirst({ accepted: false, reason, error: code });
+        };
+
+        const register = () => window.safeRegisterSnapshot(
+            clubKey,
+            () => onSnapshot(clubRef, handleSnapshot, handleError),
+            { owner: 'club', scope: 'global', clubId, sessionId: String(authGeneration), reason: 'v5u6h5-club-bootstrap-realtime-authority' }
+        );
+        const failRegistration = (diagnostic, extra = {}) => {
+            if (!_isCurrentClubBootstrapGeneration(identity)) {
+                finishFirst({ accepted: false, reason: 'stale-auth-generation' });
+                return;
+            }
+            console.error('[ClubAccessGate] root listener registration failed:', diagnostic, extra);
+            _commitClubAccessBootstrapState({ status: 'error', blockedReason: 'listener-registration-failed', registrationDiagnostic: diagnostic });
+            _renderClubAccessBlocked('listener-registration-failed');
+            finishFirst({ accepted: false, reason: 'listener-registration-failed', diagnostic });
+        };
+
+        void (async () => {
+            const readiness = await _waitForListenerRegistryReady();
+            if (!_isCurrentClubBootstrapGeneration(identity)) {
+                finishFirst({ accepted: false, reason: 'stale-auth-generation' });
+                return;
+            }
+            if (!readiness?.ready || typeof window.safeRegisterSnapshot !== 'function') {
+                failRegistration(readiness?.reason || 'registry-not-ready');
+                return;
+            }
+
+            _commitClubAccessBootstrapState({ registrationDiagnostic: 'registry-ready' });
+            const beforeMetrics = window.getListenerMetrics ? window.getListenerMetrics() : null;
+            const beforeCreateErrors = Number(beforeMetrics?.createErrors || 0);
+            let registered = register();
+            if (registered) {
+                _commitClubAccessBootstrapState({ registrationDiagnostic: 'registered' });
+                return;
+            }
+
+            const afterMetrics = window.getListenerMetrics ? window.getListenerMetrics() : null;
+            const existing = Array.isArray(afterMetrics?.activeEntries)
+                ? afterMetrics.activeEntries.find(entry => entry.key === clubKey)
+                : null;
+            if (existing) {
+                _commitClubAccessBootstrapState({ registrationDiagnostic: 'duplicate-existing' });
+                const sameSession = existing.owner === 'club' &&
+                    String(existing.clubId || '') === identity.clubId &&
+                    String(existing.sessionId || '') === String(identity.authGeneration);
+
+                // A proven current-session listener that has already accepted access can be reused.
+                // Otherwise it is stale/ambiguous for this new flight: remove once, remount once.
+                if (sameSession && _clubAccessBootstrapState.ready === true && _clubAccessBootstrapState.firstSnapshotSeen === true) {
+                    finishFirst({ accepted: true, source: _clubAccessBootstrapState.snapshotSource || 'registry-existing' });
+                    return;
+                }
+                if (!!window.removeListener) {
+                    window.removeListener(clubKey, 'v5u6h5-stale-bootstrap-owner');
+                    if (!_isCurrentClubBootstrapGeneration(identity)) {
+                        finishFirst({ accepted: false, reason: 'stale-auth-generation' });
+                        return;
+                    }
+                    registered = register(); // bounded stale-remount: exactly one retry
+                    if (registered) {
+                        _commitClubAccessBootstrapState({ registrationDiagnostic: 'registered-after-stale-remount' });
+                        return;
+                    }
+                }
+            }
+
+            const finalMetrics = window.getListenerMetrics ? window.getListenerMetrics() : null;
+            const createErrors = Number(finalMetrics?.createErrors || 0);
+            failRegistration(createErrors > beforeCreateErrors ? 'snapshot-create-error' : 'registration-failed', {
+                duplicateExisting: !!existing,
+                createErrors,
+            });
+        })();
+
+        return flight;
+    };
+
+    async function initSaaSDatabase(clubId) {
+        // Phase 4K-6V5U5: protected runtime may mount only after one verified auth commit.
+        const _verifiedAuth = window.__verifiedAuthContextState;
+        const _expectedClubId = String(clubId || '');
+        const _currentUid = String(auth.currentUser?.uid || '');
+        if (!_verifiedAuth || _verifiedAuth.ready !== true || !_currentUid || _verifiedAuth.uid !== _currentUid || String(_verifiedAuth.clubId || '') !== _expectedClubId || String(_verifiedAuth.role || '') !== String(window.userRole || '')) {
+            console.error('[AuthContext] initSaaSDatabase blocked before verified context commit.');
+            await _showLoginError('Không thể khởi tạo dữ liệu vì phiên phân quyền chưa được xác minh. Vui lòng đăng nhập lại.');
+            return false;
+        }
+        const _loginOverlay = document.getElementById('loginOverlay');
+        const _mainApp = document.getElementById('mainApp');
+        const _passInput = document.getElementById('passInput'); if (_passInput) _passInput.value = '';
+        // SuperAdmin has no tenant club-access gate. Normal tenant content stays hidden until
+        // the first accepted clubs/{clubId} snapshot has made the access decision.
+        if ('super_admin' === window.userRole) {
+            if (_loginOverlay) _loginOverlay.style.display = 'none';
+            if (_mainApp) _mainApp.style.display = 'block';
+        } else {
+            if (_mainApp) _mainApp.style.display = 'none';
+            if (_loginOverlay) _loginOverlay.style.display = 'flex';
+            const _loginTextGate = document.getElementById('loginText'); if (_loginTextGate) _loginTextGate.innerText = 'Đang kiểm tra quyền truy cập CLB...';
+            const _loginLoadingGate = document.getElementById('loginLoading'); if (_loginLoadingGate) _loginLoadingGate.classList.remove('hidden');
+        }
+
+        // Role/club/branch đã được commit nguyên tử bởi _commitVerifiedAuthContext().
+        // initSaaSDatabase chỉ mount runtime và Firebase refs, không còn là auth-context writer.
+
+        if(window.userRole === 'super_admin') {
+            document.getElementById('superAdminView').style.display = 'block';
+            document.getElementById('mainTabsWrapper').style.display = 'none';
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.getElementById('filterArea').style.display = 'none';
+            document.getElementById('btnSettings').style.display = 'none';
+            document.getElementById('exportTaxBtn').style.display = 'none';
+            document.getElementById('exportBtn').style.display = 'none';
+            document.getElementById('displaySubtitle').innerText = "HỆ THỐNG QUẢN TRỊ TRUNG TÂM (ROOT)";
+            const _now = new Date(); const _ym = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0');
+            const _rmEl = document.getElementById('sa_revenue_month'); if(_rmEl) _rmEl.value = _ym;
+            // [HOTFIX] Race condition: ensureSuperAdminModule và main.js có thể chưa xong khi
+            // initSaaSDatabase chạy ngay sau login. Dùng safe async retry thay vì gọi thẳng.
+            (async () => {
+                const _listEl = document.getElementById('sysClubListMain');
+                // Thử ngay nếu module đã có
+                if (window.SuperAdminModule?.loadSuperAdminDashboard) {
+                    return window.SuperAdminModule.loadSuperAdminDashboard();
+                }
+                // ensureSuperAdminModule chưa sẵn sàng → retry tối đa 20 lần × 150ms = 3s
+                // Đây là tình huống main.js ES module chưa finish bootstrapping
+                for (let _i = 0; _i < 20; _i++) {
+                    await new Promise(r => setTimeout(r, 150));
+                    if (typeof window.ensureSuperAdminModule === 'function') break;
+                }
+                if (typeof window.ensureSuperAdminModule === 'function') {
+                    const _ok = await window.ensureSuperAdminModule('initSaaSDatabase');
+                    if (_ok && window.SuperAdminModule?.loadSuperAdminDashboard) {
+                        return window.SuperAdminModule.loadSuperAdminDashboard();
+                    }
+                }
+                // Fallback: thử window.loadSuperAdminData (chính nó có retry bên trong)
+                if (typeof window.loadSuperAdminData === 'function') {
+                    return window.loadSuperAdminData();
+                }
+                // Vẫn thất bại — hiện lỗi rõ thay vì đứng ở "Đang tải..."
+                if (_listEl) {
+                    _listEl.innerHTML = '<div class="text-center py-10 text-rose-500"><div class="text-2xl mb-2">⚠️</div><p class="font-bold text-sm">Module SuperAdmin chưa tải được.</p><p class="text-xs text-slate-400 mt-2">Vui lòng refresh trang (F5). Nếu lỗi vẫn xảy ra, kiểm tra main.js đã load chưa.</p></div>';
+                }
+            })();
+            return;
+        }
+        // Show change password button for CLB admin/viewer (not super_admin)
+        const _cpBtn = document.getElementById('btnChangePassword'); if(_cpBtn) _cpBtn.style.display = 'flex';
+        const _mmsCpBtn = document.getElementById('mmsChangePasswordBtn'); if(_mmsCpBtn) _mmsCpBtn.style.display = 'block';
+
+        // Phase 4K-6V5U6B — mount the ONE root-club authority before any protected
+        // downstream source. Its first snapshot owns access bootstrap; the same listener stays realtime.
+        const _clubBootstrap = _mountClubRootAuthority(clubId, _verifiedAuth);
+        const _clubFirstSnapshot = await _clubBootstrap.firstSnapshotPromise;
+        if (!_isCurrentClubBootstrapGeneration({ uid: _verifiedAuth.uid, clubId, authGeneration: _verifiedAuth.generation })) return false;
+        if (!_clubFirstSnapshot?.accepted || _clubAccessBootstrapState.ready !== true) return false;
+
+        // Access accepted: only now may protected tenant shell/runtime become visible.
+        if (_loginOverlay) _loginOverlay.style.display = 'none';
+        if (_mainApp) _mainApp.style.display = 'block';
+        const _loginTextReady = document.getElementById('loginText'); if (_loginTextReady) _loginTextReady.innerText = 'ĐĂNG NHẬP';
+        const _loginLoadingReady = document.getElementById('loginLoading'); if (_loginLoadingReady) _loginLoadingReady.classList.add('hidden');
+
+        let _shouldAutoRenderCoachAttendance = false;
+        // ── Coach role: chỉ hiện tab Điểm danh, ẩn toàn bộ admin UI ─────────────
+        if (window.userRole === 'coach') {
+            const _verifiedCoachBranch = _canonicalBranch(window.coachBranch, '');
+            if (!_verifiedCoachBranch) {
+                console.error('[AuthContext] Coach missing canonical branch — runtime blocked.');
+                await _showLoginError('Tài khoản HLV chưa được gán cơ sở hợp lệ. Admin cần chọn một cơ sở cụ thể rồi đăng nhập lại.');
+                return;
+            }
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.style.display = (btn.id === 'btn_attendance') ? '' : 'none';
+            });
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            const _attEl = document.getElementById('tab_attendance');
+            if (_attEl) _attEl.classList.add('active');
+            // Phase 4K-6V4B: Coach runtime chỉ dùng Điểm danh và một cơ sở canonical.
+            // Không giữ form Thêm võ sinh vì form này kéo theo Học phí/Kho/transactions.
+            ['filterArea','btnSettings','exportTaxBtn','exportBtn','btnAddStudent'].forEach(id => {
+                const el = document.getElementById(id); if (el) el.style.display = 'none';
+            });
+            // Ẩn tab Thi Đai cho tài khoản HLV (cũng được xử lý trong onSnapshot)
+            const _btnExamCoach = document.getElementById('btn_exam');
+            if (_btnExamCoach) _btnExamCoach.style.display = 'none';
+            // Ẩn các mục thống kê trên mobile header: Đang tập, Nợ HP, Doanh thu, Tháng
+            ['mhbActiveCount','mhbDebtCount','mhbIncome','mhbMonth'].forEach(function(pillId) {
+                const _pillEl = document.getElementById(pillId);
+                if (_pillEl) {
+                    const _pill = _pillEl.closest ? _pillEl.closest('.mhb-pill') : null;
+                    if (_pill) _pill.style.display = 'none';
+                }
+            });
+            // HLV không mount form Thêm võ sinh đầy đủ trong attendance-only runtime.
+            const _coachAddWrap = document.getElementById('coach_add_btn_wrap');
+            if (_coachAddWrap) _coachAddWrap.style.display = 'none';
+            const _attD = document.getElementById('att_date');
+            if (_attD && !_attD.value) _attD.value = getLocalToday();
+            // Khoá bộ lọc chi nhánh theo chi nhánh được phân công
+            if (window.coachBranch) {
+                const _branchEl = document.getElementById('att_branch');
+                if (_branchEl) _branchEl.value = window.coachBranch;
+                const _mBranchEl = document.getElementById('att_month_branch');
+                if (_mBranchEl) _mBranchEl.value = window.coachBranch;
+            }
+            window.CoachBranchRuntimeRepair.renderCoachBranchSelectors();
+            // Hiển thị thông tin HLV trên header điểm danh
+            const _attHeader = document.getElementById('coach_att_info');
+            if (_attHeader) {
+                _attHeader.style.display = 'flex';
+                const _branchName = window.coachBranch
+                    ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(window.coachBranch) : window.coachBranch)
+                    : 'Tất cả';
+                // SECURITY TODO: _branchName đến từ Firestore — cần escapeHtml. Phase 4.1.
+                const _escBranch = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+                _attHeader.innerHTML = `<span style="font-size:0.78rem;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:6px 14px;border-radius:99px;font-weight:700;">👨‍🏫 HLV đang điểm danh — Cơ sở: ${_escBranch(_branchName)}</span>`;
+            }
+            // [SỬA] Tự động load danh sách điểm danh khi HLV đăng nhập —
+            // không cần click thêm, hệ thống hiển thị ngay danh sách cơ sở được giao.
+            // V5U6B: defer the first attendance consumer until protected ready events
+            // have been dispatched after the accepted club snapshot.
+            _shouldAutoRenderCoachAttendance = typeof window.renderAttendanceList != 'undefined';
+        }
+
+        if(window.userRole === 'viewer') {
+            document.getElementById('transactionForm').style.display = 'none'; document.getElementById('inventoryForm').style.display = 'none';
+            document.getElementById('expenseForm').style.display = 'none'; document.getElementById('examExpenseForm').style.display = 'none';
+            document.getElementById('btnAddStudent').style.display = 'none';
+            const btnBatch = document.querySelector('#tab_exam button.bg-gradient-to-r'); if(btnBatch) btnBatch.style.display = 'none';
+        }
+
+        profRef = collection(db, "clubs", clubId, "profiles");
+        colRef = collection(db, "clubs", clubId, "transactions");
+        invRef = collection(db, "clubs", clubId, "inventory");
+        const settingsRef = doc(db, "clubs", clubId, "settings", "main_config");
+        const invStatsRef = doc(db, "clubs", clubId, "settings", "inventory_stats");
+        const _coachAttendanceOnlyRuntime = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true;
+
+        // Until this club's transaction listener publishes its own snapshot coverage,
+        // financial RAM is UNKNOWN and must not become stats authority.
+        _resetTransactionCoverage('club-switch', { clubId: clubId, readMode: 'unknown' });
+
+        // Phase 4K-6V3BC1: reset per-club auto optimization before the new club chooses tx read mode.
+        if (typeof window.resetAutomaticCanonicalTransactionOptimization === 'function') window.resetAutomaticCanonicalTransactionOptimization('club-switch');
+        if (typeof window.resetDebtProfileReadBoundary === 'function') window.resetDebtProfileReadBoundary('club-switch');
+        // Phase 4K-6V3B/C: a new club must wait for its own settings snapshot before choosing tx read mode.
+        window.__settingsSnapshotReady = false;
+        window.__receiptSettingsAuthority = null;
+        if (window.__canonicalTxSettingsWait?.timer) clearTimeout(window.__canonicalTxSettingsWait.timer);
+        window.__canonicalTxSettingsWait = null;
+        // Phase 4K-6V3A: isolate read attribution per club.
+        if (window.__firestoreReadAttribution?.clubId && window.__firestoreReadAttribution.clubId !== clubId && typeof window.resetFirestoreReadAudit === 'function') window.resetFirestoreReadAudit('club-switch');
+        if (window.__firestoreReadAttribution) window.__firestoreReadAttribution.clubId = clubId;
+
+        // [Phase 2d] Sync only Firebase collection refs here.
+        // Phase 4K-6V5U5: role/clubId/coachBranch/currentUser were already committed
+        // atomically by _commitVerifiedAuthContext() before this runtime was mounted.
+        if (window.__store) {
+            window.__store.db      = db;
+            window.__store.colRef  = colRef;
+            window.__store.profRef = profRef;
+            window.__store.invRef  = invRef;
+        }
+
+        // Phase 4.0B-4C: Dispatch app:context-ready — db + clubId + refs đã sẵn sàng.
+        // Chỉ có nghĩa là context cơ bản ready, KHÔNG có nghĩa data snapshot đã load xong.
+        dispatchAppContextReady('initSaaSDatabase-store-synced');
+        // Phase 4K-RUNTIME-INIT-FIX: Dispatch app:db-ready — db đã gắn vào store.
+        // Modules pagination listen event này để init an toàn sau khi db sẵn sàng.
+        // Guard __dbReadyEventDispatched ngăn dispatch lặp trong cùng session.
+        if (!window.__dbReadyEventDispatched) {
+            window.__dbReadyEventDispatched = true;
+            window.dispatchEvent(new CustomEvent('app:db-ready', {
+                detail: {
+                    db:       window.__store && window.__store.db ? window.__store.db : db,
+                    clubId:   clubId || '',
+                    userRole: window.userRole || '',
+                }
+            }));
+        }
+        // Phase 4.0B-4J-8A: Dispatch app:shell-ready — shell đã hiện, dữ liệu đang tải.
+        window.dispatchEvent(new CustomEvent('app:shell-ready'));
+        if (typeof markLoginPerf === 'function') markLoginPerf('shellShown');
+        if (_shouldAutoRenderCoachAttendance && typeof window.renderAttendanceList === 'function') {
+            window.renderAttendanceList();
+        }
+
+        // Phase 4K-6V5U6B: root club listener already mounted above and remains the
+        // canonical realtime authority after its accepted first snapshot. No replacement listener here.
+
+        // [Phase 3.6C] settings listener — migrated to safeRegisterSnapshot()
+        // No activeListeners.push needed — registry is source of cleanup.
+        const _settingsKey = 'global:settings:' + clubId;
+        const _completeSettingsReady = ({ skipped = false, reason = '' } = {}) => {
+            window.__settingsSnapshotReady = true;
+            if (!skipped && window.RoleReadBoundary?.isCoachAttendanceOnly?.() !== true && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') window.scheduleAutomaticDebtProfileCoverage('settings-ready');
+            try { window.dispatchEvent(new CustomEvent('app:settings-ready', { detail: { clubId: clubId, ...(skipped ? { skipped: true, reason } : {}) } })); } catch (_) {}
+        };
+        const _settingsOwnerAtMount = _receiptPrincipalFingerprint();
+        const _settingsCb = (docSnap) => {
+            if (window.markListenerSnapshot) window.markListenerSnapshot(_settingsKey);
+            if(docSnap.exists()) {
+                clubConfig = { ...clubConfig, ...docSnap.data() };
+                // [Phase 2d] Sync clubConfig → bridge để modules/students.js đọc được
+                if (window.__store) window.__store.clubConfig = clubConfig;
+                _acceptReceiptSettingsSnapshot(docSnap, clubId, _settingsOwnerAtMount);
+                const _coachAttendanceOnly = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true;
+                if (!_coachAttendanceOnly && typeof window.syncCanonicalTransactionReadModeFromConfig === 'function') {
+                    setTimeout(() => window.syncCanonicalTransactionReadModeFromConfig('settings-snapshot'), 0);
+                }
+                if (!_coachAttendanceOnly && typeof window.refreshCanonicalTransactionOptimizerButton === 'function') {
+                    window.refreshCanonicalTransactionOptimizerButton();
+                }
+                // Phase 4.0B-4D: mark settings loaded
+                _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'settings-snapshot' });
+                applyClubConfigUI();
+                // [Phase 3.5C] settings thay đổi ảnh hưởng toàn bộ UI → invalidateByDomain('all')
+                // Dùng domain invalidation thay vì scheduleRender() toàn app.
+                // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
+                if (window.invalidateByDomain) {
+                    window.invalidateByDomain('all', 'settings-change');
+                } else {
+                    scheduleRender();
+                }
+                // Coach attendance-only không đọc danh mục Kho.
+                if (!_coachAttendanceOnly && window.RoleReadBoundary?.canMount?.('inventory.categories', { reason: 'settings-snapshot' }) !== false) {
+                    window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
+                }
+            }
+            if (!docSnap.exists()) _acceptReceiptSettingsSnapshot(docSnap, clubId, _settingsOwnerAtMount);
+            _completeSettingsReady();
+        };
+        if (_coachAttendanceOnlyRuntime) {
+            _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'coach-main-config-skipped' });
+            _completeSettingsReady({ skipped: true, reason: 'coach-attendance-only' });
+        } else if (window.safeRegisterSnapshot) {
+            window.safeRegisterSnapshot(_settingsKey, () => onSnapshot(settingsRef, {includeMetadataChanges:true}, _settingsCb),
+                { owner: 'settings', scope: 'global', clubId: clubId, reason: 'init-settings' });
+        } else {
+            const _u_settings = onSnapshot(settingsRef, {includeMetadataChanges:true}, _settingsCb);
+            activeListeners.push(_u_settings);
+            if (window.registerListener) window.registerListener(_settingsKey, _u_settings, { owner: 'settings', scope: 'global', reason: 'init-settings' });
+        }
+
+        // [Phase 3.6C] invStats listener — migrated to safeRegisterSnapshot()
+        // No activeListeners.push needed — registry is source of cleanup.
+        const _invStatsKey = 'global:invStats:' + clubId;
+        const _invStatsCb = (snap) => {
+            if (window.markListenerSnapshot) window.markListenerSnapshot(_invStatsKey);
+            if(snap.exists()) inventoryStats = snap.data();
+            else inventoryStats = {};
+            // [Phase 3.8A] Sync inventoryStats vào window.__store + inventoryStore
+            if (window.__store) window.__store.inventoryStats = inventoryStats;
+            if (window.__inventoryStore && typeof window.__inventoryStore.setInventoryStats === 'function') {
+                window.__inventoryStore.setInventoryStats(inventoryStats, 'invstats-snapshot');
+            }
+            // Phase 4K-6V2A: hydrate inventory consumers directly from inventory_stats.
+            // Thu gộp / Thêm võ sinh must not wait for the lazy history page.
+            try {
+                const _stockResult = window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({
+                    reason: 'invstats-snapshot',
+                    force: true
+                });
+                window.__inventoryStockHydration = {
+                    ready: true,
+                    source: (_stockResult && _stockResult.source) || 'inventory-stats',
+                    keyCount: (_stockResult && _stockResult.keyCount) || Object.keys(window._liveInvMap || {}).length,
+                    updatedAt: Date.now()
+                };
+                if (typeof window.populateInvCategorySelects === 'function') {
+                    window.populateInvCategorySelects();
+                }
+                const _addModalOpen = document.getElementById('addModal') && document.getElementById('addModal').style.display !== 'none';
+                if (_addModalOpen && typeof window.renderAdmissionUniformSizeOptions === 'function') {
+                    window.renderAdmissionUniformSizeOptions({ preserveSelection: true, reason: 'invstats-snapshot' });
+                }
+                const _miOpen = document.getElementById('multiItemModal') && document.getElementById('multiItemModal').style.display !== 'none';
+                const _miInvOn = document.getElementById('mi_inv_toggle') && document.getElementById('mi_inv_toggle').checked;
+                if (_miOpen && _miInvOn && typeof window.toggleMiInvCategory === 'function') {
+                    window.toggleMiInvCategory();
+                }
+            } catch (_stockHydrationErr) {
+                console.warn('[Phase 4K-6V2A] inventory_stats consumer hydration failed:', _stockHydrationErr);
+            }
+            // [Phase 3.5C] invStats ảnh hưởng inventory + dashboard summary.
+            // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
+            if (window.invalidateInventory) {
+                window.invalidateInventory('invstats-snapshot');
+                window.invalidateDashboard('invstats-snapshot');
+            } else {
+                scheduleRender();
+            }
+        };
+        if (window.RoleReadBoundary?.canMount?.('inventory.stats', { clubId, reason: 'init-invstats' }) !== false) {
+            if (window.safeRegisterSnapshot) {
+                window.safeRegisterSnapshot(_invStatsKey, () => onSnapshot(invStatsRef, _invStatsCb),
+                    { owner: 'inventory', scope: 'global', clubId: clubId, reason: 'init-invstats' });
+            } else {
+                const _u_invStats = onSnapshot(invStatsRef, _invStatsCb);
+                activeListeners.push(_u_invStats);
+                if (window.registerListener) window.registerListener(_invStatsKey, _u_invStats, { owner: 'inventory', scope: 'global', reason: 'init-invstats' });
+            }
+        } else {
+            inventoryStats = {};
+            if (window.__store) window.__store.inventoryStats = {};
+        }
+
+        // [Phase 3.7B] Active profiles listener replaces full profiles listener by default.
+        // Bridge: cung cấp window._syncAllProfilesLegacy để profiles.listeners.js có thể
+        // cập nhật allProfiles closure sau mỗi store update.
+        // allProfiles[id] và Object.values(allProfiles) tiếp tục hoạt động ở mọi nơi trong app.js.
+        window._syncAllProfilesLegacy = () => {
+            const compat = window.studentProfileStore && window.studentProfileStore.getAllProfilesCompat
+                ? window.studentProfileStore.getAllProfilesCompat()
+                : null;
+            if (compat) {
+                // Phase 4.0B-4E: Guard — không overwrite legacy-root data bằng primary rỗng
+                const _compatEmpty  = Object.keys(compat).length === 0;
+                const _storeHasProf = window.__store && Object.keys(window.__store.profiles || {}).length > 0;
+                if (window.__store && window.__store.activeDataSource === 'legacy-root' && _compatEmpty && _storeHasProf) {
+                    console.warn('[DataSourceLock] Skip primary empty overwrite (profiles/active) — legacy-root active');
+                } else {
+                    allProfiles = compat;
+                    if (window.__store) window.__store.profiles = allProfiles;
+                    // Phase 4.0B-4D: update hydration metrics (active-profiles path)
+                    _updateHydrationMetrics({
+                        profilesSnapshotCount: (window.__dataHydrationMetrics.profilesSnapshotCount || 0) + 1,
+                        profilesDocCount:      Object.keys(compat).length,
+                        lastReason:            'profiles-sync-active'
+                    });
+                }
+            }
+        };
+
+        // [Phase 3.7B] Mount active-only realtime listener nếu module đã sẵn.
+        // main.js load TRƯỚC initSaaSDatabase (initSaaSDatabase chỉ gọi khi user login)
+        // nên window.mountActiveProfilesListener đã có sẵn khi init club chạy.
+        // Fallback an toàn: giữ full profiles listener nếu module chưa sẵn.
+        if (typeof window.mountActiveProfilesListener === 'function') {
+            window.mountActiveProfilesListener({
+                db, clubId, profRef, currentClubId,
+                role: window.userRole || '',
+                coachBranch: window.coachBranch || '',
+                reason: 'init-active-profiles'
+            });
+        } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
+            // Fail closed: tuyệt đối không full-read toàn CLB khi module branch-aware chưa sẵn.
+            allProfiles = {};
+            if (window.__store) window.__store.profiles = {};
+            console.error('[RoleReadBoundary] Coach profiles module unavailable — blocked full-club fallback');
+        } else {
+            // Fallback Admin only: full profiles listener (Phase 3.6D pattern — khi module chưa load)
+            let _fallbackProfilesInitialSeen = false;
+            const _u_profiles = onSnapshot(profRef, (snap) => {
+                if (typeof window.recordFirestoreSnapshotAttribution === 'function') window.recordFirestoreSnapshotAttribution('profiles.fullFallbackListener', snap, { initial: !_fallbackProfilesInitialSeen, reason: 'app-module-not-ready' });
+                _fallbackProfilesInitialSeen = true;
+                // Phase 4.0B-4E: Guard — không overwrite legacy-root data bằng primary rỗng
+                const _snapEmpty    = snap.size === 0;
+                const _storeHasProf = window.__store && Object.keys(window.__store.profiles || {}).length > 0;
+                if (window.__store && window.__store.activeDataSource === 'legacy-root' && _snapEmpty && _storeHasProf) {
+                    console.warn('[DataSourceLock] Skip primary empty overwrite (profiles/fallback) — legacy-root active');
+                    return;
+                }
+                allProfiles = {};
+                snap.forEach(d => { allProfiles[d.id.trim()] = d.data(); });
+                if (window.__store) window.__store.profiles = allProfiles;
+                // Phase 4.0B-4D: update hydration metrics (fallback path)
+                _updateHydrationMetrics({
+                    profilesSnapshotCount: (window.__dataHydrationMetrics.profilesSnapshotCount || 0) + 1,
+                    profilesDocCount:      snap.size,
+                    lastReason:            'profiles-snapshot-legacy-fallback'
+                });
+                if (typeof window.recordReadMetric === 'function') window.recordReadMetric('profiles', snap.size, 'profiles-fallback-listener'); // [4J-8]
+                // Phase 4.0B-4J-8A: Mark dataHydrated khi profiles snapshot đầu tiên load xong
+                if (!(window.__loginPerfMetrics || {}).dataHydratedAt && typeof markLoginPerf === 'function') markLoginPerf('dataHydrated');
+                if (window.syncProfilesToStudentStore) { window.syncProfilesToStudentStore(allProfiles, 'profiles-snapshot-legacy-fallback'); }
+                if (window.invalidateStudents) { window.invalidateStudents('profiles-snapshot'); window.invalidateDashboard('profiles-snapshot'); } else { scheduleRender(); }
+            });
+            activeListeners.push(_u_profiles);
+            if (window.registerListener) window.registerListener('global:profiles:' + clubId, _u_profiles, { owner: 'students', scope: 'global', reason: 'init-profiles-fallback' });
+        }
+
+        // Phase 4K-6V2 — Inventory History Pagination + Complete Debt Listener
+        // 1) Lịch sử kho: KHÔNG còn listener 500 docs khi đăng nhập.
+        //    Chỉ tải 100 docs/trang khi mở tab Kho; tải thêm bằng startAfter().
+        // 2) Công nợ kho: một listener riêng where(unpaid == true), không limit.
+        //    Dữ liệu công nợ là authoritative và KHÔNG bị lịch sử gần đây ghi đè.
+        // 3) Identity: profileId → memberId → tên chuẩn hóa, tương thích dữ liệu cũ.
+
+        // Prevent stock options from leaking across club switches before the new
+        // club's inventory_stats snapshot arrives.
+        window._liveInvMap = {};
+        window.__liveInvMapSource = 'club-context-reset';
+        window.__inventoryStockHydration = { ready: false, source: 'club-context-reset', keyCount: 0, updatedAt: Date.now() };
+
+        const _INVENTORY_HISTORY_PAGE_SIZE = 100;
+        const _inventoryHistoryState = {
+            clubId,
+            pageSize: _INVENTORY_HISTORY_PAGE_SIZE,
+            cursor: null,
+            loaded: false,
+            loading: false,
+            hasMore: true,
+            stale: false,
+            pagesLoaded: 0,
+            lastLoadedAt: 0,
+            error: null,
+        };
+        let _inventoryHistoryRefreshTimer = null;
+
+        window.__inventoryReadMetrics = window.__inventoryReadMetrics || {
+            historyNetworkFetches: 0,
+            historyDocsRead: 0,
+            historyPagesLoaded: 0,
+            historyLoadMoreCalls: 0,
+            historySkippedClosedTab: 0,
+            debtListenerSnapshots: 0,
+            debtListenerInitialDocs: 0,
+            debtListenerChangedDocs: 0,
+            debtListenerErrors: 0,
+            debtListenerDuplicateMountSkipped: 0,
+            lastReason: '',
+            lastUpdatedAt: 0,
+        };
+
+        const _isInventoryTabActive = () => {
+            const el = document.getElementById('tab_inventory');
+            return !!(el && el.classList.contains('active'));
+        };
+
+        const _publishInventoryHistory = (items, reason) => {
+            const sorted = Array.isArray(items) ? items.slice().sort((a, b) => {
+                const dateCmp = String(b && b.date || '').localeCompare(String(a && a.date || ''));
+                if (dateCmp !== 0) return dateCmp;
+                const ta = Number(a && a.timestamp || 0);
+                const tb = Number(b && b.timestamp || 0);
+                return tb - ta;
+            }) : [];
+
+            allInventory = sorted;
+            window.allInventory = allInventory;
+            if (window.__store) window.__store.inventory = allInventory;
+            if (window.__inventoryStore && typeof window.__inventoryStore.setAllInventory === 'function') {
+                window.__inventoryStore.setAllInventory(allInventory, reason || 'inventory-history-page');
+            }
+            try {
+                window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: (reason || 'inventory-history-page') + ':refresh-stock-catalog', force: true });
+                window.populateInvCategorySelects?.();
+            } catch (_catalogError) { console.warn('[Phase 4K-6V2B] inventory history catalog refresh failed:', _catalogError); }
+
+            _updateHydrationMetrics({
+                inventorySnapshotCount: (window.__dataHydrationMetrics.inventorySnapshotCount || 0) + 1,
+                inventoryDocCount: allInventory.length,
+                lastReason: reason || 'inventory-history-page'
+            });
+
+            // Lịch sử chỉ sở hữu tab Kho. Tuyệt đối không derive/ghi đè financeInventoryDebts tại đây.
+            // Nếu Thu gộp đang mở, refresh riêng phần tồn kho; công nợ vẫn lấy từ listener authoritative.
+            if (
+                document.getElementById('multiItemModal') &&
+                document.getElementById('multiItemModal').style.display !== 'none' &&
+                typeof window.refreshMultiItemInventorySection === 'function'
+            ) {
+                const name = ((document.getElementById('mi_name') || {}).value || '').trim();
+                if (name) window.refreshMultiItemInventorySection(name, 'inventory-loaded-while-multi-item-open');
+            }
+            if (window.invalidateInventory) {
+                window.invalidateInventory(reason || 'inventory-history-page');
+            } else if (typeof window.flushOrQueueDomainInvalidation === 'function') {
+                window.flushOrQueueDomainInvalidation('inventory', reason || 'inventory-history-page', { source: 'phase4k-6v2' });
+            } else {
+                scheduleRender(reason || 'inventory-history-page', { forceLegacyRender: true });
+            }
+        };
+
+        // Phase 4K-6V2C: local write-through keeps a newly saved inventory row
+        // visible immediately without re-reading the first history page.
+        window.mergeInventoryIntoRuntimeStore = function(item, reason = 'inventory-write-through') {
+            if (!item || !item.id) return allInventory;
+            const byId = new Map((allInventory || []).map(row => [row.id, row]));
+            byId.set(item.id, { ...(byId.get(item.id) || {}), ...item });
+            _publishInventoryHistory(Array.from(byId.values()), reason);
+            return allInventory;
+        };
+
+        window.removeInventoryFromRuntimeStore = function(invId, reason = 'inventory-delete-through') {
+            if (!invId) return allInventory;
+            _publishInventoryHistory((allInventory || []).filter(row => row && row.id !== invId), reason);
+            return allInventory;
+        };
+
+        window.replaceInventoryRuntimeStore = function(items, reason = 'inventory-full-rebuild') {
+            const list = Array.isArray(items) ? items : [];
+            _inventoryHistoryState.cursor = null;
+            _inventoryHistoryState.loaded = true;
+            _inventoryHistoryState.loading = false;
+            _inventoryHistoryState.hasMore = false;
+            _inventoryHistoryState.stale = false;
+            _inventoryHistoryState.pagesLoaded = Math.max(1, Math.ceil(list.length / _INVENTORY_HISTORY_PAGE_SIZE));
+            _inventoryHistoryState.lastLoadedAt = Date.now();
+            _publishInventoryHistory(list, reason);
+            return allInventory;
+        };
+
+        window.getInventoryHistoryPaginationState = () => ({
+            clubId: _inventoryHistoryState.clubId,
+            pageSize: _inventoryHistoryState.pageSize,
+            loaded: _inventoryHistoryState.loaded,
+            loading: _inventoryHistoryState.loading,
+            hasMore: _inventoryHistoryState.hasMore,
+            stale: _inventoryHistoryState.stale,
+            pagesLoaded: _inventoryHistoryState.pagesLoaded,
+            loadedCount: allInventory.length,
+            lastLoadedAt: _inventoryHistoryState.lastLoadedAt,
+            error: _inventoryHistoryState.error,
+        });
+
+        window.resolveInventoryDebtIdentity = function(studentNameOrProfile) {
+            const profiles = (window.__store && window.__store.profiles) || allProfiles || {};
+            let requestedName = '';
+            let requestedProfileId = '';
+            let requestedMemberId = '';
+
+            if (typeof studentNameOrProfile === 'string') {
+                requestedName = studentNameOrProfile.trim();
+            } else if (studentNameOrProfile && typeof studentNameOrProfile === 'object') {
+                requestedProfileId = String(studentNameOrProfile.profileId || studentNameOrProfile.docId || studentNameOrProfile.id || '').trim();
+                requestedMemberId = String(studentNameOrProfile.memberId || studentNameOrProfile.memberCode || '').trim();
+                requestedName = String(studentNameOrProfile.name || studentNameOrProfile.studentName || studentNameOrProfile.profileName || requestedProfileId || '').trim();
+            }
+
+            let profileId = requestedProfileId;
+            let profile = profileId && profiles[profileId] ? profiles[profileId] : null;
+            if (!profile && requestedName && profiles[requestedName]) {
+                profileId = requestedName;
+                profile = profiles[requestedName];
+            }
+            if (!profile && requestedMemberId) {
+                for (const [key, value] of Object.entries(profiles)) {
+                    if (String(value && value.memberId || '').trim() === requestedMemberId) {
+                        profileId = key; profile = value; break;
+                    }
+                }
+            }
+            if (!profile && requestedName) {
+                const norm = typeof window.normalizeStudentKey === 'function'
+                    ? window.normalizeStudentKey(requestedName)
+                    : requestedName.toLowerCase().replace(/\s+/g, ' ').trim();
+                for (const [key, value] of Object.entries(profiles)) {
+                    const keyNorm = typeof window.normalizeStudentKey === 'function'
+                        ? window.normalizeStudentKey(key)
+                        : String(key).toLowerCase().replace(/\s+/g, ' ').trim();
+                    if (keyNorm === norm) { profileId = key; profile = value; break; }
+                }
+            }
+
+            const memberId = requestedMemberId || String(profile && profile.memberId || '').trim();
+            return {
+                profileId: profileId || '',
+                memberId: memberId || '',
+                studentName: requestedName || profileId || '',
+            };
+        };
+
+        const _loadInventoryHistoryPage = async function({ reset = false, reason = 'inventory-history' } = {}) {
+            if (_inventoryHistoryState.loading) return allInventory;
+            if (!reset && _inventoryHistoryState.loaded && !_inventoryHistoryState.hasMore) return allInventory;
+
+            _inventoryHistoryState.loading = true;
+            _inventoryHistoryState.error = null;
+            window.__inventoryReadMetrics.lastReason = reason;
+            window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+            if (window.invalidateInventory) window.invalidateInventory('inventory-history-loading');
+
+            try {
+                const constraints = [orderBy('date', 'desc')];
+                const cursor = reset ? null : _inventoryHistoryState.cursor;
+                if (cursor) constraints.push(startAfter(cursor));
+                constraints.push(limit(_INVENTORY_HISTORY_PAGE_SIZE));
+
+                const snap = await getDocs(query(invRef, ...constraints));
+                const pageItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const base = reset ? [] : allInventory.slice();
+                const byId = new Map(base.map(item => [item.id, item]));
+                pageItems.forEach(item => byId.set(item.id, item));
+
+                _inventoryHistoryState.cursor = snap.docs.length ? snap.docs[snap.docs.length - 1] : cursor;
+                _inventoryHistoryState.loaded = true;
+                _inventoryHistoryState.loading = false;
+                _inventoryHistoryState.hasMore = snap.size === _INVENTORY_HISTORY_PAGE_SIZE;
+                _inventoryHistoryState.stale = false;
+                _inventoryHistoryState.pagesLoaded = reset ? 1 : _inventoryHistoryState.pagesLoaded + 1;
+                _inventoryHistoryState.lastLoadedAt = Date.now();
+
+                window.__inventoryReadMetrics.historyNetworkFetches++;
+                window.__inventoryReadMetrics.historyDocsRead += snap.size;
+                if (typeof window.recordFirestoreReadAttribution === 'function') window.recordFirestoreReadAttribution('inventory.historyPage', snap.size, { initial: !!reset, reason: reset ? 'first-page' : 'load-more' });
+                window.__inventoryReadMetrics.historyPagesLoaded = _inventoryHistoryState.pagesLoaded;
+                window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+                if (typeof window.recordReadMetric === 'function') {
+                    window.recordReadMetric('inventoryHistory', snap.size, reset ? 'inventory-history-first-page' : 'inventory-history-next-page');
+                }
+
+                // H3: manual legacy-root recovery may already hold valid inventory in RAM.
+                // A confirmed empty primary first page completes pagination state, but must
+                // not erase that recovery data. No fallback read/retry is started here.
+                const preserveLegacyInventory = !!(
+                    reset
+                    && snap.empty
+                    && window.__store?.activeDataSource === 'legacy-root'
+                    && Array.isArray(allInventory)
+                    && allInventory.length > 0
+                );
+                if (preserveLegacyInventory) {
+                    console.warn('[DataSourceLock] Skip primary empty overwrite (inventory) — legacy-root active');
+                    return allInventory;
+                }
+
+                _publishInventoryHistory(Array.from(byId.values()), reset ? 'inventory-history-first-page' : 'inventory-history-next-page');
+                return allInventory;
+            } catch (err) {
+                _inventoryHistoryState.loading = false;
+                _inventoryHistoryState.error = (err && err.message) || String(err);
+                console.error('[Phase 4K-6V2] Inventory history page load failed:', err);
+                if (window.invalidateInventory) window.invalidateInventory('inventory-history-error');
+                throw err;
+            }
+        };
+
+        window.ensureInventoryHistoryLoaded = async function(reason = 'ensure-inventory-history') {
+            if (!_isInventoryTabActive()) {
+                window.__inventoryReadMetrics.historySkippedClosedTab++;
+                return allInventory;
+            }
+            if (_inventoryHistoryState.loaded && !_inventoryHistoryState.stale) return allInventory;
+            return _loadInventoryHistoryPage({ reset: true, reason });
+        };
+
+        window.loadMoreInventoryHistory = async function(event) {
+            if (event && typeof event.preventDefault === 'function') event.preventDefault();
+            if (!_isInventoryTabActive() || _inventoryHistoryState.loading || !_inventoryHistoryState.hasMore) return;
+            window.__inventoryReadMetrics.historyLoadMoreCalls++;
+            const wrapper = document.querySelector('#tab_inventory .table-wrapper');
+            const previousScrollTop = wrapper ? wrapper.scrollTop : 0;
+            try {
+                await _loadInventoryHistoryPage({ reset: false, reason: 'inventory-history-load-more' });
+            } catch (_) {
+                window.showToast && window.showToast('⚠️ Không tải thêm được lịch sử Kho. Vui lòng thử lại.');
+            } finally {
+                if (wrapper) requestAnimationFrame(() => { wrapper.scrollTop = previousScrollTop; });
+            }
+        };
+
+        window.refreshInventoryHistory = async function(reason = 'inventory-history-refresh') {
+            if (!_isInventoryTabActive()) {
+                _inventoryHistoryState.stale = true;
+                return allInventory;
+            }
+            return _loadInventoryHistoryPage({ reset: true, reason });
+        };
+
+        window.markInventoryHistoryStale = function(reason = 'inventory-mutated') {
+            _inventoryHistoryState.stale = true;
+            window.__inventoryReadMetrics.lastReason = reason;
+            window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+        };
+
+        window.notifyInventoryMutation = function(reason = 'inventory-mutated', options = {}) {
+            window.markInventoryHistoryStale(reason);
+            // Canonical writers already merged the saved row into local state.
+            // Avoid an immediate Firestore re-read; next explicit refresh/tab reopen can reconcile remote changes.
+            if (options && options.writeThrough === true) return;
+            if (!_isInventoryTabActive()) return;
+            clearTimeout(_inventoryHistoryRefreshTimer);
+            _inventoryHistoryRefreshTimer = setTimeout(() => {
+                window.refreshInventoryHistory(reason).catch(err => console.warn('[Phase 4K-6V2C] refresh after mutation failed:', err));
+            }, 160);
+        };
+
+        // ── Complete active debt listener — authoritative ownership ──────────
+        // Reset mirror khi đổi CLB để không hiển thị tạm công nợ của tenant trước.
+        window.__completeInventoryDebts = [];
+        window.__inventoryDebtCompleteness = 'loading';
+        const _inventoryDebtKey = 'global:inventoryActiveDebts:' + clubId;
+        const _inventoryDebtQuery = query(invRef, where('unpaid', '==', true));
+        let _inventoryDebtInitialSnapshotSeen = false;
+
+        const _normalizeInventoryDebtName = (value) => String(value || '')
+            .trim().toLowerCase().replace(/\s+/g, ' ');
+        window.getCompleteInventoryDebtsForStudent = function(studentOrProfile) {
+            const identity = studentOrProfile && typeof studentOrProfile === 'object'
+                ? {
+                    profileId: String(studentOrProfile.profileId || studentOrProfile.docId || studentOrProfile.id || '').trim(),
+                    memberId: String(studentOrProfile.memberId || studentOrProfile.memberCode || '').trim(),
+                    name: String(studentOrProfile.name || studentOrProfile.studentName || studentOrProfile.profileName || '').trim(),
+                }
+                : { profileId: '', memberId: '', name: String(studentOrProfile || '').trim() };
+            const normName = _normalizeInventoryDebtName(identity.name);
+            return (window.__completeInventoryDebts || []).filter(item => {
+                if (identity.profileId && String(item.profileId || item.studentProfileId || '').trim() === identity.profileId) return true;
+                if (identity.memberId && String(item.memberId || item.memberCode || '').trim() === identity.memberId) return true;
+                const itemName = _normalizeInventoryDebtName(item.studentName || item.desc || item.description || item.name || '');
+                return !!normName && itemName === normName;
+            });
+        };
+        // file:// legacy mode không load main.js; cung cấp fallback read-only cho công nợ đầy đủ.
+        if (typeof window.getInventoryDebtsForStudent !== 'function') {
+            window.getInventoryDebtsForStudent = window.getCompleteInventoryDebtsForStudent;
+        }
+
+        const _setInventoryDebtCoverageWarning = (message) => {
+            const tab = document.getElementById('tab_debt');
+            if (!tab) return;
+            let box = document.getElementById('inventoryDebtCoverageWarning');
+            if (!message) {
+                if (box) box.remove();
+                return;
+            }
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'inventoryDebtCoverageWarning';
+                box.style.cssText = 'margin-bottom:12px;padding:10px 12px;border:1.5px solid #f59e0b;background:#fffbeb;color:#92400e;border-radius:10px;font-size:0.78rem;font-weight:700;line-height:1.45;';
+                tab.prepend(box);
+            }
+            box.textContent = message;
+        };
+
+        const _inventoryDebtCb = (snap) => {
+            if (window.markListenerSnapshot) window.markListenerSnapshot(_inventoryDebtKey);
+            const rawItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const debts = window.__inventoryStore && typeof window.__inventoryStore.deriveFinanceInventoryDebts === 'function'
+                ? window.__inventoryStore.deriveFinanceInventoryDebts(rawItems)
+                : rawItems.filter(item => item && item.unpaid === true);
+
+            // Mirror chỉ-đọc cho legacy/standalone paths. Nguồn canonical vẫn là inventoryStore.
+            window.__completeInventoryDebts = debts;
+            window.__inventoryDebtCompleteness = 'complete';
+
+            if (window.__inventoryStore) {
+                window.__inventoryStore.setFinanceInventoryDebts?.(debts, 'inventory-active-debt-listener');
+                window.__inventoryStore.rebuildInventoryDebtIndex?.('inventory-active-debt-listener');
+                window.__inventoryStore.markUnpaidDebtQueryLoaded?.(debts.length, 'inventory-active-debt-listener');
+            }
+
+            const changedDocs = _inventoryDebtInitialSnapshotSeen && typeof snap.docChanges === 'function'
+                ? snap.docChanges().length
+                : snap.size;
+            window.__inventoryReadMetrics.debtListenerSnapshots++;
+            if (!_inventoryDebtInitialSnapshotSeen) window.__inventoryReadMetrics.debtListenerInitialDocs += snap.size;
+            else window.__inventoryReadMetrics.debtListenerChangedDocs += changedDocs;
+            window.__inventoryReadMetrics.lastReason = 'inventory-active-debt-listener';
+            window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+            if (typeof window.recordReadMetric === 'function') {
+                window.recordReadMetric('inventoryDebts', changedDocs, _inventoryDebtInitialSnapshotSeen ? 'inventory-debt-changes' : 'inventory-debt-initial');
+            }
+            if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                window.recordFirestoreSnapshotAttribution('inventory.activeDebtListener', snap, {
+                    initial: !_inventoryDebtInitialSnapshotSeen,
+                    reason: _inventoryDebtInitialSnapshotSeen ? 'changes' : 'initial'
+                });
+            }
+            _inventoryDebtInitialSnapshotSeen = true;
+            _setInventoryDebtCoverageWarning('');
+
+            if (
+                document.getElementById('multiItemModal') &&
+                document.getElementById('multiItemModal').style.display !== 'none' &&
+                typeof window.refreshMultiItemInventorySection === 'function'
+            ) {
+                const name = ((document.getElementById('mi_name') || {}).value || '').trim();
+                if (name) window.refreshMultiItemInventorySection(name, 'active-debt-listener-update');
+            }
+
+            if (window.invalidateFinance) window.invalidateFinance('inventory-active-debts-updated');
+            if (window.invalidateStudents) window.invalidateStudents('inventory-active-debts-updated');
+            if (window.invalidateDashboard) window.invalidateDashboard('inventory-active-debts-updated');
+        };
+
+        const _inventoryDebtError = (err) => {
+            window.__inventoryReadMetrics.debtListenerErrors++;
+            window.__inventoryReadMetrics.lastReason = 'inventory-active-debt-listener-error';
+            window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+            window.__inventoryDebtCompleteness = Array.isArray(window.__completeInventoryDebts) && window.__completeInventoryDebts.length ? 'partial' : 'failed';
+            window.__inventoryStore?.markUnpaidDebtQueryFailed?.('inventory-active-debt-listener-error');
+            _setInventoryDebtCoverageWarning('⚠️ Không kết nối được dữ liệu công nợ Kho đầy đủ. Không nên Thu gộp cho tới khi kết nối được khôi phục.');
+            console.error('[Phase 4K-6V2] Complete active debt listener failed:', err);
+        };
+
+        if (window.RoleReadBoundary?.canMount?.('inventory.active-debts', { clubId, reason: 'phase4k-6v2-active-debts' }) !== false) {
+            if (window.safeRegisterSnapshot) {
+                const result = window.safeRegisterSnapshot(
+                    _inventoryDebtKey,
+                    () => onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError),
+                    { owner: 'inventory-debt', scope: 'global', clubId, reason: 'phase4k-6v2-active-debts' }
+                );
+                if (result === false) window.__inventoryReadMetrics.debtListenerDuplicateMountSkipped++;
+            } else {
+                const unsubscribe = onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError);
+                activeListeners.push(unsubscribe);
+                if (window.registerListener) {
+                    window.registerListener(_inventoryDebtKey, unsubscribe, { owner: 'inventory-debt', scope: 'global', reason: 'phase4k-6v2-active-debts' });
+                }
+            }
+        } else {
+            window.__completeInventoryDebts = [];
+            window.__inventoryDebtCompleteness = 'blocked-coach-attendance-only';
+            window.__inventoryStore?.setFinanceInventoryDebts?.([], 'coach-attendance-only');
+        }
+
+        window.printInventoryReadMetrics = function() {
+            const pg = window.getInventoryHistoryPaginationState();
+            const debt = window.__inventoryStore || {};
+            console.group('[Phase 4K-6V2] Inventory Read Metrics');
+            console.table({
+                historyLoaded: { value: pg.loaded },
+                historyLoadedCount: { value: pg.loadedCount },
+                historyPagesLoaded: { value: pg.pagesLoaded },
+                historyHasMore: { value: pg.hasMore },
+                historyNetworkFetches: { value: window.__inventoryReadMetrics.historyNetworkFetches },
+                historyDocsRead: { value: window.__inventoryReadMetrics.historyDocsRead },
+                debtListenerSnapshots: { value: window.__inventoryReadMetrics.debtListenerSnapshots },
+                debtListenerInitialDocs: { value: window.__inventoryReadMetrics.debtListenerInitialDocs },
+                debtListenerChangedDocs: { value: window.__inventoryReadMetrics.debtListenerChangedDocs },
+                completeDebtCount: { value: (debt.financeInventoryDebts || []).length },
+                debtCompleteness: { value: debt.inventoryDebtCompleteness || 'unknown' },
+            });
+            console.groupEnd();
+            return { pagination: pg, metrics: { ...window.__inventoryReadMetrics } };
+        };
+
+        const lMonth = document.getElementById('filterMonth').value;
+        if (window.RoleReadBoundary?.canMount?.('transactions.month', { month: lMonth, reason: 'initial-bootstrap' }) !== false) {
+            if (typeof window.startTransactionListenerAfterSettings === 'function') window.startTransactionListenerAfterSettings(lMonth); else window.listenToData(lMonth);
+            loadLogoForReceipt();
+        }
+
+        // ── Phase 4K-6V5U6A: Admin notifications have ONE normal read authority. ──
+        // setupNotifListener() owns both the initial unread snapshot and realtime updates.
+        // checkAdminNotifications() is retained strictly as a one-shot fallback when the
+        // canonical listener cannot be created or fails before its first successful snapshot.
+        if (window.userRole === 'admin' || window.userRole === 'super_admin') {
+            setTimeout(() => {
+                if (typeof window.setupNotifListener === 'function') window.setupNotifListener();
+            }, 1200);
+        }
+    }
+
+
+
+    //  SUPER ADMIN: NÂNG CẤP SỐ CƠ SỞ HOẠT ĐỘNG CỦA CLB
+    let _buSelectedCount = 1;
+
+    window.selectBranchCard = async function(n) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.selectBranchCard) return window.SuperAdminModule.selectBranchCard(n);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('selectBranchCard');
+            if (loaded && window.SuperAdminModule?.selectBranchCard) return window.SuperAdminModule.selectBranchCard(n);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] selectBranchCard: module not loaded');
+    };
+
+    window.openBranchUpgradeModal = async function(clubId, clubName) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.openBranchUpgradeModal) return window.SuperAdminModule.openBranchUpgradeModal(clubId, clubName);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('openBranchUpgradeModal');
+            if (loaded && window.SuperAdminModule?.openBranchUpgradeModal) return window.SuperAdminModule.openBranchUpgradeModal(clubId, clubName);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] openBranchUpgradeModal: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    window.saveBranchUpgrade = async function() {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.saveBranchUpgrade) return window.SuperAdminModule.saveBranchUpgrade();
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('saveBranchUpgrade');
+            if (loaded && window.SuperAdminModule?.saveBranchUpgrade) return window.SuperAdminModule.saveBranchUpgrade();
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] saveBranchUpgrade: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    //  ĐỔI MẬT KHẨU (CLB Admin tự đổi mật khẩu của mình)
+    window.openChangePasswordModal = () => {
+        ['cp_current','cp_new','cp_confirm'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+        const errEl = document.getElementById('cp_error'); if(errEl) errEl.style.display = 'none';
+        document.getElementById('changePasswordModal').style.display = 'flex';
+        setTimeout(() => { const el = document.getElementById('cp_current'); if(el) el.focus(); }, 100);
+    };
+
+    window.submitChangePassword = async () => {
+        const currentPw = (document.getElementById('cp_current')?.value || '').trim();
+        const newPw = (document.getElementById('cp_new')?.value || '').trim();
+        const confirmPw = (document.getElementById('cp_confirm')?.value || '').trim();
+        const errEl = document.getElementById('cp_error');
+        const btnEl = document.getElementById('cp_submitBtn');
+        const showErr = (msg) => { errEl.innerText = msg; errEl.style.display = 'block'; };
+        if (!currentPw) return showErr('Vui lòng nhập mật khẩu hiện tại!');
+        if (newPw.length < 6) return showErr('Mật khẩu mới phải có ít nhất 6 ký tự!');
+        if (newPw !== confirmPw) return showErr('Mật khẩu mới và xác nhận không khớp!');
+        if (newPw === currentPw) return showErr('Mật khẩu mới phải khác mật khẩu hiện tại!');
+        errEl.style.display = 'none';
+        btnEl.innerHTML = '⏳ Đang xử lý...'; btnEl.disabled = true;
+        try {
+            const user = auth.currentUser;
+            if (!user) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
+            const credential = EmailAuthProvider.credential(user.email, currentPw);
+            await reauthenticateWithCredential(user, credential);
+            // Phase 4K-6V5U5: Firebase Authentication is the single password source.
+            await updatePassword(user, newPw);
+            document.getElementById('changePasswordModal').style.display = 'none';
+            window.showToast('✅ Mật khẩu đã được thay đổi thành công trên Firebase Authentication.');
+        } catch(e) {
+            let msg = 'Lỗi: ' + e.message;
+            if(e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = '❌ Mật khẩu hiện tại không đúng! Vui lòng kiểm tra lại.';
+            else if(e.code === 'auth/too-many-requests') msg = '❌ Quá nhiều lần thử. Vui lòng đợi vài phút rồi thử lại.';
+            showErr(msg);
+        } finally {
+            btnEl.innerHTML = '✅ Xác Nhận Đổi Mật Khẩu'; btnEl.disabled = false;
+        }
+    };
+
+    //  SUPER ADMIN: GỬI EMAIL ĐẶT LẠI MẬT KHẨU CHO ADMIN CLB
+    window.saResetAdminPassword = async function(adminEmail, clubName) {
+        // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
+        if (window.SuperAdminModule?.saResetAdminPassword) return window.SuperAdminModule.saResetAdminPassword(adminEmail, clubName);
+        if (window.ensureSuperAdminModule) {
+            const loaded = await window.ensureSuperAdminModule('saResetAdminPassword');
+            if (loaded && window.SuperAdminModule?.saResetAdminPassword) return window.SuperAdminModule.saResetAdminPassword(adminEmail, clubName);
+        }
+        if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
+        console.warn('[SuperAdminFallback] saResetAdminPassword: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
+    };
+
+    //  SUPER ADMIN: DOANH THU THỰC TẾ THEO THÁNG CỦA TỪNG CLB
+    window.loadSARevenue = async () => {
+        const monthEl = document.getElementById('sa_revenue_month');
+        const selMonth = monthEl ? monthEl.value : '';
+        if (!selMonth) return alert('Vui lòng chọn tháng để xem doanh thu!');
+        const contentEl = document.getElementById('saRevenueContent');
+        contentEl.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;"><div style="font-size:1.5rem;margin-bottom:6px;">⏳</div><div style="font-size:0.82rem;font-weight:700;">Đang tải dữ liệu doanh thu...</div></div>';
+        try {
+            const clubsSnap = await getDocs(query(collection(db, "clubs"), limit(200))); // [3.3E] SuperAdmin clubs list — bounded at 200
+            const clubDocs = []; clubsSnap.forEach(d => clubDocs.push(d));
+            const [y, m] = selMonth.split('-').map(Number);
+            const startDate = selMonth + '-01';
+            const lastDay = new Date(y, m, 0).getDate();
+            const endDate = selMonth + '-' + String(lastDay).padStart(2,'0');
+            const EXPENSE_TYPES = ['Chi phí','Chi phí kỳ thi','Chi Võ phục','Tặng Võ phục'];
+            // Phase 4J-9: Thay Promise.all toàn bộ + hard-cap cứng bằng:
+            // - Sequential batches 3 CLBs/lần để tránh spike reads (20+ CLBs song song).
+            // - Ưu tiên A: đọc stats doc (O(1)) nếu đã có aggregate.
+            // - Fallback B: fetchQueryPages paginated (không giới hạn cứng).
+            const revenueList = [];
+            const _SA_CONCURRENCY = 3;
+            for (let _si = 0; _si < clubDocs.length; _si += _SA_CONCURRENCY) {
+                const _batchClubs = clubDocs.slice(_si, _si + _SA_CONCURRENCY);
+                const _batchResults = await Promise.all(_batchClubs.map(async (docSnap) => {
+                    const cid   = docSnap.id;
+                    const cdata = docSnap.data();
+                    const cname = cdata.clubName || cid;
+                    const _unknownRevenue = () => ({ cid, cname, total: null, txCount: null, source: 'finance-unverified' });
+                    if (String(cdata.cacheCoverage?.month || '').replace('_','-') === selMonth && cdata.cacheCoverage.financeComplete !== true) return _unknownRevenue();
+                    try {
+                        // Ưu tiên A: stats doc (O(1)) — tránh scan tx hoàn toàn
+                        const _statsDocRef = doc(db, "clubs", cid, "stats", selMonth.replace('-', '_'));
+                        let _statsSnap = null;
+                        try { _statsSnap = await getDoc(_statsDocRef); } catch(_) { /* fallback */ }
+                        if (_statsSnap && _statsSnap.exists()) {
+                            const _sd = _statsSnap.data();
+                            if (_sd.cacheCoverage && _sd.cacheCoverage.financeComplete !== true) return _unknownRevenue();
+                            // [Phase 4K-FIX Lỗi 1] _readStatsIncomeTotal — đọc tương thích nhiều format stats:
+                            //   income.total nested (ghi bởi Cloud Functions FieldValue.increment),
+                            //   'income.total' flat key, totalIncome, totalRevenue, revenue
+                            const _tot = (
+                                Number(_sd?.income?.total)     ||
+                                Number(_sd?.['income.total'])  ||
+                                Number(_sd?.totalIncome)       ||
+                                Number(_sd?.totalRevenue)      ||
+                                Number(_sd?.revenue)           ||
+                                0
+                            );
+                            const _hasTxCount = (_sd.txCount || 0) > 0;
+                            const _hasIncome = [_sd?.income?.total, _sd?.['income.total'], _sd.totalIncome, _sd.totalRevenue, _sd.revenue].some(v => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v)));
+                            if (_sd.cacheCoverage?.financeComplete === true && !_hasIncome) return _unknownRevenue();
+                            if (_tot > 0 || _hasTxCount || (_tot === 0 && _hasIncome && _sd.cacheCoverage?.financeComplete === true)) {
+                                // stats doc có dữ liệu hợp lệ — không fallback sang scan tx
+                                if (_tot === 0 && _hasTxCount) {
+                                    // CLB có GD nhưng toàn chi phí (totalRevenue = 0 là đúng)
+                                    console.warn('[Phase 4K-FIX] CLB ' + cid + ': stats doc có txCount=' + _sd.txCount + ' nhưng income = 0 — có thể toàn chi phí');
+                                }
+                                return { cid, cname, total: _tot, txCount: _sd.txCount || 0, source: 'stats' };
+                            }
+                            // stats doc tồn tại nhưng không đọc được doanh thu và txCount = 0
+                            console.warn('[Phase 4K-FIX] Stats doc tồn tại cho CLB ' + cid + ' nhưng không đọc được income — fallback sang tx scan');
+                        }
+                        // Fallback B: paginated tx scan (không giới hạn cứng — fetchQueryPages)
+                        const _txColRef = collection(db, "clubs", cid, "transactions");
+                        const _allTxDocs = await fetchQueryPages(
+                            ({ cursor, pageSize }) => {
+                                const _c = [where("date", ">=", startDate), where("date", "<=", endDate), orderBy("date"), limit(pageSize)];
+                                if (cursor) _c.splice(-1, 0, startAfter(cursor));
+                                return query(_txColRef, ..._c);
+                            },
+                            { pageSize: 400, reason: 'sa-revenue-' + cid, domain: 'transactions' }
+                        );
+                        let total = 0;
+                        _allTxDocs.forEach(tx => {
+                            const t = tx.data();
+                            if (!EXPENSE_TYPES.includes(t.type)) {
+                                // [SỬA ĐỒNG BỘ] Phân tích số tiền linh hoạt
+                                const _rawAmt = t.amount;
+                                let _amt = 0;
+                                if (typeof _rawAmt === 'number') { _amt = _rawAmt; }
+                                else if (_rawAmt) { _amt = parseInt(String(_rawAmt).replace(/[^\d]/g, ''), 10) || 0; }
+                                total += _amt;
+                            }
+                        });
+                        return { cid, cname, total, txCount: _allTxDocs.length, source: 'tx-scan' };
+                    } catch(e) { return { cid, cname, total: null, txCount: null, source: 'error' }; }
+                }));
+                revenueList.push(..._batchResults);
+            }
+            revenueList.sort((a, b) => b.total - a.total);
+            const _unknownCount = revenueList.filter(r => r.total === null).length;
+            const grandTotal = revenueList.reduce((s, r) => s + (r.total === null ? 0 : r.total), 0);
+            const _totalDisplay = _unknownCount && _unknownCount === revenueList.length ? 'Chưa đủ dữ liệu' : (_unknownCount ? 'Đã xác minh (' + (revenueList.length - _unknownCount) + '/' + revenueList.length + ' CLB): ' : 'Tổng: ') + grandTotal.toLocaleString() + ' ₫';
+            const maxRev = Math.max(...revenueList.map(r => r.total), 1);
+            const monthLabel = 'Tháng ' + m + '/' + y;
+            let rowsHtml = revenueList.map((r, i) => {
+                const safeClubName = window.escapeHtml(String(r.cname || ''));
+                const safeClubId = window.escapeHtml(String(r.cid || ''));
+                const pct = Math.round((r.total / maxRev) * 100);
+                const color = r.total > 0 ? (pct === 100 ? '#16a34a' : pct > 50 ? '#059669' : '#34d399') : '#cbd5e1';
+                const rank = i === 0 && r.total > 0 ? '🥇' : i === 1 && r.total > 0 ? '🥈' : i === 2 && r.total > 0 ? '🥉' : (i+1) + '.';
+                return '<div style="display:grid;grid-template-columns:32px 1fr 140px;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">'
+                    + '<div style="font-size:0.78rem;font-weight:800;color:#94a3b8;text-align:center;">' + rank + '</div>'
+                    + '<div>'
+                    + '<div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + safeClubName + '</div>'
+                    + '<div style="background:#e2e8f0;border-radius:99px;height:5px;margin-top:4px;overflow:hidden;"><div style="background:' + color + ';height:100%;width:' + pct + '%;border-radius:99px;"></div></div>'
+                    + '<div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;font-family:monospace;">' + safeClubId + ' · ' + (r.txCount === null ? 'chưa xác minh' : r.txCount + ' giao dịch') + '</div>'
+                    + '</div>'
+                    + '<div style="text-align:right;">'
+                    // [SỬA ĐỒNG BỘ] Hiển thị "0" (màu vàng) thay vì "—" khi có giao dịch nhưng doanh thu = 0
+                    // Giúp SuperAdmin phân biệt "không có dữ liệu" (—) với "có GD nhưng đều là chi phí" (0)
+                    + '<div style="font-size:0.9rem;font-weight:900;color:' + (r.total > 0 ? '#16a34a' : r.txCount > 0 ? '#f59e0b' : '#94a3b8') + ';">' + (r.total === null ? '—' : r.total > 0 ? '+' + r.total.toLocaleString() : '0') + '</div>'
+                    + '<div style="font-size:0.65rem;color:#94a3b8;">₫</div>'
+                    + '</div></div>';
+            }).join('');
+            contentEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px;">'
+                + '<div style="font-size:0.78rem;font-weight:700;color:#475569;">' + monthLabel + ' — ' + revenueList.length + ' CLB</div>'
+                + '<div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;padding:5px 14px;font-size:0.88rem;font-weight:900;color:#166534;">' + _totalDisplay + '</div>'
+                + '</div>'
+                + '<div>' + rowsHtml + '</div>'
+                + '<p style="font-size:0.65rem;color:#cbd5e1;text-align:center;margin-top:10px;font-style:italic;">* Chỉ tính các giao dịch THU trong ' + monthLabel + '</p>';
+        } catch(e) {
+            const safeRevenueError = window.escapeHtml(String(e?.message || e || 'unknown-error'));
+            contentEl.innerHTML = '<div style="color:#ef4444;font-size:0.82rem;font-weight:700;padding:12px;text-align:center;">❌ Lỗi tải dữ liệu: ' + safeRevenueError + '</div>';
+        }
+    };
+
+    // ═══ PARENT PORTAL RETIRED — cache-safe compatibility no-ops ═══════
+    window.switchLoginTab = () => {
+        window._clearLoginError && window._clearLoginError();
+        const adminPane = document.getElementById('loginPane_admin');
+        const parentPane = document.getElementById('loginPane_parent');
+        const card = document.querySelector('#loginOverlay .login-card');
+        if (adminPane) adminPane.style.display = 'block';
+        if (parentPane) parentPane.style.display = 'none';
+        if (card) card.classList.remove('pp-wide');
+    };
+
+    window.copyParentCode = () => {
+        window.showToast && window.showToast('ℹ️ Cổng Phụ huynh hiện không được cung cấp.');
+    };
+
+    function _ppAddM(ym, n) {
+        let [y,m] = ym.split('-').map(Number); m += n;
+        while(m > 12){m -= 12; y++;} while(m < 1){m += 12; y--;}
+        return `${y}-${String(m).padStart(2,'0')}`;
+    }
+    function _ppClean(s) { return s ? s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D') : ''; }
+
+    // ═══ PAYMENT TRANSFER SHEET ══════════════════════════════════════════
+    window._ppTransferData = null;
+
+    window.ppOpenTransferSheet = function() {
+        const d = window._ppTransferData;
+        if (!d) return;
+        const existing = document.getElementById('ppPaySheet');
+        if (existing) existing.remove();
+
+        const _isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        // Bank list with VietQR BINs + deep links + store links
+        const _banks = [
+            { n:'Vietcombank', s:'VCB',  bin:'970436', c:'#006c35', sc:'vietcombank', pkg:'com.VCB',                        ios:'895961699',  dl:true  },
+            { n:'BIDV',        s:'BIDV', bin:'970418', c:'#002060', sc:'bidv',         pkg:'com.bidv.smartbanking',          ios:'839817922',  dl:true  },
+            { n:'Techcombank', s:'TCB',  bin:'970407', c:'#e31837', sc:'techcombank',  pkg:'vn.techcombank.mobile',          ios:'1090449508', dl:true  },
+            { n:'MB Bank',     s:'MB',   c:'#003087',  bin:'970422', sc:'mbmobile',    pkg:'com.mbmobile',                   ios:'671882567',  dl:true  },
+            { n:'VietinBank',  s:'CTG',  bin:'970415', c:'#001c6c', sc:'vietinbank',   pkg:'com.vietinbank.imobilev2',       ios:'938057985',  dl:false },
+            { n:'Agribank',    s:'AGB',  bin:'970405', c:'#007a33', sc:'agribank',     pkg:'vn.agribank.mobilebanking',      ios:'1028248820', dl:false },
+            { n:'VPBank',      s:'VPB',  bin:'970432', c:'#00a651', sc:'vpbank',       pkg:'com.vpbank.vpbankmobile',        ios:'940344289',  dl:true  },
+            { n:'TPBank',      s:'TPB',  bin:'970423', c:'#5a2281', sc:'tpbank',       pkg:'vn.tpb.mobilebanking',           ios:'1281082726', dl:true  },
+            { n:'ACB',         s:'ACB',  bin:'970416', c:'#0066b3', sc:'acb',          pkg:'com.acb.mobile',                 ios:'906774980',  dl:true  },
+            { n:'VIB',         s:'VIB',  bin:'970441', c:'#d0021b', sc:'vib',          pkg:'com.vib.mobile',                 ios:'1198940963', dl:true  },
+            { n:'HDBank',      s:'HDB',  bin:'970437', c:'#003da5', sc:'hdbank',       pkg:'vn.hdbank.mobilebanking',        ios:'884122768',  dl:true  },
+            { n:'Sacombank',   s:'STB',  bin:'970403', c:'#0050a0', sc:'sacombank',    pkg:'vn.com.sacombank.mobilebanking', ios:'1085226588', dl:false },
+        ];
+
+        // Default selected = CLB's bank (match BIN if possible, else first)
+        let _selIdx = _banks.findIndex(b => b.bin === d.bankId || b.s.toUpperCase() === (d.bankId||'').toUpperCase());
+        if (_selIdx < 0) _selIdx = 0;
+        window._ppBankList = _banks;
+        window._ppIsIOS = _isIOS;
+        window._ppSelIdx = _selIdx;
+
+        const _buildQrUrl = (idx) => {
+            const b = _banks[idx];
+            return `https://img.vietqr.io/image/${b.bin}-${d.accountNo}-qr_only.png?amount=${d.amount}&addInfo=${encodeURIComponent(d.addInfo)}`;
+        };
+
+        const _buildGrid = (selIdx) => _banks.map((b, i) => `
+            <button id="ppBankBtn${i}" onclick="window.ppSelectBank(${i})"
+                style="display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:8px 4px;cursor:pointer;transition:all 0.15s;border:1.5px solid ${i===selIdx?'rgba(99,102,241,0.7)':'rgba(255,255,255,0.08)'};background:${i===selIdx?'rgba(99,102,241,0.15)':'rgba(255,255,255,0.04)'};min-width:0;flex:1 1 0;">
+                <div style="width:36px;height:36px;background:${b.c};border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#fff;font-weight:900;letter-spacing:-0.3px;${i===selIdx?'box-shadow:0 0 0 2px rgba(99,102,241,0.6),0 0 0 4px rgba(0,0,0,0.5);':''}">${b.s}</div>
+                <span style="font-size:0.55rem;font-weight:700;color:${i===selIdx?'#a5b4fc':'#94a3b8'};text-align:center;line-height:1.2;word-break:break-word;">${b.n}</span>
+            </button>`
+        ).join('');
+
+        const overlay = document.createElement('div');
+        overlay.id = 'ppPaySheet';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,7,10,0.85);z-index:20000;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(10px);';
+
+        const amountFmt = Number(d.amount).toLocaleString('vi-VN');
+        const initQrUrl = _buildQrUrl(_selIdx);
+
+        overlay.innerHTML = `
+        <style>
+            @keyframes ppSlideUp { from { transform:translateY(100%); opacity:0; } to { transform:translateY(0); opacity:1; } }
+            @keyframes ppFadeIn  { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
+            #ppPaySheetInner { animation: ppSlideUp 0.35s cubic-bezier(0.16,1,0.3,1); }
+            .pp-bank-btn:hover { opacity:0.85; }
+            .pp-copy-btn:active { transform:scale(0.96); }
+            @media (min-width:640px) {
+                #ppPaySheetInner { border-radius:24px !important; max-height:88vh !important; max-width:640px; }
+            }
+        </style>
+        <div id="ppPaySheetInner" style="background:linear-gradient(180deg,#0d1117 0%,#0a0f1a 100%);width:100%;max-width:640px;border-radius:24px 24px 0 0;padding:0;max-height:92vh;overflow-y:auto;position:relative;border:1px solid rgba(255,255,255,0.07);box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+
+            <!-- Atmospheric glow -->
+            <div style="pointer-events:none;position:absolute;top:-60px;left:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(99,102,241,0.2),transparent 70%);border-radius:50%;"></div>
+            <div style="pointer-events:none;position:absolute;bottom:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(16,185,129,0.1),transparent 70%);border-radius:50%;"></div>
+
+            <!-- Handle bar -->
+            <div style="display:flex;justify-content:center;padding:14px 0 0;">
+                <div style="width:38px;height:5px;background:rgba(255,255,255,0.12);border-radius:99px;"></div>
+            </div>
+
+            <!-- Header -->
+            <div style="padding:12px 18px 0;display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#4f46e5);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(99,102,241,0.35);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2"/><path d="M3 11h3c.8 0 1.6.3 2.1.9l1.1 1.2c.4.4 1 .6 1.6.6h4.6c.6 0 1.1-.2 1.6-.6l1.1-1.2c.5-.6 1.3-.9 2.1-.9h3"/></svg>
+                    </div>
+                    <div>
+                        <div style="font-size:0.9rem;font-weight:900;color:white;line-height:1.1;">SmartPay Edu</div>
+                        <div style="font-size:0.6rem;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;">Thanh Toán Học Phí</div>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('ppPaySheet').remove()"
+                    style="width:32px;height:32px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:1rem;line-height:1;transition:all 0.15s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'">✕</button>
+            </div>
+
+            <!-- Student + Amount card -->
+            <div style="margin:14px 18px 0;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+                <div style="min-width:0;">
+                    <div style="font-size:0.6rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Học sinh</div>
+                    <div style="font-size:0.98rem;font-weight:900;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.escapeHtml(String(d.studentName || '—'))}</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.escapeHtml(String(d.clubName || ''))}</div>
+                </div>
+                <div style="text-align:right;flex-shrink:0;">
+                    <div style="font-size:0.6rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Số tiền</div>
+                    <div style="font-size:1.2rem;font-weight:900;color:#818cf8;">${amountFmt}<span style="font-size:0.7rem;color:#64748b;font-weight:600;"> ₫</span></div>
+                    ${d.owedCount > 0 ? `<div style="font-size:0.6rem;color:#f87171;margin-top:2px;font-weight:700;">${d.owedCount} tháng chưa đóng</div>` : ''}
+                </div>
+            </div>
+
+            <!-- QR Code section -->
+            <div style="margin:14px 18px 0;background:white;border-radius:20px;padding:18px;display:flex;flex-direction:column;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,0.4);position:relative;overflow:hidden;">
+                <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(238,242,255,0.5),transparent);pointer-events:none;"></div>
+                <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;">
+                    <div id="ppQrWrap" style="position:relative;width:190px;height:190px;margin-bottom:10px;">
+                        <div id="ppQrLoader" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;border-radius:12px;border:3px solid #e2e8f0;">
+                            <div style="width:28px;height:28px;border:3px solid #dbeafe;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+                            <div style="font-size:0.65rem;color:#94a3b8;font-weight:600;margin-top:6px;">Đang tải QR…</div>
+                        </div>
+                        <img id="ppSheetQR" src="${initQrUrl}" crossorigin="anonymous"
+                            style="width:190px;height:190px;border-radius:12px;border:3px solid #e2e8f0;object-fit:cover;display:block;opacity:0;transition:opacity 0.3s;"
+                            onload="this.style.opacity='1';document.getElementById('ppQrLoader').style.display='none';"
+                            onerror="document.getElementById('ppQrLoader').innerHTML='<div style=\'font-size:0.75rem;color:#dc2626;font-weight:700;text-align:center;padding:8px;\'>❌ Không tải được QR</div>';" />
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;background:#f1f5f9;border-radius:99px;padding:5px 12px;margin-bottom:5px;">
+                        <div style="width:7px;height:7px;background:#10b981;border-radius:50%;animation:pulse 1.5s ease-in-out infinite;box-shadow:0 0 0 0 rgba(16,185,129,0.4);"></div>
+                        <span id="ppQrBankLabel" style="font-size:0.65rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.1em;">Chuyển vào ${_banks[_selIdx].s}</span>
+                    </div>
+                    <p style="font-size:0.6rem;color:#94a3b8;font-style:italic;margin:0;">Mở app → thông tin CK tự điền, hoặc quét QR thủ công</p>
+                </div>
+            </div>
+
+            <!-- Bank selection grid -->
+            <div style="margin:14px 18px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:12px 14px;">
+                <div style="font-size:0.6rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Chọn ngân hàng để cập nhật QR & mở app nhanh</div>
+                <div id="ppBankGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;">
+                    ${_buildGrid(_selIdx)}
+                </div>
+            </div>
+
+            <!-- Open App button -->
+            <div style="margin:12px 18px 0;">
+                <button id="ppOpenAppBtn" onclick="window.ppTryBank(window._ppSelIdx)"
+                    style="width:100%;background:linear-gradient(135deg,#4f46e5,#6366f1);color:white;font-weight:900;font-size:0.88rem;padding:14px 10px;border-radius:14px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(99,102,241,0.4);letter-spacing:0.02em;transition:all 0.2s;"
+                    onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                    <span id="ppOpenAppLabel">MỞ APP ${_banks[_selIdx].s.toUpperCase()}</span>
+                </button>
+                <div id="ppBankOpenMsg" style="display:none;margin-top:8px;border-radius:10px;padding:9px 12px;font-size:0.72rem;font-weight:700;text-align:center;"></div>
+            </div>
+
+            <!-- E-wallets -->
+            <div style="margin:12px 18px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:12px 14px;">
+                <div style="font-size:0.6rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Ví điện tử</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                    <button onclick="window.ppOpenWallet('MOMO','MoMo')" class="pp-bank-btn"
+                        style="background:#a50064;color:white;border:none;border-radius:12px;padding:10px 5px;font-size:0.68rem;font-weight:800;cursor:pointer;text-align:center;transition:all 0.2s;letter-spacing:0.02em;">
+                        MỜ MOMO
+                    </button>
+                    <button onclick="window.ppOpenWallet('ZALOPAY','ZaloPay')" class="pp-bank-btn"
+                        style="background:#0068ff;color:white;border:none;border-radius:12px;padding:10px 5px;font-size:0.68rem;font-weight:800;cursor:pointer;text-align:center;transition:all 0.2s;letter-spacing:0.02em;">
+                        ZALOPAY
+                    </button>
+                    <button onclick="window.ppOpenWallet('VIETTELMONEY','Viettel Money')" class="pp-bank-btn"
+                        style="background:#e30613;color:white;border:none;border-radius:12px;padding:10px 5px;font-size:0.68rem;font-weight:800;cursor:pointer;text-align:center;transition:all 0.2s;letter-spacing:0.02em;">
+                        VIETTEL PAY
+                    </button>
+                </div>
+            </div>
+
+            <!-- Copy buttons -->
+            <div style="margin:12px 18px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button id="ppCopyStk" class="pp-copy-btn"
+                    onclick="navigator.clipboard.writeText('${d.accountNo}').then(()=>{const e=document.getElementById('ppCopyStk');e.textContent='✅ Đã copy STK!';e.style.background='rgba(16,185,129,0.15)';e.style.borderColor='rgba(16,185,129,0.4)';e.style.color='#10b981';setTimeout(()=>{e.textContent='📋 Sao chép STK';e.style.background='rgba(255,255,255,0.04)';e.style.borderColor='rgba(255,255,255,0.1)';e.style.color='#94a3b8';},2000);})"
+                    style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;font-size:0.72rem;font-weight:700;color:#94a3b8;cursor:pointer;transition:all 0.2s;">
+                    📋 Sao chép STK
+                </button>
+                <button id="ppCopyNd" class="pp-copy-btn"
+                    onclick="navigator.clipboard.writeText('${d.addInfo}').then(()=>{const e=document.getElementById('ppCopyNd');e.textContent='✅ Đã copy!';e.style.background='rgba(16,185,129,0.15)';e.style.borderColor='rgba(16,185,129,0.4)';e.style.color='#10b981';setTimeout(()=>{e.textContent='📋 Nội dung CK';e.style.background='rgba(255,255,255,0.04)';e.style.borderColor='rgba(255,255,255,0.1)';e.style.color='#94a3b8';},2000);})"
+                    style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;font-size:0.72rem;font-weight:700;color:#94a3b8;cursor:pointer;transition:all 0.2s;">
+                    📋 Nội dung CK
+                </button>
+            </div>
+
+            <!-- Footer info -->
+            <div style="margin:12px 18px 0;padding:10px 14px;background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.2);border-radius:12px;display:flex;align-items:flex-start;gap:8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                <p style="font-size:0.65rem;color:#818cf8;line-height:1.5;margin:0;">
+                    Hệ thống tích hợp <strong>VietQR 2.0</strong>. Nhấn <strong>Mở App</strong> để chuyển khoản — thông tin số tiền và nội dung được điền sẵn vào app ngân hàng, không cần quét QR.
+                </p>
+            </div>
+
+            <!-- Security footer -->
+            <div style="margin:12px 18px calc(18px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center;gap:6px;opacity:0.5;">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span style="font-size:0.6rem;color:#64748b;font-weight:600;">An toàn theo tiêu chuẩn PCI DSS · SmartPay Edu</span>
+            </div>
+        </div>`;
+
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(overlay);
+    };
+
+    window.ppSelectBank = function(idx) {
+        const _banks = window._ppBankList;
+        const d = window._ppTransferData;
+        if (!_banks || !d) return;
+        window._ppSelIdx = idx;
+
+        // Update QR image
+        const b = _banks[idx];
+        const newQrUrl = `https://img.vietqr.io/image/${b.bin}-${d.accountNo}-qr_only.png?amount=${d.amount}&addInfo=${encodeURIComponent(d.addInfo)}`;
+        const qrEl = document.getElementById('ppSheetQR');
+        const loaderEl = document.getElementById('ppQrLoader');
+        if (qrEl && loaderEl) {
+            qrEl.style.opacity = '0';
+            loaderEl.style.display = 'flex';
+            loaderEl.innerHTML = '<div style="width:24px;height:24px;border:2.5px solid #dbeafe;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;"></div>';
+            qrEl.onload = () => { qrEl.style.opacity = '1'; loaderEl.style.display = 'none'; };
+            qrEl.src = newQrUrl;
+        }
+
+        // Update label
+        const lbl = document.getElementById('ppQrBankLabel');
+        if (lbl) lbl.textContent = `Chuyển vào ${b.s}`;
+
+        // Update open app button
+        const btn = document.getElementById('ppOpenAppLabel');
+        if (btn) btn.textContent = `MỞ APP ${b.s.toUpperCase()}`;
+
+        // Update grid highlight
+        const grid = document.getElementById('ppBankGrid');
+        if (grid) {
+            _banks.forEach((bk, i) => {
+                const el = document.getElementById(`ppBankBtn${i}`);
+                if (!el) return;
+                const isSelected = (i === idx);
+                el.style.border = `1.5px solid ${isSelected ? 'rgba(99,102,241,0.7)' : 'rgba(255,255,255,0.08)'}`;
+                el.style.background = isSelected ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)';
+                const dot = el.querySelector('div');
+                if (dot) dot.style.boxShadow = isSelected ? '0 0 0 2px rgba(99,102,241,0.6),0 0 0 4px rgba(0,0,0,0.5)' : '';
+                const span = el.querySelector('span');
+                if (span) span.style.color = isSelected ? '#a5b4fc' : '#94a3b8';
+            });
+        }
+
+        // Clear any previous open message
+        const msgEl = document.getElementById('ppBankOpenMsg');
+        if (msgEl) msgEl.style.display = 'none';
+    };
+
+    window.ppOpenWallet = function(walletId, name) {
+        const d = window._ppTransferData;
+        if (!d) return;
+        const msgEl = document.getElementById('ppBankOpenMsg');
+
+        // Use VietQR deep link for wallets that support it (MoMo, ZaloPay are on VietQR network)
+        const vietQrParams = new URLSearchParams({
+            app: walletId,
+            ba:  d.accountNo,
+            am:  String(d.amount),
+            tn:  d.addInfo,
+        });
+        const deepLinkUrl = 'https://dl.vietqr.io/pay?' + vietQrParams.toString();
+
+        if (msgEl) {
+            msgEl.style.display = 'block';
+            msgEl.style.background = 'rgba(99,102,241,0.15)';
+            msgEl.style.border = '1px solid rgba(99,102,241,0.3)';
+            msgEl.style.color = '#a5b4fc';
+            // SECURITY TODO: name (tên ngân hàng) đến từ config Firestore — cần escapeHtml. Phase 4.1.
+            const _escName = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+            msgEl.innerHTML = '&#128242; Đang mở <strong>' + _escName(name) + '</strong>… Thông tin chuyển khoản đã được điền sẵn.';
+        }
+
+        // Dùng location.href thay vì window.open để iOS Safari kích hoạt Universal Link đúng cách
+        window.location.href = deepLinkUrl;
+    };
+
+    window.ppTryBank = function(idx) {
+        const d = window._ppTransferData;
+        const b = (window._ppBankList || [])[idx];
+        if (!d || !b) return;
+        const msgEl = document.getElementById('ppBankOpenMsg');
+        const qrEl  = document.getElementById('ppSheetQR');
+
+        // Flash QR to draw attention
+        if (qrEl) {
+            qrEl.style.outline = '3px solid rgba(99,102,241,0.8)';
+            qrEl.style.outlineOffset = '2px';
+            setTimeout(() => { qrEl.style.outline = 'none'; }, 2200);
+        }
+
+        if (qrEl) qrEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Check if this bank supports VietQR Universal Deep Link
+        if (b.dl === false) {
+            // Bank does NOT support deep link (Agribank, VietinBank, Sacombank)
+            // Show QR scan instruction instead
+            if (msgEl) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(217,119,6,0.12)';
+                msgEl.style.border = '1px solid rgba(217,119,6,0.35)';
+                msgEl.style.color = '#fcd34d';
+                msgEl.innerHTML =
+                    '&#128247; <strong>' + b.n + '</strong> chưa hỗ trợ mở app tự động.<br>' +
+                    '<span style="font-size:0.75rem;opacity:0.85;">Vui lòng mở app <strong>' + b.n + '</strong> thủ công → chọn <strong>Quét mã QR</strong> → quét mã phía trên để điền tự động.</span>';
+            }
+            return; // Do NOT open deep link for unsupported banks
+        }
+
+        // Build the VietQR Universal Deep Link — opens bank app with payment pre-filled
+        // Format: https://dl.vietqr.io/pay?app=VCB&ba=xxx&am=xxx&tn=xxx
+        const vietQrParams = new URLSearchParams({
+            app: b.s,
+            ba:  d.accountNo,
+            am:  String(d.amount),
+            tn:  d.addInfo,
+        });
+        const deepLinkUrl = 'https://dl.vietqr.io/pay?' + vietQrParams.toString();
+
+        if (msgEl) {
+            msgEl.style.display = 'block';
+            msgEl.style.background = 'rgba(99,102,241,0.15)';
+            msgEl.style.border = '1px solid rgba(99,102,241,0.3)';
+            msgEl.style.color = '#a5b4fc';
+            msgEl.innerHTML = '&#128242; Đang mở <strong>' + b.n + '</strong>… Nếu chưa thấy màn hình chuyển tiền, chọn <strong>Quét QR</strong> trong app rồi quét mã phía trên.';
+        }
+
+        // Open VietQR deep link — iOS/Android Universal Link, opens bank app directly
+        // Dùng location.href để iOS Safari kích hoạt Universal Link → mở app với màn hình chuyển tiền
+        window.location.href = deepLinkUrl;
+    };
+
+    window.ppLookupLogin = async () => {
+        const resultEl = document.getElementById('pp_loginResults');
+        if (resultEl) resultEl.textContent = 'Cổng Phụ huynh hiện không được cung cấp.';
+        return;
+    };
+
+    // ── Ghi nhận lịch sử đăng nhập (chỉ 1 lần mỗi session) ──────────────
+    async function _recordLoginEvent(user, role, clubId) {
+        let sessionKey = '';
+        let blockedKey = '';
+        try {
+            // Key có ngày hôm nay: cờ cũ của hôm qua (hoặc trước đó) không bao giờ khớp
+            // → tự hết hạn sau 1 ngày, không cần xóa thủ công, hoạt động ngay cả với file cũ đang cached
+            const today = new Date().toISOString().split('T')[0]; // '2025-01-15'
+            sessionKey = 'lh_' + user.uid + '_' + today;
+            blockedKey = sessionKey + '_permission_blocked';
+            if (sessionStorage.getItem(sessionKey) || sessionStorage.getItem(blockedKey)) return;
+            // KHÔNG đặt sessionStorage trước — chỉ đặt SAU KHI ghi Firestore thành công.
+            const ua = navigator.userAgent;
+            let browser = 'Khác';
+            if (/Edg\//.test(ua)) browser = 'Edge';
+            else if (/Chrome\//.test(ua) && !/Chromium\//.test(ua)) browser = 'Chrome';
+            else if (/Firefox\//.test(ua)) browser = 'Firefox';
+            else if (/Safari\//.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
+            let os = 'Khác';
+            if (/Windows NT/.test(ua)) os = 'Windows';
+            else if (/Macintosh/.test(ua)) os = 'macOS';
+            else if (/Android/.test(ua)) os = 'Android';
+            else if (/iPhone|iPad/.test(ua)) os = 'iOS';
+            else if (/Linux/.test(ua)) os = 'Linux';
+            const isMobile = /Mobile|Android|iPhone|iPad/.test(ua);
+
+            // Nhận dạng tên thiết bị / model điện thoại
+            let deviceName = '';
+            // Thử Chromium's UA Client Hints API (hoạt động trên Chrome/Edge Android)
+            if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+                try {
+                    const hints = await navigator.userAgentData.getHighEntropyValues(['model', 'platform', 'platformVersion']);
+                    if (hints.model) deviceName = hints.model;
+                } catch(e) {}
+            }
+            // Fallback: phân tích chuỗi User-Agent
+            if (!deviceName) {
+                if (/iPhone/.test(ua)) {
+                    const m = ua.match(/CPU iPhone OS ([\d_]+)/);
+                    const v = m ? m[1].replace(/_/g, '.') : '';
+                    deviceName = 'iPhone' + (v ? ' (iOS ' + v + ')' : '');
+                } else if (/iPad/.test(ua)) {
+                    const m = ua.match(/CPU OS ([\d_]+)/);
+                    const v = m ? m[1].replace(/_/g, '.') : '';
+                    deviceName = 'iPad' + (v ? ' (iPadOS ' + v + ')' : '');
+                } else if (/Android/.test(ua)) {
+                    // Android UA: (Linux; Android X.X; MODEL Build/...)
+                    const m = ua.match(/Android\s[\d.]+;\s([^)]+?)\s*(?:Build\/|\))/);
+                    if (m) deviceName = m[1].trim();
+                    else deviceName = 'Android';
+                } else if (/Macintosh/.test(ua)) {
+                    deviceName = 'Mac';
+                } else if (/Windows NT ([\d.]+)/.test(ua)) {
+                    const mv = ua.match(/Windows NT ([\d.]+)/);
+                    const vmap = {'10.0':'Windows 10/11','6.3':'Windows 8.1','6.2':'Windows 8','6.1':'Windows 7'};
+                    deviceName = vmap[mv ? mv[1] : ''] || 'Windows';
+                }
+            }
+
+            const now = new Date();
+            await addDoc(collection(db, "login_history"), {
+                email: user.email || '',
+                clubId: clubId || '',
+                role: role || 'viewer',
+                loginAt: now.toISOString(),
+                timestamp: now.getTime(),
+                browser,
+                os,
+                deviceType: isMobile ? 'Mobile' : 'Desktop',
+                deviceName: deviceName || '',
+            });
+            // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
+            sessionStorage.setItem(sessionKey, '1');
+        } catch(e) {
+            const code = String(e?.code || '').toLowerCase();
+            const permissionDenied = code.includes('permission-denied') || /missing or insufficient permissions/i.test(String(e?.message || ''));
+            if (permissionDenied) {
+                // login_history is optional diagnostics. Do not retry on every auth
+                // callback in the same session and do not pollute production console.
+                try { if (blockedKey) sessionStorage.setItem(blockedKey, '1'); } catch (_) {}
+                try {
+                    if (window.__LOGIN_HISTORY_DEBUG === true || localStorage.getItem('loginHistoryDebug') === '1') {
+                        console.debug('[login_history] Firestore Rules chưa cấp quyền ghi; bỏ qua trong session này.');
+                    }
+                } catch (_) {}
+            } else {
+                console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e?.message || e);
+            }
+        }
+    }
+
+    // ── LocalStorage cache để tăng tốc khởi động ──────────────────────────
+    // Phase 4K-6V5U5: cache is a UI/performance hint only. It never commits
+    // role/club/branch and never mounts protected runtime before Firestore verification.
+    const _AUTH_CACHE_KEY = '_qlclb_auth_v3';
+    const _AUTH_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+    const _normalizeAuthRole = (value) => {
+        const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
+        if (role === 'hlv' || role === 'trainer') return 'coach';
+        if (role === 'superadmin') return 'super_admin';
+        return role;
+    };
+    const _normalizeAuthContext = (input = {}) => {
+        const role = _normalizeAuthRole(input.role || '');
+        const assignment = role === 'coach' ? window.CoachBranchRuntimeRepair.normalizeAssignment(input) : null;
+        const selected = assignment ? _canonicalBranch(input.activeBranch || input.coachBranch || assignment.primary, '') : '';
+        if (assignment && !assignment.branches.includes(selected)) throw new Error('Cơ sở đang chọn không thuộc phân công HLV.');
+        return {
+            uid: String(input.uid || '').trim(), role,
+            clubId: String(input.clubId || '').trim(), coachBranch: selected,
+            activeBranch: selected, primaryCoachBranch: assignment?.primary || '', assignmentVersion:assignment ? String(input.assignmentVersion||'legacy') : '',
+            ...(assignment ? {allowedBranches: Object.freeze(assignment.branches.slice())} : {}),
+        };
+    };
+    const _sameAuthContext = (a, b) => {
+        const left = _normalizeAuthContext(a);
+        const right = _normalizeAuthContext(b);
+        return left.uid === right.uid && left.role === right.role && left.clubId === right.clubId && left.coachBranch === right.coachBranch && JSON.stringify(left.allowedBranches || []) === JSON.stringify(right.allowedBranches || []);
+    };
+    const _saveAuthCache = (uid, role, clubId, coachBranch = '') => {
+        const ctx = {uid, role, clubId, coachBranch};
+        try { localStorage.setItem(_AUTH_CACHE_KEY, JSON.stringify({ ...ctx, version: '4K-6V5U5', ts: Date.now() })); } catch(e) {}
+        return ctx;
+    };
+    const _getAuthCache = (uid) => {
+        try {
+            const d = JSON.parse(localStorage.getItem(_AUTH_CACHE_KEY) || 'null');
+            if (!d || d.uid !== uid || (Date.now() - Number(d.ts || 0)) >= _AUTH_CACHE_TTL_MS) return null;
+            const ctx = _normalizeAuthContext(d);
+            if (!ctx.role || (ctx.role !== 'super_admin' && !ctx.clubId)) return null;
+            return { ...ctx, ts: d.ts };
+        } catch(e) {}
+        return null;
+    };
+    const _clearAuthCache = () => {
+        try {
+            localStorage.removeItem(_AUTH_CACHE_KEY);
+            localStorage.removeItem('_qlclb_auth_v2');
+        } catch(e) {}
+    };
+
+    // Small diagnostics object only; not an authorization system and contains no token/password/student data.
+    window.__verifiedAuthContextState = window.__verifiedAuthContextState || {
+        ready: false, uid: '', role: '', clubId: '', coachBranch: '',
+        verifiedAt: 0, generation: 0, source: '', reason: 'initial'
+    };
+
+    // Phase 4K-6V5U5 — the single normal authenticated writer for auth context.
+    const _commitVerifiedAuthContext = (user, input, options = {}) => {
+        const ctx = _normalizeAuthContext({ ...input, uid: user?.uid || input?.uid || '' });
+        if (!user || !ctx.uid || ctx.uid !== String(user.uid || '')) throw new Error('Auth context UID không hợp lệ.');
+        if (!ctx.role || (ctx.role !== 'super_admin' && !ctx.clubId)) throw new Error('Auth context thiếu role/clubId.');
+        if (ctx.role === 'coach' && (!ctx.coachBranch || !ctx.allowedBranches?.includes(ctx.coachBranch))) throw new Error('Auth context HLV thiếu cơ sở canonical.');
+
+        currentClubId = ctx.clubId;
+        window.currentClubId = ctx.clubId;
+        window.userRole = ctx.role;
+        window.coachBranch = ctx.coachBranch;
+        if (window.__store) {
+            window.__store.clubId = ctx.clubId;
+            window.__store.currentClubId = ctx.clubId;
+            window.__store.userRole = ctx.role;
+            window.__store.coachBranch = ctx.coachBranch;
+            window.__store.currentUser = user;
+        }
+        if (window.RoleReadBoundary && typeof window.RoleReadBoundary.setContext === 'function') {
+            window.RoleReadBoundary.setContext({ role: ctx.role, coachBranch: ctx.coachBranch, clubId: ctx.clubId });
+        }
+
+        const state = window.__verifiedAuthContextState;
+        state.ready = true;
+        state.uid = ctx.uid;
+        state.role = ctx.role;
+        state.clubId = ctx.clubId;
+        state.coachBranch = ctx.coachBranch;
+        state.activeBranch = ctx.activeBranch;
+        state.primaryCoachBranch = ctx.primaryCoachBranch;state.assignmentVersion=ctx.assignmentVersion;
+        state.allowedBranches = Object.freeze((ctx.allowedBranches || []).slice());
+        state.branchSelectionPending = false;
+        state.branchGeneration = Number(state.branchGeneration || 0) + 1;
+        state.verifiedAt = Date.now();
+        state.generation = Number(state.generation || 0) + (options.selectionOnly ? 0 : 1);
+        state.source = String(options.source || 'verified');
+        state.reason = 'commit';
+
+        // Cache is written only after the verified mirrors have been committed.
+        _saveAuthCache(ctx.uid, ctx.role, ctx.clubId, ctx.coachBranch);
+        return ctx;
+    };
+
+    const _resetVerifiedAuthContext = (reason = 'reset') => {
+        window.AttendanceModule?.closeMemberHistory?.();
+        currentClubId = '';
+        window.currentClubId = '';
+        window.userRole = 'viewer';
+        window.coachBranch = '';
+        if (window.__store) {
+            window.__store.clubId = null;
+            window.__store.currentClubId = null;
+            window.__store.userRole = 'viewer';
+            window.__store.coachBranch = '';
+            window.__store.currentUser = null;
+        }
+        try { window.RoleReadBoundary?.reset?.(reason); } catch (_) {}
+        const state = window.__verifiedAuthContextState;
+        if (state) {
+            state.ready = false; state.uid = ''; state.role = ''; state.clubId = ''; state.coachBranch = '';
+            state.activeBranch = ''; state.primaryCoachBranch = ''; state.allowedBranches = Object.freeze([]); state.branchSelectionPending = false; state.branchGeneration = Number(state.branchGeneration || 0) + 1;
+            state.verifiedAt = 0; state.generation = Number(state.generation || 0) + 1; state.source = ''; state.reason = reason;
+        }
+    };
+
+    window.invalidateCoachBranchAuthority = (reason='permission-denied') => {
+        const state=window.__verifiedAuthContextState;
+        if(state?.role!=='coach')return false;
+        state.ready=false;state.branchSelectionPending=false;state.branchGeneration=Number(state.branchGeneration||0)+1;
+        window.resetProfilesListeners?.('coach-authority-'+reason);
+        window.resetStudentProfileStore?.('coach-authority-'+reason);
+        allProfiles={};if(window.__store)window.__store.profiles={};
+        window.AttendanceModule?.resetForClub?.(state.clubId);
+        for(const id of ['attendanceGrid','att_monthly_body','att_monthly_cards','coach_att_info']){const el=document.getElementById(id);if(el)el.textContent='Quyền cơ sở chưa được xác minh. Nhật ký trên thiết bị được giữ để đối soát.';}
+        const shift=document.getElementById('att_shift');if(shift){shift.innerHTML='';shift.disabled=true;}
+        window.CoachBranchRuntimeRepair.renderCoachBranchSelectors();return true;
+    };
+
+    let _coachBranchSelectionSequence = 0;
+    window.selectCoachBranch = async (value, options = {}) => {
+        const state = window.__verifiedAuthContextState;
+        let selected = _canonicalBranch(value, '');
+        if ((!options.revalidate && state?.ready !== true) || state?.role !== 'coach' || (!options.revalidate && !window.CoachBranchRuntimeRepair.allowedBranches(state).includes(selected))) {
+            window.CoachBranchRuntimeRepair.renderCoachBranchSelectors();
+            return {ok:false,reason:'attendance/branch-not-authorized'};
+        }
+        const sequence = ++_coachBranchSelectionSequence;
+        const uid = state.uid, club = state.clubId, generation = state.generation;
+        const user = window.__store?.currentUser;
+        const isCurrent = () => sequence === _coachBranchSelectionSequence && (state.ready === true || options.revalidate) &&
+            state.uid === uid && state.clubId === club && state.generation === generation && window.__store?.currentUser?.uid === uid;
+        state.branchSelectionPending = true;
+        state.branchGeneration = Number(state.branchGeneration || 0) + 1;
+        try {
+            const errors = window.getListenerMetrics?.().unsubscribeErrors || 0;
+            window.resetProfilesListeners?.('coach-branch-selection');
+            if ((window.getListenerMetrics?.().unsubscribeErrors || 0) !== errors) throw new Error('Chưa hủy được listener cũ. Cần mở lại ứng dụng trước khi chuyển cơ sở.');
+            window.resetStudentProfileStore?.('coach-branch-selection');
+            allProfiles = {}; if(window.__store) window.__store.profiles = {};
+            window.AttendanceModule?.resetForClub?.(club);
+            const shiftSelect=document.getElementById('att_shift');if(shiftSelect){shiftSelect.innerHTML='';shiftSelect.disabled=true;}
+            const note=document.getElementById('coachNoteText');if(note)note.value='';
+            for(const id of ['attendanceGrid','att_monthly_body','att_monthly_cards','coach_att_info']) {const el=document.getElementById(id);if(el)el.textContent='Đang xác minh cơ sở...';}
+            const snap = await _readUserAuthorizationProfileOnce(user,'coach-'+state.branchGeneration);
+            if(!isCurrent())return {ok:false,reason:'attendance/stale-branch-selection'};
+            if(snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false || !snap.exists()) throw new Error('Chưa xác minh được hồ sơ quyền HLV từ máy chủ.');
+            const data = snap.data();
+            if(_isDisabledUserAuthorization(data) || data.role !== 'coach' || data.clubId !== club) throw new Error('Phân quyền HLV đã thay đổi hoặc bị khóa.');
+            const fresh = await _resolveCoachBranchContext(user,{...data,uid});
+            if(!isCurrent())return {ok:false,reason:'attendance/stale-branch-selection'};
+            if(!fresh.allowedBranches.includes(selected)){if(options.revalidate)selected=fresh.primaryCoachBranch;else throw new Error('Cơ sở đã được thu hồi. Nhật ký chưa đồng bộ được giữ để đối soát.');}
+            _commitVerifiedAuthContext(user,{...fresh,activeBranch:selected},{source:'coach-branch-selection',selectionOnly:true});
+            window.CoachBranchRuntimeRepair.renderCoachBranchSelectors();
+            const info=document.getElementById('coach_att_info');if(info)info.textContent='HLV đang điểm danh — '+(window.getBranchNameDisplay?.(selected)||selected);
+            window.mountActiveProfilesListenerIfNeeded?.('coach-branch-selection');
+            return {ok:true,activeBranch:selected};
+        } catch(error) {
+            if(!isCurrent())return {ok:false,reason:'attendance/stale-branch-selection'};
+            // Fail closed after confirmed revocation or unverifiable ACL; keep IndexedDB intact.
+            state.ready = false;state.branchSelectionPending = false;
+            window.resetProfilesListeners?.('coach-assignment-unavailable');
+            window.resetStudentProfileStore?.('coach-assignment-unavailable');
+            window.AttendanceModule?.resetForClub?.(club);
+            window.CoachBranchRuntimeRepair.renderCoachBranchSelectors();
+            window.showToast?.(error.message,5000);
+            return {ok:false,reason:error.code||'attendance/assignment-unavailable'};
+        }
+    };
+
+    let _coachAclSignal = {key:'',epoch:null}, _coachAclRefreshFlight = null;
+    window.acceptCoachAclSignal = (snap, clubId) => {
+        const a=window.__verifiedAuthContextState;
+        if(a?.role!=='coach'||a.clubId!==clubId||window.__store?.currentUser?.uid!==a.uid||snap?.metadata?.fromCache!==false||snap.metadata.hasPendingWrites!==false||!snap.exists())return;
+        const key=a.uid+'|'+clubId+'|'+a.generation,epoch=Number(snap.data().coachAclEpoch||0);
+        if(!Number.isSafeInteger(epoch)||epoch<0)return;
+        if(_coachAclSignal.key!==key){_coachAclSignal={key,epoch};return;}
+        if(_coachAclSignal.epoch===epoch)return;
+        _coachAclSignal.epoch=epoch;
+        if(_coachAclRefreshFlight)return;
+        const run=async()=>{let seen;do{seen=_coachAclSignal.epoch;await window.selectCoachBranch(a.coachBranch,{revalidate:true});}while(_coachAclSignal.key===key&&_coachAclSignal.epoch!==seen&&a.role==='coach');};
+        const promise=run();_coachAclRefreshFlight=promise;
+        promise.catch(error=>window.showToast?.(error.message,4000)).finally(()=>{if(_coachAclRefreshFlight===promise)_coachAclRefreshFlight=null;});
+        return promise;
+    };
+
+    // Exactly one users/{uid} verification promise per authenticated session.
+    let _verifiedUserProfileFlight = { uid: '', revision:'', promise: null };
+    const _readUserAuthorizationProfileOnce = (user, revision='login') => {
+        const uid = String(user?.uid || '');
+        if (!uid) return Promise.reject(new Error('Thiếu UID để xác minh phân quyền.'));
+        if (_verifiedUserProfileFlight.uid === uid && _verifiedUserProfileFlight.revision===revision && _verifiedUserProfileFlight.promise) return _verifiedUserProfileFlight.promise;
+        const promise = getDoc(doc(db, 'users', uid));
+        _verifiedUserProfileFlight = { uid, revision, promise };
+        return promise;
+    };
+    const _isDisabledUserAuthorization = (data) => ['disabled', 'locked', 'suspended'].includes(String(data?.status || 'active').trim().toLowerCase());
+
+    // Phase 4K-6V5U4 — converge legacy ROOT email bootstrap to a canonical
+    // server-authoritative super_admins/{uid} principal before any SuperAdmin list/read.
+    const _ensureSuperAdminPrincipal = async (user) => {
+        const uid = String(user?.uid || '').trim();
+        const email = String(user?.email || '').trim().toLowerCase();
+        if (!uid || email !== _SUPER_ADMIN_BOOTSTRAP_EMAIL) return false;
+
+        const principalRef = doc(db, 'super_admins', uid);
+        try {
+            const existing = await getDoc(principalRef);
+            if (existing.exists()) {
+                const principalData = existing.data() || {};
+                if (principalData.enabled === true) return true;
+                const disabledErr = new Error('SuperAdmin principal đã bị vô hiệu hóa.');
+                disabledErr.code = 'auth/superadmin-principal-disabled';
+                throw disabledErr;
+            }
+        } catch (readErr) {
+            // V5U4+ Rules allow this exact ROOT identity to get only its own principal doc.
+            if (readErr?.code !== 'permission-denied') throw readErr;
+        }
+
+        try {
+            await setDoc(principalRef, {
+                enabled: true,
+                email,
+                createdAt: Date.now(),
+                source: 'bootstrap-email-v1',
+            });
+            return true;
+        } catch (writeErr) {
+            const err = new Error(
+                'Firestore chưa cấp đường bootstrap SuperAdmin. Hãy deploy firestore.rules V5U4/V5U5, sau đó đăng xuất và đăng nhập lại. Không mở Rules public.'
+            );
+            err.code = 'auth/superadmin-principal-bootstrap-failed';
+            err.cause = writeErr;
+            throw err;
+        }
+    };
+
+    const _resolveCoachBranchContext=(user,context)=>window.CoachBranchRuntimeRepair.resolveAuthContext({user,context:_normalizeAuthContext({...context,uid:user&&user.uid}),db});
+
+    // Helper: reset UI đăng nhập + sign out + thông báo lỗi rõ ràng
+    // [SỬA] _showLoginError — hiển thị lỗi inline, không dùng alert() chặn UI
+    const _showLoginError = async (msg) => {
+        document.getElementById('loginOverlay').style.display = 'flex';
+        const _btn  = document.getElementById('btnLogin');
+        const _text = document.getElementById('loginText');
+        const _load = document.getElementById('loginLoading');
+        if (_btn)  _btn.disabled = false;
+        if (_text) _text.innerText = 'ĐĂNG NHẬP';
+        if (_load) _load.classList.add('hidden');
+        try { await signOut(auth); } catch(_) {}
+        // [SỬA] Dùng inline error thay alert() — lỗi hiện ngay trong màn hình, không chặn UI
+        _setLoginError(msg);
+        // [THÊM] Auto-focus lại ô email sau khi hiện lỗi
+        setTimeout(() => { const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                // ── Phase 4K-6V5U4: SuperAdmin principal convergence ──
+                // V5U5 keeps ROOT email as bootstrap identity only, then commits through
+                // the same canonical auth-context writer used by every verified role.
+                if (user.email && user.email.toLowerCase() === _SUPER_ADMIN_BOOTSTRAP_EMAIL) {
+                    try {
+                        const principalReady = await _ensureSuperAdminPrincipal(user);
+                        if (!principalReady) throw new Error('Không xác nhận được SuperAdmin principal.');
+                    } catch (_principalErr) {
+                        _clearAuthCache();
+                        await _showLoginError(_principalErr?.message || 'Không thể xác nhận quyền SuperAdmin.');
+                        return;
+                    }
+                    const _saContext = _commitVerifiedAuthContext(user, {
+                        role: 'super_admin', clubId: '', coachBranch: ''
+                    }, { source: 'super_admins/{uid}' });
+                    try { await initSaaSDatabase(_saContext.clubId); } catch(_ie) { console.error('initSaaSDatabase(super_admin):', _ie); }
+                    _recordLoginEvent(user, _saContext.role, _saContext.clubId).catch(() => {});
+                    return;
+                }
+
+                // Cache is intentionally read only as a hint/diagnostic. It never writes
+                // role/club/branch and never calls initSaaSDatabase before verification.
+                const _cached = _getAuthCache(user.uid);
+
+                let userDocSnap = null;
+                try {
+                    userDocSnap = await _readUserAuthorizationProfileOnce(user);
+                } catch(_readErr) {
+                    console.warn('users/{uid} verification failed:', _readErr.code || _readErr.message);
+                    _clearAuthCache();
+                    await _showLoginError(
+                        _readErr?.code === 'permission-denied'
+                            ? 'Không thể xác minh quyền tài khoản (permission-denied). Vui lòng đăng nhập lại hoặc liên hệ quản trị viên.'
+                            : 'Không thể kết nối Firestore (' + (_readErr.code || _readErr.message) + '). Vui lòng kiểm tra mạng và thử lại.'
+                    );
+                    return;
+                }
+
+                if (!userDocSnap || !userDocSnap.exists()) {
+                    _clearAuthCache();
+                    await _showLoginError('Không tìm thấy hồ sơ phân quyền users/{uid}. Admin cần đồng bộ lại tài khoản trước khi đăng nhập.');
+                    return;
+                }
+
+                const _ud = userDocSnap.data() || {};
+                if (_normalizeAuthRole(_ud.role) === 'coach' && (userDocSnap.metadata?.fromCache !== false || userDocSnap.metadata?.hasPendingWrites !== false)) throw Object.assign(new Error('Chưa xác minh được hồ sơ quyền HLV từ máy chủ.'), {code:'auth/coach-assignment-unverified'});
+                if (_isDisabledUserAuthorization(_ud)) {
+                    _clearAuthCache();
+                    await _showLoginError('Tài khoản đã bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ quản trị viên hệ thống.');
+                    return;
+                }
+
+                let _freshContext = _normalizeAuthContext({
+                    uid: user.uid,
+                    role: _ud.role || '',
+                    clubId: _ud.clubId,
+                    branch: _ud.branch || _ud.coachBranch || '',
+                    ...('allowedBranches' in _ud ? {allowedBranches:_ud.allowedBranches} : {}),
+                    defaultBranch: _ud.defaultBranch || '',
+                    // A9: keep the server-confirmed Coach mirror authority in the
+                    // actual login path before it reaches canonical comparison.
+                    primaryCoachBranch: _ud.primaryCoachBranch || '',
+                    assignmentVersion: _ud.assignmentVersion || 'legacy'
+                });
+                if (_freshContext.role === 'coach') {
+                    _freshContext = await _resolveCoachBranchContext(user, _freshContext);
+                }
+
+                if (_freshContext.role === 'coach' && !_freshContext.coachBranch) {
+                    _clearAuthCache();
+                    await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể (CS1...CS10) rồi đăng nhập lại.');
+                    return;
+                }
+                if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) {
+                    _clearAuthCache();
+                    await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.');
+                    return;
+                }
+
+                // Stale cache is discarded before runtime mount; no rebind/reload is needed
+                // because no protected listener has been mounted from cache.
+                if (_cached && !_sameAuthContext(_freshContext, _cached)) {
+                    console.info('[AuthContext] Cache cũ đã bị bỏ qua sau xác minh Firestore.');
+                }
+
+                const _committed = _commitVerifiedAuthContext(user, _freshContext, { source: 'users/{uid}' });
+                _recordLoginEvent(user, _committed.role, _committed.clubId).catch(() => {});
+                try { await initSaaSDatabase(_committed.clubId); } catch(_ie) { console.error('initSaaSDatabase(verified):', _ie); }
+                setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
+            } catch(e) {
+                console.error('Auth flow error:', e);
+                _clearAuthCache();
+                await _showLoginError(
+                    e.code === 'auth/coach-branch-mirror-sync-failed' ? e.message : e.code === 'permission-denied'
+                        ? 'Lỗi phân quyền Firestore (permission-denied). Vui lòng deploy firestore.rules canonical rồi đăng nhập lại.'
+                        : 'Lỗi xác thực hệ thống (' + (e.code || e.message) + ').\nVui lòng kiểm tra kết nối mạng và thử lại.'
+                );
+            }
+        } else {
+            _clearAuthCache();
+            _verifiedUserProfileFlight = { uid: '', promise: null };
+            _resetVerifiedAuthContext('logout');
+            _clubAccessBootstrapFlight = null;
+            _commitClubAccessBootstrapState({ generation: Number(window.__verifiedAuthContextState?.generation || 0), clubId: '', listenerKey: '', status: 'idle', firstSnapshotSeen: false, ready: false, blockedReason: '', snapshotSource: '', readyAt: 0, legacyExpiryFallback: false });
+            // Xóa toàn bộ cờ lịch sử đăng nhập (cả format cũ lẫn mới) khi logout
+            Object.keys(sessionStorage)
+                .filter(k => k.startsWith('lh_'))
+                .forEach(k => sessionStorage.removeItem(k));
+
+            // [Phase 3.6] Cleanup listener registry trước khi cleanup legacy arrays
+            // Gọi cleanupAllListeners để hủy cả registry lẫn legacy list trong 1 lần
+            if (window.cleanupAllListeners) window.cleanupAllListeners('logout');
+            // [Phase 3.6D] Reset student profile store khi logout
+            // main.js cũng gọi reset trong _patchResetStore() — double-reset an toàn (idempotent).
+            // [Phase 3.7B] Reset profiles listeners trước khi reset store
+            if (window.resetProfilesListeners) window.resetProfilesListeners('logout');
+            if (window.resetStudentProfileStore) window.resetStudentProfileStore('logout');
+            // Phase 4.0A-3: Reset reports module idempotency state on logout
+            window.resetReportsModuleState?.('logout');
+            window._moduleDashboard?.resetFreshness?.('logout');
+            // Phase 4.0B-4C: Reset app context ready state khi logout (idempotent)
+            window.__appContextReadyState = {
+                ready:       false,
+                clubId:      null,
+                dispatchedAt: null,
+                generation:  0,
+                reason:      'logout'
+            };
+            // Phase 4.0B-4F — Phase 7: Reset runtime recovery state khi logout
+            window.__runtimeRecoveryState = {
+                checked:          false,
+                running:          false,
+                completed:        false,
+                activeDataSource: '',
+                recoveryUsed:     false,
+                reason:           'logout',
+                error:            '',
+                checkedAt:        0,
+                completedAt:      0
+            };
+            _resetTransactionCoverage('logout');
+            if (typeof window.resetAutomaticCanonicalTransactionOptimization === 'function') window.resetAutomaticCanonicalTransactionOptimization('logout');
+            if (typeof window.resetDebtProfileReadBoundary === 'function') window.resetDebtProfileReadBoundary('logout');
+            activeListeners.forEach(fn => { try { fn(); } catch(e) {} });
+            activeListeners = [];
+            if(currentTxUnsub) { currentTxUnsub(); currentTxUnsub = null; if (window.__txListenerMetrics) { window.__txListenerMetrics.txListenerDetached = (window.__txListenerMetrics.txListenerDetached || 0) + 1; window.__txListenerMetrics.lastDetachedAt = Date.now(); } }
+            // [PERF FIX] Dọn notification listener — không nằm trong activeListeners
+            // nên phải cleanup riêng khi logout để tránh memory leak giữa các session.
+            if(window._notifUnsubscribe) { try { window._notifUnsubscribe(); } catch(_) {} window._notifUnsubscribe = null; }
+            if (typeof window._destroyDashboardCharts === 'function') { window._destroyDashboardCharts(); } else { if(financeChartInstance){financeChartInstance.destroy();financeChartInstance=null;} }
+            if (typeof window._destroyDashboardCharts !== 'function') { if(memberChartInstance){memberChartInstance.destroy();memberChartInstance=null;} }
+            if (window.__store) { window.__store.financeChartInstance = null; window.__store.memberChartInstance = null; } // [Phase 2c]
+            logoLoaded = false;
+            document.getElementById('loginOverlay').style.display = 'flex'; document.getElementById('mainApp').style.display = 'none';
+            // [THÊM] Auto-focus ô email khi màn hình đăng nhập hiện ra — người dùng gõ luôn không cần click
+            // [SỬA] Auto-focus nhanh hơn
+            setTimeout(() => { const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);
+        }
+    });
+
+    // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
+    // Phase 4K-6V3B/C: per-month safe cutover from 3 legacy listeners to 1 accountingMonths listener.
+    let _financeAttachFlight = null;
+    window.listenToData = (monthStr) => {
+        if (window.RoleReadBoundary?.canMount?.('transactions.month', { month: monthStr, reason: 'listenToData' }) === false) return false;
+        if (!monthStr || !colRef) return false;
+        const _cid = (window.__store && window.__store.clubId) || ''; const _txPrincipal = () => [window.__store?.auth?.currentUser?.uid || window.__store?.currentUser?.uid || '', window.userRole || window.__store?.userRole || '', Number(window.__verifiedAuthContextState?.generation || 0)].join('|');
+        const _txKey = 'finance:tx:' + _cid + ':' + monthStr;
+        const _desiredTxReadMode = typeof window.getCanonicalTransactionReadMode === 'function' ? window.getCanonicalTransactionReadMode(_cid, monthStr) : 'legacy';
+        const _previousCoverage = window.__store?.transactionCoverage;
+        const _attachScope = JSON.stringify([_cid, monthStr, _desiredTxReadMode, _txPrincipal()]);
+        if (_financeAttachFlight?.scope === _attachScope && _financeAttachFlight.epoch === window.__store?._activeTxProjectionEpoch) {
+            window.__store._activeTxListenerMonth = monthStr; window.__store._activeTxReadMode = _desiredTxReadMode;
+            return _financeAttachFlight.promise;
+        }
+
+        // Phase 4K-6V1 Spark Read Cost Hardening:
+        // Do not tear down and recreate the same 3 Firestore listeners for the same month.
+        // Recreating a listener bills a fresh initial query result.
+        if (window.__store && window.__store._activeTxListenerMonth === monthStr && String(window.__store._activeTxReadMode || 'legacy') === _desiredTxReadMode && window.__store._activeTxProjectionEpoch?.principal === _txPrincipal() && window.hasListener && window.hasListener(_txKey)) {
+            window.__sparkReadMetrics = window.__sparkReadMetrics || {};
+            window.__sparkReadMetrics.txSameMonthResubscribeSkipped =
+                (window.__sparkReadMetrics.txSameMonthResubscribeSkipped || 0) + 1;
+            return;
+        }
+
+        // [Phase 3.6C] Cleanup old finance tx listener trước khi re-subscribe.
+        // cleanupListenersByOwner xử lý trường hợp đổi tháng (old key ≠ new key):
+        // nếu đang ở tháng 5 rồi đổi sang tháng 6, key cũ 'finance:tx:...:2024-05' sẽ bị remove đúng.
+        if (window.cleanupListenersByOwner) {
+            window.cleanupListenersByOwner('finance', 'tx-month-change');
+        }
+        // Legacy bridge: currentTxUnsub — entry.removed guard trong registry ngăn double-unsub an toàn
+        if (currentTxUnsub) { try { currentTxUnsub(); } catch(_) {} currentTxUnsub = null; }
+
+        // [Phase 4K] Emit txListenerAttached metric — track each listenToData attach for read cost diagnostics
+        if (window.__txListenerMetrics) {
+            // Duplicate-detection: warn if same key still in registry despite cleanup above
+            if (window.hasListener && window.hasListener('finance:tx:' + ((window.__store && window.__store.clubId) || '') + ':' + monthStr)) {
+                window.__txListenerMetrics.txListenerDuplicatePrevented = (window.__txListenerMetrics.txListenerDuplicatePrevented || 0) + 1;
+                console.warn('[Phase 4K] txListenerDuplicatePrevented — key already in registry after cleanup:', monthStr, '(safeRegisterSnapshot will handle)');
+            }
+            window.__txListenerMetrics.txListenerAttached = (window.__txListenerMetrics.txListenerAttached || 0) + 1;
+            window.__txListenerMetrics.lastAttachedMonth  = monthStr;
+            window.__txListenerMetrics.lastAttachedAt     = Date.now();
+        }
+
+        let start = monthStr + "-01"; let end = monthStr + "-31";
+        const _txListLim = ((window.__scaleConfig || {}).txListenerLimit) || 1200;
+
+        // Publish UNKNOWN before any new-club/month/mode callback can run. This
+        // prevents the previous listener's RAM/coverage from authorizing a write.
+        if (window.__store) {
+            window.__store._activeTxListenerMonth = monthStr;
+            window.__store._activeTxReadMode = _desiredTxReadMode;
+            window.__store.transactionCoverage = _buildTransactionCoverage({
+                clubId: _cid,
+                month: monthStr,
+                readMode: _desiredTxReadMode,
+                limit: _txListLim,
+                sourceSeen: {},
+                sourceCounts: {},
+                mergedCount: 0,
+                reason: 'listener-context-reset',
+            });
+        }
+
+        // Three existing sources cover collection date, tuition month and package months.
+        let _byDate = [], _byTxMonth = [], _byPackageMonth = []; // Phase 4K-4F: packageMonths array-contains query
+        const _txSourceSnapshotSeen = { byDate: false, byTxMonth: false, byPackageMonth: false, canonical: false, principal: _txPrincipal() }; window.__store._activeTxProjectionEpoch = _txSourceSnapshotSeen;
+        const _txSourceServerVerified = { byDate: false, byTxMonth: false, byPackageMonth: false, canonical: false };
+        const _recordTxSourceSnapshot = (sourceKey, snap) => {
+            const initial = !_txSourceSnapshotSeen[sourceKey];
+            let metadataOnly = false;
+            try { metadataOnly = !initial && typeof snap.docChanges === 'function' && snap.docChanges({ includeMetadataChanges: false }).length === 0; } catch (_) { /* Unknown transport: use the full data path. */ }
+            _txSourceSnapshotSeen[sourceKey] = true;
+            _txSourceServerVerified[sourceKey] = { trusted: snap.metadata?.fromCache === false && snap.metadata?.hasPendingWrites === false, revision: (_txSourceServerVerified[sourceKey]?.revision || 0) + 1 };
+            if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                window.recordFirestoreSnapshotAttribution('transactions.listener.' + sourceKey, snap, {
+                    initial,
+                    reason: 'month=' + monthStr
+                });
+            }
+            return { initial, sourceKey, metadataOnly };
+        };
+        const _isTxInitialHydrationComplete = () => _desiredTxReadMode === 'canonical'
+            ? _txSourceSnapshotSeen.canonical
+            : (_txSourceSnapshotSeen.byDate && _txSourceSnapshotSeen.byTxMonth && _txSourceSnapshotSeen.byPackageMonth);
+        const _txHydrationCoverageComplete = () => _desiredTxReadMode === 'canonical'
+            ? _byDate.length < _txListLim
+            : [_byDate, _byTxMonth, _byPackageMonth].every(items => items.length < _txListLim);
+        const _fingerprintMergedTransactions = (items) => JSON.stringify((items || []).map(tx => tx || null));
+        let _txHydrationReconciled = false;
+        let _lastCommittedTxFingerprint = '';
+        let _dashboardInvalidateTimer = null;
+        const _isCurrentTxListenerContext = () => {
+            const st = window.__store || {};
+            return st._activeTxProjectionEpoch === _txSourceSnapshotSeen && _txSourceSnapshotSeen.principal === _txPrincipal() && String(st.clubId || '') === String(_cid || '') &&
+                String(st._activeTxListenerMonth || '') === String(monthStr || '') &&
+                String(st._activeTxReadMode || 'legacy') === String(_desiredTxReadMode || 'legacy');
+        };
+        const _publishTransactionCoverage = (reason) => {
+            if (!_isCurrentTxListenerContext()) return null;
+            const sourceCounts = _desiredTxReadMode === 'canonical'
+                ? { canonical: _byDate.length }
+                : {
+                    byDate: _byDate.length,
+                    byTxMonth: _byTxMonth.length,
+                    byPackageMonth: _byPackageMonth.length,
+                };
+            const coverage = _buildTransactionCoverage({
+                clubId: _cid,
+                month: monthStr,
+                readMode: _desiredTxReadMode,
+                limit: _txListLim,
+                sourceSeen: _txSourceSnapshotSeen,
+                sourceCounts: sourceCounts,
+                mergedCount: allTransactions.length,
+                reason: reason || 'transactions-snapshot',
+            });
+            coverage.pageEvidence = { epoch: _txSourceSnapshotSeen, mode: _desiredTxReadMode, meta: { ..._txSourceServerVerified }, rows: { byDate: _byDate, byTxMonth: _byTxMonth, byPackageMonth: _byPackageMonth, canonical: _byDate }, limit: _txListLim };
+            coverage.pageServerComplete = coverage.complete && (_desiredTxReadMode === 'canonical' ? _txSourceServerVerified.canonical?.trusted
+                : ['byDate', 'byTxMonth', 'byPackageMonth'].every(key => _txSourceServerVerified[key]?.trusted));
+            window.__store.transactionCoverage = coverage;
+            window.syncClubStatsCache?.notifyFinanceCoverage?.(coverage);
+            return coverage;
+        };
+        const _invalidateDashboardCoalesced = (reason) => {
+            if (_dashboardInvalidateTimer) clearTimeout(_dashboardInvalidateTimer);
+            _dashboardInvalidateTimer = setTimeout(() => {
+                _dashboardInvalidateTimer = null;
+                if (window.invalidateDashboard) window.invalidateDashboard(reason || 'transactions-snapshot-coalesced');
+            }, 120);
+        };
+        const _mergeAndRender = (snapshotMeta = {}) => {
+            if (!_isCurrentTxListenerContext()) return;
+            if (snapshotMeta.metadataOnly === true) {
+                // Metadata updates evidence; unchanged data needs no domain render.
+                _publishTransactionCoverage('transactions-metadata');
+                try {
+                    const page = window.__store?.pagination?.transactions, revision = page?.projectionRevision;
+                    page?.reconcile?.({ rows: allTransactions, month: monthStr, complete: window.__store.transactionCoverage?.pageServerComplete === true, source: 'snapshot', evidence: window.__store.transactionCoverage?.pageEvidence, metadataOnly: true });
+                    if (page?.projectionRevision !== revision && window.invalidateFinance) window.invalidateFinance('transactions-reconciliation');
+                } catch (error) { console.warn('[finance] metadata projection failed; ledger preserved:', error); }
+                if (window.markListenerSnapshot) window.markListenerSnapshot(_txKey); return;
+            }
+            const seen = new Set();
+            // Phase 4K-4F: merge 3 queries (date + txMonth + packageMonths)
+            allTransactions = [..._byDate, ..._byTxMonth, ..._byPackageMonth].filter(t => {
+                if (!t || !t.id) return false;
+                if (seen.has(t.id)) return false;
+                seen.add(t.id);
+                // Only include transactions matching selected month (covers packageMonths)
+                if (typeof window.txMatchesSelectedMonth === 'function') {
+                    return window.txMatchesSelectedMonth(t, monthStr);
+                }
+                return true;
+            });
+            allTransactions.sort((a,b) => { const ts = (b.timestamp||0) - (a.timestamp||0); if(ts !== 0) return ts; return (b.date||'') > (a.date||'') ? 1 : -1; });
+            // Phase 4.0B-4E: Guard — không overwrite legacy-root data bằng primary rỗng
+            const _txEmpty    = allTransactions.length === 0;
+            const _storeHasTx = window.__store && Array.isArray(window.__store.transactions) && window.__store.transactions.length > 0;
+            if (window.__store && window.__store.activeDataSource === 'legacy-root' && _txEmpty && _storeHasTx) {
+                console.warn('[DataSourceLock] Skip primary empty overwrite (transactions) — legacy-root active');
+                return;
+            }
+            if (window.__store) window.__store.transactions = allTransactions; // [Phase 2e] sync cho finance.js
+            _publishTransactionCoverage(snapshotMeta.initial === true
+                ? 'transactions-initial-hydration'
+                : 'transactions-live-snapshot');
+            try {
+                const page = window.__store?.pagination?.transactions;
+                page?.reconcile?.({ rows: allTransactions, month: monthStr, complete: window.__store.transactionCoverage?.pageServerComplete === true, source: 'snapshot', evidence: window.__store.transactionCoverage?.pageEvidence });
+            } catch (error) { console.warn('[finance] page projection failed; ledger snapshot preserved:', error); }
+            // V5U6C2: the full initial source set establishes a hydration baseline.
+            // Only a later merged-RAM change is a live mutation. The fingerprint
+            // coalesces one legacy transaction delivered by 2/3 source callbacks.
+            const _committedTxFingerprint = _fingerprintMergedTransactions(allTransactions);
+            if (!_txHydrationReconciled && _isTxInitialHydrationComplete()) {
+                _txHydrationReconciled = true;
+                _lastCommittedTxFingerprint = _committedTxFingerprint;
+                if (typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
+                    window._moduleDashboard.reconcileHydrationEvidence({
+                        domain: 'finance',
+                        month: monthStr,
+                        reason: _desiredTxReadMode === 'canonical'
+                            ? 'transactions-canonical-initial-hydration'
+                            : 'transactions-legacy-three-source-initial-hydration',
+                        evidence: {
+                            localMonthTxCount: allTransactions.length,
+                            coverageComplete: _txHydrationCoverageComplete(),
+                        },
+                    });
+                }
+            } else if (
+                _txHydrationReconciled &&
+                snapshotMeta.initial === false &&
+                _committedTxFingerprint !== _lastCommittedTxFingerprint
+            ) {
+                _lastCommittedTxFingerprint = _committedTxFingerprint;
+                if (typeof window._moduleDashboard?.markStatsDirty === 'function') {
+                    window._moduleDashboard.markStatsDirty(monthStr, 'transactions-live-mutation', 'finance');
+                }
+            }
+            if (_desiredTxReadMode === 'legacy' && typeof window.recordTransactionQueryOverlap === 'function') {
+                window.recordTransactionQueryOverlap(monthStr, { byDate: _byDate, byTxMonth: _byTxMonth, byPackageMonth: _byPackageMonth, sourceSeen: _txSourceSnapshotSeen, queryLimit: _txListLim });
+            }
+            // Phase 4.0B-4D: update transactions hydration metrics
+            _updateHydrationMetrics({
+                transactionsSnapshotCount: (window.__dataHydrationMetrics.transactionsSnapshotCount || 0) + 1,
+                transactionsDocCount:      allTransactions.length,
+                lastReason:               'transactions-merge-render'
+            });
+            // V3A: source snapshots are attributed above; merged length is not a billed-read estimate.
+            // [Phase 3.5C] transactions thay đổi → finance + students (debt) + dashboard.
+            // PHẦN 10 FIX: Thay vì scheduleRender() (full re-render), queue invalidation
+            // để main.js flush sau khi init xong — tránh LegacyRenderWarning.
+            if (window.invalidateFinance) {
+                if (window.markListenerSnapshot) window.markListenerSnapshot(_txKey);
+                window.invalidateFinance('transactions-snapshot');
+                window.invalidateStudents('transactions-affect-debt');
+                _invalidateDashboardCoalesced('transactions-snapshot');
+            } else if (window.__RUNTIME_MODE === 'http-module') {
+                // HTTP module mode: queue invalidation, không gọi scheduleRender
+                window.__pendingDomainInvalidations = window.__pendingDomainInvalidations || [];
+                window.__pendingDomainInvalidations.push({
+                    domain: 'finance',
+                    reason: 'transactions-snapshot',
+                    at: Date.now(),
+                });
+                window.__pendingDomainInvalidations.push({
+                    domain: 'students',
+                    reason: 'transactions-affect-debt',
+                    at: Date.now(),
+                });
+                window.__pendingDomainInvalidations.push({
+                    domain: 'dashboard',
+                    reason: 'transactions-snapshot',
+                    at: Date.now(),
+                });
+                console.debug('[DomainQueue] Queued 3 invalidations — invalidateFinance not ready yet');
+            } else {
+                // File legacy fallback
+                scheduleRender();
+            }
+        };
+
+        // [PERF] Giữ 2 query song song (byDate + byTxMonth) để không mất giao dịch bù tháng cũ.
+        // OK_UI_DISPLAY_LIMIT — includes package-month source; exports use paginated readers.
+        if (typeof window.warnUnsafeLimit === 'function') {
+            // uiOnly: true — listener này chỉ phục vụ hiển thị tab Thu Chi,
+            // KHÔNG dùng cho tính toán dashboard/doanh thu (Phase 4K stats docs đảm nhận).
+            window.warnUnsafeLimit('transactions:byDate+byTxMonth:' + monthStr, 'listenToData:init', { uiOnly: true });
+        }
+        const qByDate    = query(colRef, where("date", ">=", start), where("date", "<=", end), orderBy("date", "desc"), limit(_txListLim));
+        const qByTxMonth = query(colRef, where("txMonth", "==", monthStr), limit(_txListLim));
+        // Phase 4K-4F: 3rd query — giao dịch gói nhiều tháng có tháng giữa (2026-07 trong gói 06-08)
+        // Không orderBy để tránh cần composite index — client sort sau khi merge
+        const qByPackageMonth = query(colRef, where("packageMonths", "array-contains", monthStr), limit(_txListLim));
+        // Phase 4K-6V3B/C: activated only after in-memory backfill + ID/count/amount parity.
+        const qCanonical = query(colRef, where("accountingMonths", "array-contains", monthStr), limit(_txListLim));
+
+        const _attachTxSnapshots = () => {
+            if (_desiredTxReadMode === 'canonical') {
+                const canonicalUnsub = onSnapshot(qCanonical, { includeMetadataChanges: true }, (snap) => { const meta = _recordTxSourceSnapshot('canonical', snap); if (!meta.metadataOnly) _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _byTxMonth = []; _byPackageMonth = []; _mergeAndRender(meta); });
+                currentTxUnsub = canonicalUnsub; return canonicalUnsub;
+            }
+            const u1 = onSnapshot(qByDate, { includeMetadataChanges: true }, (snap) => { const meta = _recordTxSourceSnapshot('byDate', snap); if (!meta.metadataOnly) _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
+            const u2 = onSnapshot(qByTxMonth, { includeMetadataChanges: true }, (snap) => { const meta = _recordTxSourceSnapshot('byTxMonth', snap); if (!meta.metadataOnly) _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
+            const u3 = onSnapshot(qByPackageMonth, { includeMetadataChanges: true }, (snap) => { const meta = _recordTxSourceSnapshot('byPackageMonth', snap); if (!meta.metadataOnly) _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
+            const combinedUnsub = () => { try { u1(); } catch(_) {} try { u2(); } catch(_) {} try { u3(); } catch(_) {} };
+            currentTxUnsub = combinedUnsub;
+            return combinedUnsub;
+        };
+
+        // [Phase 3.6C] safeRegisterSnapshot: one canonical or three legacy queries per configured month
+        // Old key đã removed qua cleanupListenersByOwner → safeRegisterSnapshot sẽ proceed
+        const _mountFinanceContext = () => {
+            if (!_isCurrentTxListenerContext()) return false;
+        if (window.safeRegisterSnapshot) window.safeRegisterSnapshot(_txKey, _attachTxSnapshots, { owner: 'finance', scope: 'global', clubId: _cid, reason: 'listenToData', readMode: _desiredTxReadMode });
+        // qByDate, qByTxMonth and qByPackageMonth are mounted only inside _attachTxSnapshots; canonical mode mounts qCanonical only.
+        else { const txUnsub = _attachTxSnapshots(); if (window.registerListener) window.registerListener(_txKey, txUnsub, { owner: 'finance', scope: 'global', reason: 'listenToData', readMode: _desiredTxReadMode }); }
+        if (window.__store) { window.__store._activeTxListenerMonth = monthStr; window.__store._activeTxReadMode = _desiredTxReadMode; }
+        if (typeof window.refreshCanonicalTransactionOptimizerButton === 'function') window.refreshCanonicalTransactionOptimizerButton();
+            return true;
+        };
+        const _fromMode = _previousCoverage?.clubId === _cid && _previousCoverage?.month === monthStr ? _previousCoverage.readMode : _desiredTxReadMode;
+        const _handoff = window.syncClubStatsCache?.bindFinanceContext?.({ clubId: _cid, month: monthStr, fromMode: _fromMode, toMode: _desiredTxReadMode, epoch: _txSourceSnapshotSeen });
+        if (_handoff?.ready === true || (!_handoff && _fromMode === _desiredTxReadMode)) return _mountFinanceContext();
+        const _flight = { scope: _attachScope, epoch: _txSourceSnapshotSeen, promise: null };
+        _flight.promise = Promise.resolve(_handoff?.wait).then(result => {
+            if (!result?.ok || !_isCurrentTxListenerContext()) return false;
+            return _mountFinanceContext();
+        }).finally(() => { if (_financeAttachFlight === _flight) _financeAttachFlight = null; });
+        _financeAttachFlight = _flight;
+        return _flight.promise;
+    };
+
+    const docTienVND = (so) => {
+        if (!so || so === 0) return "Không đồng"; const mangso = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+        const dochangchuc = (so, daydu) => { let chuoi = ""; let chuc = Math.floor(so / 10); let donvi = so % 10; if (chuc > 1) { chuoi = " " + mangso[chuc] + " mươi"; if (donvi == 1) chuoi += " mốt"; } else if (chuc == 1) { chuoi = " mười"; if (donvi == 1) chuoi += " một"; } else if (daydu && donvi > 0) chuoi = " lẻ"; if (donvi == 5 && chuc > 0) chuoi += " lăm"; else if (donvi > 0 && (donvi != 1 || chuc == 0)) chuoi += " " + mangso[donvi]; return chuoi; };
+        const docblock = (so, daydu) => { let chuoi = ""; let tram = Math.floor(so / 100); so = so % 100; if (daydu || tram > 0) { chuoi = " " + mangso[tram] + " trăm"; chuoi += dochangchuc(so, true); } else chuoi = dochangchuc(so, false); return chuoi; };
+        const hang = ["", "nghìn", "triệu", "tỷ"]; let arr = []; let kq = ""; while (so > 0) { arr.push(so % 1000); so = Math.floor(so / 1000); }
+        for (let i = arr.length - 1; i >= 0; i--) if (arr[i] > 0) kq += docblock(arr[i], i < arr.length - 1 && arr.slice(i+1).some(val => val > 0)) + " " + hang[i];
+        kq = kq.trim().replace(/\s+/g, ' '); return `(${kq.charAt(0).toUpperCase() + kq.slice(1)} đồng chẵn)`;
+    };
+
+    /* Phase 4K-6Q — Currency Input Stability
+       - Keeps the hidden raw value numeric-only.
+       - Preserves the caret when separators are inserted/removed.
+       - Ignores intermediate IME composition events.
+       - Prevents duplicate event bindings during bootstrap recovery. */
+    const _currencyInputBindings = new WeakSet();
+    const _sanitizeCurrencyDigits = (value) => {
+        const digits = String(value == null ? '' : value).replace(/\D/g, '');
+        return digits.replace(/^0+(?=\d)/, '');
+    };
+    const _formatCurrencyDigits = (digits) => {
+        const normalized = _sanitizeCurrencyDigits(digits);
+        return normalized ? normalized.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+    };
+    const _countDigitsBeforeCaret = (value, caret) => {
+        return String(value || '').slice(0, Math.max(0, Number(caret) || 0)).replace(/\D/g, '').length;
+    };
+    const _caretAfterDigitCount = (formatted, digitCount) => {
+        if (digitCount <= 0) return 0;
+        let seen = 0;
+        for (let i = 0; i < formatted.length; i++) {
+            if (/\d/.test(formatted[i])) seen++;
+            if (seen >= digitCount) return i + 1;
+        }
+        return formatted.length;
+    };
+    const formatCurrencyInput = (dispId, actId, callback) => {
+        const d = document.getElementById(dispId);
+        const a = document.getElementById(actId);
+        if (!d || !a || _currencyInputBindings.has(d)) return;
+        _currencyInputBindings.add(d);
+
+        d.setAttribute('inputmode', d.getAttribute('inputmode') || 'numeric');
+        d.setAttribute('autocomplete', d.getAttribute('autocomplete') || 'off');
+        let isComposing = false;
+
+        const syncCurrencyValue = (preserveCaret = true) => {
+            const rawDisplay = d.value || '';
+            const selectionStart = typeof d.selectionStart === 'number' ? d.selectionStart : rawDisplay.length;
+            const digitsBeforeCaret = _countDigitsBeforeCaret(rawDisplay, selectionStart);
+            const rawDigits = _sanitizeCurrencyDigits(rawDisplay);
+            const formatted = _formatCurrencyDigits(rawDigits);
+
+            a.value = rawDigits;
+            if (d.value !== formatted) d.value = formatted;
+
+            if (preserveCaret && document.activeElement === d && typeof d.setSelectionRange === 'function') {
+                const nextCaret = _caretAfterDigitCount(formatted, digitsBeforeCaret);
+                try { d.setSelectionRange(nextCaret, nextCaret); } catch (_) {}
+            }
+            if (typeof callback === 'function') callback();
+        };
+
+        if (a.value && !d.value) {
+            const initialDigits = _sanitizeCurrencyDigits(a.value);
+            a.value = initialDigits;
+            d.value = _formatCurrencyDigits(initialDigits);
+        } else if (d.value) {
+            syncCurrencyValue(false);
+        }
+
+        d.addEventListener('compositionstart', () => { isComposing = true; });
+        d.addEventListener('compositionend', () => { isComposing = false; syncCurrencyValue(true); });
+        d.addEventListener('input', () => {
+            if (!isComposing) syncCurrencyValue(true);
+        });
+        d.addEventListener('blur', () => syncCurrencyValue(false));
+    };
+
+    window.calcInv = () => { let qty = Number(document.getElementById('inv_qty').value) || 0; let price = Number(document.getElementById('inv_priceActual').value) || 0; let total = qty * price; document.getElementById('inv_totalActual').value = total; document.getElementById('inv_totalDisplay').value = total > 0 ? total.toLocaleString('vi-VN') + " ₫" : ""; };
+
+    formatCurrencyInput('amountDisplay', 'amountActual'); formatCurrencyInput('tx_exam_amountDisplay', 'tx_exam_amountActual'); formatCurrencyInput('exp_amountDisplay', 'exp_amountActual'); formatCurrencyInput('ee_amountDisplay', 'ee_amountActual'); formatCurrencyInput('inv_priceDisplay', 'inv_priceActual', window.calcInv); formatCurrencyInput('add_fee_display', 'add_fee_actual'); formatCurrencyInput('add_uniform_display', 'add_uniform_actual'); formatCurrencyInput('ei_amountDisplay', 'ei_amountActual'); formatCurrencyInput('exam_fee_all_display', 'exam_fee_all_actual'); formatCurrencyInput('add_fee_default_display', 'add_fee_default_actual', () => window.updateAddPackageAmount()); formatCurrencyInput('m_fee_display', 'm_fee_actual'); formatCurrencyInput('eexp_amountDisplay', 'eexp_amountActual');
+
+    window.updateComboTotal = () => {
+        let f1 = Number(document.getElementById('combo_fee1_actual').value) || 0; let f2 = Number(document.getElementById('combo_fee2_actual').value) || 0;
+        document.getElementById('combo_total').innerText = (f1 + f2).toLocaleString('vi-VN') + " ₫";
+    };
+    formatCurrencyInput('combo_fee1_display', 'combo_fee1_actual', window.updateComboTotal); formatCurrencyInput('combo_fee2_display', 'combo_fee2_actual', window.updateComboTotal);
+
+    window.toggleTxFormType = () => {
+        const type = document.getElementById('type').value;
+        const examWrap = document.getElementById('exam_fee_container');
+        const pkgWrap = document.getElementById('tx_package_wrapper');
+        if (type === 'Học phí + Lệ phí thi') {
+            examWrap.style.display = 'grid'; pkgWrap.style.display = 'flex';
+            window.updateExamComboQuarter();
+        } else if (type === 'Học phí') {
+            examWrap.style.display = 'none'; pkgWrap.style.display = 'flex';
+        } else {
+            examWrap.style.display = 'none'; pkgWrap.style.display = 'none';
+        }
+    };
+
+    window.updateExamComboQuarter = () => {
+        const dateStr = document.getElementById('date').value;
+        if(!dateStr) return;
+        const m = parseInt(dateStr.split('-')[1]);
+        let q = Math.ceil(m/3);
+        document.getElementById('tx_exam_title').value = `Thi Quý ${q}/${dateStr.split('-')[0]}`;
+    };
+
+    window.updateAmountByPackage = () => {
+        const isDiscount = document.getElementById('tx_discount').checked;
+        const savedEl = document.getElementById('tx_discount_saved');
+        if(!isDiscount && savedEl) savedEl.style.display = 'none';
+        const name = document.getElementById('description').value.trim();
+        if(!name || !allProfiles[name]) return;
+        const baseFee = Number(allProfiles[name].tuitionFee) || 0;
+        const pkg = parseInt(document.getElementById('tx_package').value) || 1;
+        let rawTotal = baseFee * pkg;
+        let total = rawTotal;
+        let saved = 0;
+        if(isDiscount) {
+            const pct = Number(document.getElementById('tx_discount_pct')?.value) || 10;
+            saved = Math.round(rawTotal * pct / 100);
+            total = rawTotal - saved;
+        }
+        if(savedEl) {
+            savedEl.style.display = isDiscount && saved > 0 ? 'inline' : 'none';
+            if(isDiscount && saved > 0) savedEl.textContent = '↓ -' + saved.toLocaleString('vi-VN') + '₫';
+        }
+        document.getElementById('amountActual').value = total;
+        document.getElementById('amountDisplay').value = total.toLocaleString('vi-VN');
+    };
+
+    window.toggleInvType = () => {
+        const t = document.getElementById('inv_type').value;
+        const desc = document.getElementById('inv_desc');
+        const unpaidWrap = document.getElementById('inv_unpaid_wrap');
+        const unpaidChk = document.getElementById('inv_unpaid');
+        if(t === 'Nhập kho') {
+            desc.placeholder = "Tên nhà cung cấp";
+            if(unpaidWrap) unpaidWrap.style.setProperty('display', 'none', 'important');
+            if(unpaidChk) unpaidChk.checked = false;
+        } else {
+            desc.placeholder = "Tên người mua / Đại lý";
+            if(unpaidWrap) unpaidWrap.style.removeProperty('display');
+        }
+    };
+
+    // QUẢN LÝ DANH MỤC KHO TÙY CHỈNH
+
+    /**
+     * Trả về danh sách TẤT CẢ danh mục kho (mặc định + tùy chỉnh của admin).
+     * Danh mục mặc định luôn đứng đầu: Võ phục, Áo thun, Bảo hộ.
+     */
+    window.getInvCategories = () => {
+        const defaults = ['Võ phục', 'Áo thun', 'Bảo hộ'];
+        const stockNames = Object.values(window._liveInvMap || {}).map(s => s?.category);
+        const names = [...defaults, ...(window.invCustomCategories || []).map(c => c?.name), ...stockNames];
+        const normalize = window.MultiItemInventorySafety?.normalizeInventoryCategoryIdentity || (v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ''));
+        const seen = new Set();
+        return names.reduce((out, name) => {
+            const label = String(name || '').trim(), key = normalize(label);
+            if (label && key && !seen.has(key)) { seen.add(key); out.push(label); }
+            return out;
+        }, []);
+    };
+
+    /**
+     * Tạo HTML option cho tất cả danh mục (dùng populate select dropdown).
+     */
+    window.getCategoryOptionHtml = () => {
+        const cats = window.getInvCategories();
+        // Icon mặc định cho từng loại, tùy chỉnh dùng 📦
+        const icons = { 'Võ phục': '🥋', 'Áo thun': '👕', 'Bảo hộ': '🛡️' };
+        return cats.map(c => `<option value="${c}">${icons[c] || '📦'} ${c}</option>`).join('');
+    };
+
+    /**
+     * Cập nhật nội dung tất cả dropdown danh mục kho trên trang.
+     * Gọi sau khi load hoặc thay đổi danh mục tùy chỉnh.
+     */
+    window.populateInvCategorySelects = () => {
+        const html = window.getCategoryOptionHtml();
+        // Cập nhật tất cả dropdown danh mục trong app
+        ['inv_category', 'ei_category', 'mi_inv_category'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const cur = el.value; // Giữ lại giá trị đang chọn
+                el.innerHTML = html;
+                // Khôi phục giá trị cũ nếu còn tồn tại
+                if ([...el.options].some(o => o.value === cur)) el.value = cur;
+            }
+        });
+    };
+
+    /**
+     * Tải danh mục tùy chỉnh từ Firestore: clubs/{clubId}/settings/inv_categories
+     * Gọi sau khi user đăng nhập thành công và currentClubId đã được set.
+     */
+    window.loadInvCategories = async () => {
+        if (!currentClubId) return;
+        try {
+            const snap = await getDoc(doc(db, 'clubs', currentClubId, 'settings', 'inv_categories'));
+            // Lưu vào biến toàn cục để dùng ở nhiều nơi
+            window.invCustomCategories = snap.exists() ? (snap.data().categories || []) : [];
+        } catch(e) {
+            // Lỗi đọc Firestore → dùng mảng rỗng, không ảnh hưởng chức năng cũ
+            window.invCustomCategories = [];
+        }
+        // Cập nhật tất cả dropdown ngay sau khi load
+        window.populateInvCategorySelects();
+        // Hiện nút quản lý danh mục nếu là admin
+        const manageBtnWrap = document.getElementById('admin_manage_cat_wrap');
+        if (manageBtnWrap) {
+            manageBtnWrap.style.display = (window.userRole === 'admin' || window.userRole === 'super_admin') ? 'block' : 'none';
+        }
+    };
+
+    /**
+     * Mở modal quản lý danh mục kho (chỉ admin).
+     */
+    window.openManageCatModal = () => {
+        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') {
+            return alert('Chỉ Admin mới có quyền quản lý danh mục kho!');
+        }
+        window.renderManageCatList();
+        document.getElementById('manageCatModal').style.display = 'flex';
+    };
+
+    /**
+     * Đóng modal quản lý danh mục kho.
+     */
+    window.closeManageCatModal = () => {
+        const el = document.getElementById('manageCatModal');
+        if (el) el.style.display = 'none';
+    };
+
+    /**
+     * Render danh sách danh mục (mặc định + tùy chỉnh) trong modal quản lý.
+     */
+    window.renderManageCatList = () => {
+        const defaults = ['Võ phục', 'Áo thun', 'Bảo hộ'];
+        // Mô tả mặc định cho từng loại
+        const defaultDesc = {
+            'Võ phục': 'Size dropdown: Size 1m → Size 1m8',
+            'Áo thun': 'Nhập size tự do',
+            'Bảo hộ': 'Nhập size tự do'
+        };
+        const el = document.getElementById('manageCatList');
+        if (!el) return;
+
+        let html = '';
+        // Hiển thị danh mục mặc định (không xóa được)
+        defaults.forEach(name => {
+            html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f0f9ff;border-radius:10px;margin-bottom:6px;border:1px solid #bae6fd;">
+                <div>
+                    <span style="font-weight:700;font-size:0.85rem;">${name}</span>
+                    <span style="margin-left:8px;font-size:0.68rem;background:#bae6fd;color:#0369a1;padding:2px 7px;border-radius:5px;font-weight:700;">Mặc định</span>
+                    <div style="font-size:0.68rem;color:#64748b;margin-top:2px;">${defaultDesc[name] || ''}</div>
+                </div>
+                <span style="font-size:0.68rem;color:#94a3b8;font-style:italic;">Không xóa</span>
+            </div>`;
+        });
+
+        // Hiển thị danh mục tùy chỉnh (xóa được)
+        if (!window.invCustomCategories || window.invCustomCategories.length === 0) {
+            html += `<div style="text-align:center;padding:20px;color:#94a3b8;font-size:0.82rem;font-style:italic;background:#f8fafc;border-radius:10px;border:1px dashed #e2e8f0;margin-top:8px;">
+                Chưa có danh mục tùy chỉnh nào.<br>Sử dụng form bên trên để thêm danh mục mới.
+            </div>`;
+        } else {
+            (window.invCustomCategories || []).forEach((cat, idx) => {
+                // Hiển thị kiểu size: có dropdown hay nhập tự do
+                const sizesText = (cat.sizes && cat.sizes.length > 0)
+                    ? 'Size: ' + cat.sizes.join(', ')
+                    : 'Nhập size tự do';
+                html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#fff;border-radius:10px;margin-bottom:6px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                    <div style="flex:1;min-width:0;">
+                        <span style="font-weight:700;font-size:0.85rem;">📦 ${window.escapeHtml(String(cat.name || ''))}</span>
+                        <div style="font-size:0.68rem;color:#64748b;margin-top:2px;">${window.escapeHtml(String(sizesText || ''))}</div>
+                    </div>
+                    <button type="button" onclick="window.deleteInvCategory(${idx})" style="background:#fee2e2;border:none;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:8px;">🗑 Xóa</button>
+                </div>`;
+            });
+        }
+
+        el.innerHTML = html;
+    };
+
+    /**
+     * Thêm danh mục kho mới vào Firestore và cập nhật UI.
+     * Đọc từ input: newCatName (tên), newCatSizes (sizes, phân cách bằng dấu phẩy).
+     */
+    window.addInvCategory = async () => {
+        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return;
+        const nameEl = document.getElementById('newCatName');
+        const sizesEl = document.getElementById('newCatSizes');
+        const name = (nameEl ? nameEl.value : '').trim();
+
+        // Kiểm tra dữ liệu đầu vào
+        if (!name) return alert('Vui lòng nhập tên danh mục!');
+        if (name.length > 30) return alert('Tên danh mục tối đa 30 ký tự!');
+
+        const defaults = ['Võ phục', 'Áo thun', 'Bảo hộ'];
+        const existing = (window.invCustomCategories || []).map(c => c.name);
+        if ([...defaults, ...existing].includes(name)) {
+            return alert(`Danh mục "${name}" đã tồn tại! Vui lòng đặt tên khác.`);
+        }
+
+        // Parse sizes: tách bằng dấu phẩy, trim từng phần, loại bỏ rỗng
+        const sizesRaw = sizesEl ? sizesEl.value.trim() : '';
+        const sizes = sizesRaw
+            ? sizesRaw.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+
+        const newCat = { name, sizes };
+        const updatedList = [...(window.invCustomCategories || []), newCat];
+
+        try {
+            // Lưu vào Firestore: document inv_categories trong collection settings của club
+            await setDoc(
+                doc(db, 'clubs', currentClubId, 'settings', 'inv_categories'),
+                { categories: updatedList },
+                { merge: true }
+            );
+            window.invCustomCategories = updatedList;
+            // Xóa input sau khi thêm thành công
+            if (nameEl) nameEl.value = '';
+            if (sizesEl) sizesEl.value = '';
+            // Cập nhật tất cả dropdown và danh sách trong modal
+            window.populateInvCategorySelects();
+            window.renderManageCatList();
+            window.showToast(`✅ Đã thêm danh mục "${name}" thành công!`);
+        } catch(e) {
+            console.error('Lỗi thêm danh mục kho:', e);
+            alert('Lỗi khi lưu danh mục! Vui lòng thử lại.');
+        }
+    };
+
+    /**
+     * Xóa danh mục tùy chỉnh theo vị trí index trong mảng invCustomCategories.
+     * Danh mục mặc định (Võ phục, Áo thun, Bảo hộ) không thể xóa.
+     */
+    window.deleteInvCategory = async (idx) => {
+        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return;
+        const cat = (window.invCustomCategories || [])[idx];
+        if (!cat) return;
+        if (!confirm(`Xóa danh mục "${cat.name}"?
+
+Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ xóa khỏi danh sách lựa chọn.`)) return;
+
+        const updatedList = [...(window.invCustomCategories || [])];
+        updatedList.splice(idx, 1); // Xóa phần tử theo index
+
+        try {
+            await setDoc(
+                doc(db, 'clubs', currentClubId, 'settings', 'inv_categories'),
+                { categories: updatedList },
+                { merge: true }
+            );
+            window.invCustomCategories = updatedList;
+            window.populateInvCategorySelects();
+            window.renderManageCatList();
+            window.showToast(`✅ Đã xóa danh mục "${cat.name}"!`);
+        } catch(e) {
+            console.error('Lỗi xóa danh mục kho:', e);
+            alert('Lỗi khi xóa danh mục! Vui lòng thử lại.');
+        }
+    };
+
+    window.toggleInvCategory = () => {
+        const cat = document.getElementById('inv_category').value;
+        const sizeSelect = document.getElementById('inv_size');
+        const sizeText = document.getElementById('inv_size_text');
+        if (cat === 'Võ phục') {
+            // Võ phục: dùng dropdown size cố định (Size 1m → Size 1m8)
+            sizeSelect.style.display = ''; sizeSelect.required = true;
+            sizeText.style.display = 'none'; sizeText.required = false; sizeText.value = '';
+        } else {
+            // Kiểm tra danh mục tùy chỉnh có sizes được định sẵn không
+            const customCat = (window.invCustomCategories || []).find(c => c.name === cat);
+            if (customCat && customCat.sizes && customCat.sizes.length > 0) {
+                // Danh mục tùy chỉnh có sizes → populate dropdown từ sizes đã lưu
+                sizeSelect.innerHTML = '<option value="" disabled selected>-- Chọn Size --</option>'
+                    + customCat.sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+                sizeSelect.style.display = ''; sizeSelect.required = true;
+                sizeText.style.display = 'none'; sizeText.required = false; sizeText.value = '';
+            } else {
+                // Áo thun, Bảo hộ, danh mục không có sizes → nhập tự do
+                sizeSelect.style.display = 'none'; sizeSelect.required = false;
+                sizeText.style.display = ''; sizeText.required = true;
+            }
+        }
+    };
+
+    window.toggleEditInvSize = () => {
+        const cat = document.getElementById('ei_category').value;
+        const sizeSelect = document.getElementById('ei_size');
+        const sizeText = document.getElementById('ei_size_text');
+        if (cat === 'Võ phục') {
+            // Võ phục: dropdown size cố định
+            sizeSelect.style.display = ''; sizeText.style.display = 'none';
+        } else {
+            // Kiểm tra danh mục tùy chỉnh có sizes không
+            const customCat = (window.invCustomCategories || []).find(c => c.name === cat);
+            if (customCat && customCat.sizes && customCat.sizes.length > 0) {
+                // Có sizes tùy chỉnh → dùng dropdown
+                sizeSelect.innerHTML = '<option value="" disabled selected>-- Chọn Size --</option>'
+                    + customCat.sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+                sizeSelect.style.display = ''; sizeText.style.display = 'none';
+            } else {
+                // Nhập tự do
+                sizeSelect.style.display = 'none'; sizeText.style.display = '';
+            }
+        }
+    };
+
+    window.toggleAddUniformGift = () => {
+        const isGift = document.getElementById('add_uniform_gift').checked;
+        const dispEl = document.getElementById('add_uniform_display');
+        const actEl = document.getElementById('add_uniform_actual');
+        if(isGift) {
+            dispEl.value = "0"; actEl.value = 0; dispEl.disabled = true;
+        } else {
+            dispEl.disabled = false; dispEl.value = ""; actEl.value = "";
+        }
+    };
+
+    window.updateAddPackageAmount = () => {
+        const baseFee = Number(document.getElementById('add_fee_default_actual').value) || 0;
+        const pkg = parseInt(document.getElementById('add_package').value) || 1;
+        const isDiscount = document.getElementById('add_discount').checked;
+        const pct = isDiscount ? (Number(document.getElementById('add_discount_pct').value) || 10) : 0;
+        let total = baseFee * pkg;
+        if(isDiscount && pct > 0) total = Math.round(total * (1 - pct / 100));
+        document.getElementById('add_fee_actual').value = total;
+        document.getElementById('add_fee_display').value = total.toLocaleString('vi-VN');
+    };
+
+    window.openSettingsModal = () => {
+        if(window.userRole !== 'admin' && window.userRole !== 'super_admin') return alert("Chỉ Admin mới có quyền cấu hình hệ thống!");
+        document.getElementById('cfg_bankId').value = clubConfig.bankId || "";
+        document.getElementById('cfg_accountNo').value = clubConfig.accountNo || "";
+        document.getElementById('cfg_accountName').value = clubConfig.accountName || "";
+        document.getElementById('cfg_location').value = clubConfig.location || "Quy Nhơn";
+
+        // Phase 4.0B-4J-3: populate bank2 fields
+        const _pa = clubConfig.paymentAccounts || {};
+        const _b2 = _pa.bank2 || {};
+        const _b2Enabled = !!_b2.enabled;
+        const _bank2Chk = document.getElementById('cfg_bank2Enabled');
+        if (_bank2Chk) { _bank2Chk.checked = _b2Enabled; }
+        if (typeof window.toggleBank2Fields === 'function') window.toggleBank2Fields(_b2Enabled);
+        const _setV = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+        _setV('cfg_bank2Id', _b2.bankId);
+        _setV('cfg_bank2AccountNo', _b2.accountNo);
+        _setV('cfg_bank2AccountName', _b2.accountName);
+        _setV('cfg_bank2Note', _b2.note);
+
+        const _cfgBCount = clubConfig.branchCount || 1;
+        if(_cfgBCount > 1) {
+            document.getElementById('cfg_branchNamesBlock').style.display = 'block';
+            // Phase 4.0B-4J-3: show branch-to-bank mapping section
+            const _mapBlock = document.getElementById('cfg_branchBankMapBlock');
+            if (_mapBlock) { _mapBlock.style.display = 'block'; }
+            const _mapContainer = document.getElementById('cfg_branchBankMapContainer');
+            if (_mapContainer) {
+                const _bMap = clubConfig.branchPaymentAccountMap || {};
+                const _b2IsEnabled = !!(clubConfig.paymentAccounts?.bank2?.enabled);
+                let _mapHtml = '';
+                for (let _bi = 1; _bi <= _cfgBCount; _bi++) {
+                    const _bKey = 'CS' + _bi;
+                    const _bName = clubConfig['branchName' + _bi] || ('Cơ sở ' + _bi);
+                    const _bSel = _bMap[_bKey] || 'bank1';
+                    _mapHtml += `<div class="flex items-center gap-2"><span class="text-[0.72rem] font-bold text-slate-600 flex-1 min-w-0 truncate">${window.escapeHtml(String(_bName || ''))}</span>`
+                        + `<select id="cfg_bankMap_${_bKey}" class="bg-white border-slate-200 text-xs font-bold" style="width:auto;padding:6px 8px;">`
+                        + `<option value="bank1">Tài khoản 1</option>`
+                        + `<option value="bank2"${!_b2IsEnabled ? ' disabled' : ''}${_bSel==='bank2'&&_b2IsEnabled ? '' : ''}>Tài khoản 2${!_b2IsEnabled?' (chưa bật)':''}</option>`
+                        + `</select></div>`;
+                }
+                _mapContainer.innerHTML = _mapHtml;
+                // Set selected values
+                for (let _bi = 1; _bi <= _cfgBCount; _bi++) {
+                    const _bKey = 'CS' + _bi;
+                    const _sel = document.getElementById('cfg_bankMap_' + _bKey);
+                    if (_sel) _sel.value = (_bMap[_bKey] || 'bank1');
+                }
+            }
+
+            document.getElementById('cfg_branch1').value = clubConfig.branchName1 || "Cơ sở 1";
+            for(let _ci = 2; _ci <= 10; _ci++) {
+                const blk = document.getElementById('cfg_branchBlock' + _ci);
+                const inp = document.getElementById('cfg_branch' + _ci);
+                if(blk) blk.style.display = _ci <= _cfgBCount ? 'block' : 'none';
+                if(inp) inp.value = clubConfig['branchName' + _ci] || ('Cơ sở ' + _ci);
+            }
+        } else {
+            document.getElementById('cfg_branchNamesBlock').style.display = 'none';
+        }
+
+        tempLogoBase64 = ""; document.getElementById('cfg_logoFile').value = '';
+        if(clubConfig.logoBase64) { const pv = document.getElementById('cfg_logoPreview'); pv.src = clubConfig.logoBase64; pv.classList.remove('hidden'); }
+        else { document.getElementById('cfg_logoPreview').classList.add('hidden'); }
+
+        tempSignatureBase64 = ""; document.getElementById('cfg_signatureFile').value = '';
+        document.getElementById('cfg_trainerName').value = clubConfig.trainerName || '';
+        if(clubConfig.signatureBase64) { const sp = document.getElementById('cfg_signaturePreview'); sp.src = clubConfig.signatureBase64; sp.classList.remove('hidden'); }
+        else { document.getElementById('cfg_signaturePreview').classList.add('hidden'); }
+
+
+        document.getElementById('settingsModal').style.display = 'flex';
+    };
+
+    window.saveClubSettings = async () => {
+        if(window.userRole !== 'admin' && window.userRole !== 'super_admin') return;
+        const bankId = document.getElementById('cfg_bankId').value.trim().toUpperCase();
+        const accountNo = document.getElementById('cfg_accountNo').value.trim();
+        const accountName = document.getElementById('cfg_accountName').value.trim().toUpperCase();
+        const location = document.getElementById('cfg_location').value.trim();
+
+        if(!bankId || !accountNo || !accountName) return alert("Vui lòng điền đầy đủ thông tin!");
+
+        const trainerName = document.getElementById('cfg_trainerName').value.trim();
+
+        let updateData = { bankId, accountNo, accountName, location, trainerName };
+        if(tempLogoBase64) updateData.logoBase64 = tempLogoBase64;
+        if(tempSignatureBase64) updateData.signatureBase64 = tempSignatureBase64;
+        if(clubConfig.branchCount > 1) {
+            for(let _si = 1; _si <= (clubConfig.branchCount || 1); _si++) {
+                const el = document.getElementById('cfg_branch' + _si);
+                updateData['branchName' + _si] = (el ? el.value.trim() : '') || ('Cơ sở ' + _si);
+            }
+        }
+
+        // Phase 4.0B-4J-3: save paymentAccounts + branchPaymentAccountMap
+        const _ckB2 = document.getElementById('cfg_bank2Enabled');
+        const _b2IsOn = _ckB2 ? _ckB2.checked : false;
+        const _gv = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+        // Keep legacy bank1 fields in sync (backward compat)
+        const _pa4j3 = {
+            bank1: {
+                enabled: true,
+                bankId: bankId,
+                accountNo: accountNo,
+                accountName: accountName,
+                note: ''
+            },
+            bank2: {
+                enabled: _b2IsOn,
+                bankId: _gv('cfg_bank2Id').toUpperCase(),
+                accountNo: _gv('cfg_bank2AccountNo'),
+                accountName: _gv('cfg_bank2AccountName').toUpperCase(),
+                note: _gv('cfg_bank2Note')
+            }
+        };
+        updateData.paymentAccounts = _pa4j3;
+        // Save branch-to-bank mapping
+        const _bmap = {};
+        for (let _si = 1; _si <= (clubConfig.branchCount || 1); _si++) {
+            const _bKey = 'CS' + _si;
+            const _selEl = document.getElementById('cfg_bankMap_' + _bKey);
+            const _selectedBank4j4 = (_selEl ? _selEl.value : 'bank1') || 'bank1';
+            _bmap[_bKey] = _selectedBank4j4;
+            // Phase 4.0B-4J-4: also store alias by branch name and normalized name
+            const _bName4j4 = updateData['branchName' + _si] || ('Cơ sở ' + _si);
+            const _bNorm4j4 = (typeof removeVietnameseTonesForQR === 'function')
+                ? removeVietnameseTonesForQR(_bName4j4).toLowerCase().trim() : _bName4j4.toLowerCase();
+            _bmap[_bName4j4] = _selectedBank4j4;
+            _bmap[_bNorm4j4] = _selectedBank4j4;
+        }
+        updateData.branchPaymentAccountMap = _bmap;
+
+        try {
+            await setDoc(doc(db, "clubs", currentClubId, "settings", "main_config"), updateData, { merge: true });
+            tempLogoBase64 = ""; tempSignatureBase64 = "";
+            window.showToast("✅ Đã lưu cấu hình thành công!");
+            document.getElementById('settingsModal').style.display = 'none';
+        } catch (error) {
+            console.error(error);
+            alert("Đã có lỗi kết nối khi lưu cấu hình!");
+        }
+    };
+
+    function removeVietnameseTonesForQR(str) { return str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D') : ""; }
+
+    // ── Phase 4.0B-4J-8A: Search Normalization + Index Helpers ───────────────
+    /* API details: docs/APP_API_NOTES.md. */
+    function normalizeSearchText(value) {
+        const raw = String(value || '').trim();
+        const noTone = raw
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+        return noTone.toLowerCase().trim().replace(/\s+/g, ' ');
+    }
+
+    /**
+     * Giữ lại chỉ các ký tự số để so sánh số điện thoại.
+     * @param {string} value — raw phone
+     * @returns {string} digits only
+     */
+    function normalizePhoneForSearch(value) {
+        return String(value || '').replace(/\D/g, '');
+    }
+
+    /* API details: docs/APP_API_NOTES.md. */
+    function buildStudentSearchIndex(profile, name) {
+        const fullName   = String((profile || {}).displayName || (profile || {}).name || (profile || {}).fullName || (profile || {}).studentName || name || '').trim();
+        const phone      = String((profile || {}).phone || (profile || {}).parentPhone || (profile || {}).contactPhone || (profile || {}).guardianPhone || '');
+        const studentCode = String((profile || {}).memberId || (profile || {}).studentCode || (profile || {}).code || (profile || {}).idCode || '');
+        const nickname   = String((profile || {}).nickname || (profile || {}).shortName || (profile || {}).alias || '');
+        const searchName = normalizeSearchText(fullName);
+        return {
+            searchName,
+            searchNameTokens: searchName.split(' ').filter(Boolean).slice(0, 10),
+            searchPhone:     normalizePhoneForSearch(phone),
+            searchCode:      normalizeSearchText(studentCode),
+            searchNickname:  normalizeSearchText(nickname),
+        };
+    }
+    window.buildStudentSearchIndex = window.buildStudentSearchIndex || buildStudentSearchIndex;
+
+    /* API details: docs/APP_API_NOTES.md. */
+    async function fetchQueryPages(makeQuery, options) {
+        const _opts     = options || {};
+        const pageSize  = _opts.pageSize || 200;
+        const reason    = _opts.reason   || 'fetchQueryPages';
+        const domain    = _opts.domain   || 'unknown';
+        const maxPages  = _opts.maxPages || 50;
+        const allDocs   = [];
+        let   cursor    = null;
+        let   page      = 0;
+        while (page < maxPages) {
+            const q    = makeQuery({ cursor, pageSize });
+            const snap = await getDocs(q);
+            const docs = snap.docs;
+            if (typeof window.recordReadMetric === 'function') {
+                window.recordReadMetric(domain, docs.length, reason + ':page' + (page + 1));
+            }
+            allDocs.push(...docs);
+            if (docs.length < pageSize) break;
+            cursor = docs[docs.length - 1];
+            page++;
+        }
+        if (page >= maxPages) {
+            console.warn('[fetchQueryPages] ⚠️ maxPages (' + maxPages + ') reached for', reason, '— total docs:', allDocs.length);
+        }
+        return allDocs;
+    }
+    window.fetchQueryPages = window.fetchQueryPages || fetchQueryPages;
+    // ── End Phase 4.0B-4J-8A helpers ─────────────────────────────────────────
+
+    // ── Phase 4.0B-4J-3: Multi Bank Account helpers ───────────────────────────
+    // ── Phase 4.0B-4J-4: normalizeBranchKeyForPayment ────────────────────────
+    function normalizeBranchKeyForPayment(branchInput, settings) {
+        const cfg = settings || window.__store?.settings || clubConfig || {};
+        const raw = String(branchInput ?? '').normalize('NFC').trim();
+        const branchCount = Number(cfg.branchCount);
+        if (!raw || !/^[1-9]\d*$/.test(String(cfg.branchCount ?? '')) || !Number.isInteger(branchCount) || branchCount > 10) return '';
+        const upper = raw.toUpperCase();
+        const noTone = _paymentAlias(raw);
+        const csMatch = upper.match(/^CS\s*0*([1-9]\d*)$/);
+        const coSoMatch = noTone.match(/^co\s*so\s*:?\s*0*([1-9]\d*)$/);
+        const matches = new Set();
+        if (csMatch || coSoMatch) matches.add('CS' + Number((csMatch || coSoMatch)[1]));
+        if (noTone === 'mac dinh') matches.add('CS1');
+        const names = new Map();
+        for (let i = 1; i <= branchCount; i++) {
+            const name = _paymentAlias(cfg['branchName' + i]);
+            if (!name) continue;
+            if (names.has(name)) return ''; // Duplicate configured names are not authority.
+            names.set(name, i);
+            if (name === noTone) matches.add('CS' + i);
+        }
+        const key = [...matches][0];
+        return matches.size === 1 && Number(key.slice(2)) <= branchCount ? key : '';
+    }
+    function _paymentAlias(value) { return removeVietnameseTonesForQR(String(value ?? '').normalize('NFC')).toLowerCase().replace(/\s+/g, ' ').trim(); }
+    function _receiptError(code, stage = '') { const e = new Error(code); e.code = code; e.stage = stage; return e; }
+    function _receiptPrincipalFingerprint() {
+        const a = window.__verifiedAuthContextState;
+        return a ? JSON.stringify([a.uid, a.clubId, a.generation, a.role, a.coachBranch, a.ready]) : '';
+    }
+    function _receiptConfigFingerprint(cfg = {}) {
+        const sorted = value => Array.isArray(value) ? value.map(sorted) : value && typeof value === 'object'
+            ? Object.fromEntries(Object.keys(value).sort().map(k => [k, sorted(value[k])])) : value;
+        const projection = {policy:'qr-v7-1',branchCount:cfg.branchCount,branchPaymentAccountMap:cfg.branchPaymentAccountMap,paymentAccounts:cfg.paymentAccounts};
+        ['bankId','bankBin','bin','bankShort','bankCode','bankName','bank','accountNo','accountName','enabled'].forEach(k => {projection[k]=cfg[k];});
+        for (let i=1;i<=10;i++) projection['branchName'+i]=cfg['branchName'+i];
+        return JSON.stringify(sorted(projection));
+    }
+
+    // A provenance seal from the EXISTING settings callback, never from bootstrap
+    // defaults. No new Firestore reader, listener or settings writer.
+    function _acceptReceiptSettingsSnapshot(snap, clubId, principalAtMount) {
+        const a=window.__verifiedAuthContextState;
+        if (clubId !== currentClubId || !a?.ready || (a.clubId !== clubId && a.role !== 'super_admin') || principalAtMount !== _receiptPrincipalFingerprint()) return false;
+        const verified=snap?.exists?.() === true && snap.metadata?.fromCache === false && snap.metadata?.hasPendingWrites === false;
+        const previous=window.__receiptSettingsAuthority;
+        if(previous && _receiptActiveJobKind==='REPORT' && (!verified || previous.runtimeFingerprint!==_receiptConfigFingerprint(clubConfig))) _clearReceiptPreview();
+        window.__receiptSettingsAuthority={ready:verified,clubId,principal:principalAtMount,
+            reason:verified ? '' : 'ACCOUNT_SETTINGS_UNVERIFIED',
+            config:verified ? JSON.parse(JSON.stringify(snap.data())) : null,
+            runtimeFingerprint:_receiptConfigFingerprint(clubConfig)};
+        return verified;
+    }
+    function _receiptAuthorityConfig() {
+        const a=window.__verifiedAuthContextState, seal=window.__receiptSettingsAuthority;
+        if (!a?.ready || !a.uid || (a.clubId !== currentClubId && a.role !== 'super_admin') || !Number.isSafeInteger(a.generation) || a.generation < 1) throw _receiptError('AUTH_STALE','authority');
+        if (!window.__settingsSnapshotReady || !seal) throw _receiptError('ACCOUNT_SETTINGS_NOT_READY','authority');
+        if (seal.clubId !== currentClubId || seal.principal !== _receiptPrincipalFingerprint()) throw _receiptError('AUTH_STALE','authority');
+        if (!seal.ready || !seal.config) throw _receiptError('ACCOUNT_SETTINGS_UNVERIFIED','authority');
+        if (seal.runtimeFingerprint !== _receiptConfigFingerprint(clubConfig)) throw _receiptError('CONFIG_STALE','authority');
+        return seal.config;
+    }
+    function _receiptKindFromTitle(title = 'BIÊN LAI THU TIỀN') {
+        const label=_paymentAlias(title);
+        if (/^bien lai(?: thu tien)?$/.test(label)) return 'PAID';
+        if (/^phieu bao(?:\s|$)/.test(label)) return 'REPORT';
+        throw _receiptError('RECEIPT_KIND_UNKNOWN','request');
+    }
+    function _receiptPaymentMemo(name, detail, maxMemoLength = 48) {
+        // Preserve all reference digits. The provider removes punctuation; make
+        // that canonicalization explicit, visible on the receipt, and never truncate.
+        const memo=removeVietnameseTonesForQR(`${name} ${detail}`).replace(/[^A-Za-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+        if (!memo || memo.length > maxMemoLength) throw _receiptError('MEMO_TOO_LONG','intent');
+        return memo;
+    }
+    function _receiptTuitionMemo(name, monthsStr, verboseMemo) {
+        // A9R6: only shorten a verbose tuition memo when it exceeds 40 ASCII
+        // characters. 40 is a conservative local trigger, NOT a claimed VietQR
+        // provider limit (Quick Link documents up to 50). Do not truncate names,
+        // months or account references. The decoded final QR must still match.
+        if (verboseMemo.length <= 40) return verboseMemo;
+        const months=String(monthsStr||'').split(',').map(s=>s.trim());
+        if (!months.length || months.some(m=>!/^20\d{2}-(0[1-9]|1[0-2])$/.test(m)) ||
+            new Set(months).size !== months.length) throw _receiptError('MEMO_PERIOD_INVALID','intent');
+        const groups=new Map();
+        for (const m of months) {
+            const year=m.slice(0,4), month=String(Number(m.slice(5)));
+            if (!groups.has(year)) groups.set(year,[]);
+            groups.get(year).push(month);
+        }
+        const ordered=Array.from(groups).sort(([a],[b])=>a.localeCompare(b));
+        const periods=ordered.map(([year,list])=>list.map(m=>'T'+m).join(' ')+' '+year).join(' ');
+        const readable=_receiptPaymentMemo(name,'HP '+periods,512);
+        if (readable.length<=40) return readable;
+        // Retain full name and every month/year when spacing alone exceeds the existing cap.
+        const tight=ordered.map(([year,list])=>list.map(m=>'T'+m).join('')+' '+year).join(' ');
+        const compact=_receiptPaymentMemo(name,'HP '+tight);
+        // Refuse excessive descriptions rather than losing student name or
+        // calendar months. Do not silently accept a provider-modified QR.
+        if (compact.length > 40) throw _receiptError('MEMO_TOO_LONG','intent');
+        return compact;
+    }
+    function _receiptQrMismatch(stage, failure, details = {}) {
+        const e=_receiptError('QR_EMV_MISMATCH',stage);
+        // Safe for diagnostics: no raw QR, student name, account number or amount.
+        e.qrPixelAudit=Object.freeze({failure,...details});
+        return e;
+    }
+    function _receiptDecodeEMV(raw) {
+        const fail=() => {throw _receiptError('QR_EMV_MISMATCH','pixels');};
+        const tlv=text => {const out={};let i=0;while(i<text.length){if(!/^\d{4}/.test(text.slice(i,i+4)))fail();const tag=text.slice(i,i+2),len=Number(text.slice(i+2,i+4));i+=4;if(i+len>text.length || Object.prototype.hasOwnProperty.call(out,tag))fail();out[tag]=text.slice(i,i+len);i+=len;}return out;};
+        if (typeof raw !== 'string' || !/^[\x20-\x7e]+$/.test(raw) || !/6304[0-9a-f]{4}$/i.test(raw)) fail();
+        let crc=0xffff;for(const char of raw.slice(0,-4)){crc^=char.charCodeAt(0)<<8;for(let i=0;i<8;i++)crc=(crc&0x8000)?((crc<<1)^0x1021)&0xffff:(crc<<1)&0xffff;}
+        if (crc.toString(16).padStart(4,'0').toUpperCase() !== raw.slice(-4).toUpperCase()) fail();
+        const top=tlv(raw),merchant=tlv(top['38'] || ''),beneficiary=tlv(merchant['01'] || ''),additional=tlv(top['62'] || '');
+        if (top['00'] !== '01' || top['53'] !== '704' || top['58'] !== 'VN' || merchant['00'] !== 'A000000727' || merchant['02'] !== 'QRIBFTTA' || !/^\d+$/.test(top['54'] || '')) fail();
+        return {bankBin:beneficiary['00'],accountNo:beneficiary['01'],amount:Number(top['54']),memo:additional['08']};
+    }
+    async function _verifyReceiptQrPixels(image, intent, stage) {
+        if (typeof window.QRBankingHelpers?.decodeReceiptQrImage !== 'function') throw _receiptError('QR_VERIFICATION_UNAVAILABLE',stage);
+        let codes;
+        try { codes=await window.QRBankingHelpers.decodeReceiptQrImage(image); }
+        catch (error) { throw _receiptError(error?.code === 'QR_VERIFICATION_UNAVAILABLE' ? error.code : error?.code === 'QR_MEDIA_INVALID' ? error.code : 'QR_DECODE_FAILED',stage); }
+        if (codes?.length !== 1) throw _receiptError('QR_DECODE_FAILED',stage);
+        const box=codes[0].boundingBox,w=image.naturalWidth || image.width,h=image.naturalHeight || image.height;
+        if (!box || !(box.width>0 && box.height>0) || Math.abs(box.width/box.height-1)>0.04 ||
+            Math.min(box.x,box.y,w-box.x-box.width,h-box.y-box.height)<4) throw _receiptError('QR_MEDIA_INVALID',stage);
+        let decoded;try {decoded=_receiptDecodeEMV(codes[0].rawValue);}catch(_){throw _receiptQrMismatch(stage,'EMV_PARSE_OR_CRC_FAIL');}
+        const fieldsMatch={bankBin:decoded.bankBin===intent.bankBin,accountNo:decoded.accountNo===intent.accountNo,amount:decoded.amount===intent.amount,memo:decoded.memo===intent.memo};
+        if(Object.values(fieldsMatch).some(match=>!match)) {
+            // A9R4: exact byte/character evidence stays private; emit only safe
+            // transform classifications. Do NOT accept an approximate match.
+            const expected=String(intent.memo??''),actual=String(decoded.memo??'');
+            const memoTransform={
+                sameIgnoringCase:expected.toUpperCase()===actual.toUpperCase(),
+                sameIgnoringSpaces:expected.replace(/\s/g,'')===actual.replace(/\s/g,''),
+                sameIgnoringPunctuation:expected.replace(/[^A-Za-z0-9]/g,'')===actual.replace(/[^A-Za-z0-9]/g,''),
+                sameTrimmed:expected.trim()===actual.trim(),
+                looksLikeTailTruncation:actual.length<expected.length && expected.startsWith(actual),
+                looksLikeHeadTruncation:actual.length<expected.length && expected.endsWith(actual),
+                lengthDelta:actual.length-expected.length
+            };
+            throw _receiptQrMismatch(stage,'INTENT_FIELD_MISMATCH',{fieldsMatch,expectedMemoLength:expected.length,qrMemoLength:actual.length,memoTransform});
+        }
+        return true;
+    }
+    function _receiptFailureMessage(reason) {
+        const messages={ACCOUNT_SETTINGS_NOT_READY:'Đợi tải xong Cài đặt CLB rồi tạo lại phiếu.',ACCOUNT_SETTINGS_UNVERIFIED:'Cài đặt nhận tiền chưa được máy chủ xác nhận. Kết nối mạng và mở lại CLB.',
+            ACCOUNT_BRANCH_UNKNOWN:'Kiểm tra cơ sở trong hồ sơ và số cơ sở trong Cài đặt.',ACCOUNT_MAPPING_MISSING:'Admin cần gán tài khoản nhận tiền cho cơ sở trong Cài đặt.',ACCOUNT_ALIAS_CONFLICT:'Tên hoặc ánh xạ cơ sở bị trùng/mâu thuẫn. Admin cần kiểm tra Cài đặt.',
+            ACCOUNT_DISABLED:'Tài khoản được gán đã tắt hoặc không tồn tại. Admin cần kiểm tra Cài đặt.',ACCOUNT_INCOMPLETE:'Bổ sung mã ngân hàng, số tài khoản dạng chữ và tên chủ tài khoản trong Cài đặt.',
+            BANK_CODE_UNRECOGNIZED:'Mã ngân hàng chưa có trong danh mục đã xác minh.',BANK_IDENTITY_CONFLICT:'Các mã/tên ngân hàng trong cùng tài khoản đang mâu thuẫn.',BANK_BIN_INVALID:'Mã BIN ngân hàng không hợp lệ.',
+            INVALID_AMOUNT:'Số tiền hoặc tổng các dòng chi tiết không hợp lệ.',AUTH_STALE:'Phiên đăng nhập hoặc CLB đã đổi. Mở lại CLB và tạo phiếu mới.',CONFIG_STALE:'Cấu hình nhận tiền đã đổi. Tạo lại phiếu.',
+            QR_VERIFICATION_UNAVAILABLE:'Trình duyệt chưa có bộ giải mã QR được kiểm chứng. Chưa thể xuất phiếu an toàn trên thiết bị này.',MEMO_TOO_LONG:'Nội dung chuyển khoản vẫn quá dài dù đã rút gọn mã kỳ học phí; không được cắt tên hoặc các tháng.',MEMO_PERIOD_INVALID:'Kỳ học phí của phiếu báo không đúng định dạng hoặc có tháng trùng. Cần kiểm tra dữ liệu nợ.',
+            QR_FETCH_NETWORK:'Không tải được mã QR. Kiểm tra kết nối rồi thử lại.',QR_FETCH_REDIRECT:'Địa chỉ ảnh QR chuyển hướng ngoài nguồn được phép. Đã chặn tải.',QR_FETCH_HTTP:'Nhà cung cấp QR trả lỗi. Thử tạo phiếu lại sau.',
+            QR_TIMEOUT:'Tải hoặc kiểm tra QR quá thời hạn. Thử lại khi mạng ổn định.',QR_EMV_MISMATCH:'Nội dung mã QR không khớp phiếu. Đã chặn tải ảnh.',QR_DECODE_FAILED:'Không đọc được mã QR trong ảnh. Đã chặn tải ảnh.',
+            QR_MIME:'Định dạng ảnh QR không được hỗ trợ.',QR_SVG_UNSAFE:'Ảnh QR có nội dung không được phép. Đã chặn tạo phiếu.',QR_BYTES_INVALID:'Dữ liệu ảnh QR không hợp lệ.',QR_MEDIA_INVALID:'Ảnh QR bị méo hoặc thiếu viền trắng.',CANVAS_EXPORT_FAILED:'Không xuất được ảnh phiếu. Kiểm tra trình duyệt.',PREVIEW_FAILED:'Không mở được ảnh xem trước.',MODAL_NOT_VISIBLE:'Khung xem phiếu chưa hiển thị.',DEBT_NOT_READY:'Báo nợ chưa có dữ liệu đã xác thực. Đợi tải xong rồi tạo lại.'};
+        return `Chưa tạo được phiếu báo [${reason}]. ${messages[reason] || 'Vui lòng mở lại phiếu và thử lại.'}`;
+    }
+    function getPaymentAccountForBranch(branchCode, settings) {
+        // One payment-account authority: never silently substitute another bank.
+        // Empty/ambiguous branch or account configuration must not create a payable QR.
+        const cfg = settings || window.__store?.settings || clubConfig || {};
+        const rawBranch = String(branchCode || '').trim();
+        const deny = reason => ({bankKey: '', bankId: '', accountNo: '', accountName: '', note: '', reason});
+        if (!rawBranch) return deny('ACCOUNT_BRANCH_UNKNOWN');
+        const normalizedKey = normalizeBranchKeyForPayment(rawBranch, cfg);
+        if (!normalizedKey) return deny('ACCOUNT_BRANCH_UNKNOWN');
+        const map = cfg.branchPaymentAccountMap || {};
+        if (Object.keys(map).some(k => !normalizeBranchKeyForPayment(k,cfg))) return deny('ACCOUNT_ALIAS_CONFLICT');
+        const aliases = Object.keys(map).filter(k => normalizeBranchKeyForPayment(k,cfg) === normalizedKey);
+        const selectedKeys = aliases;
+        const selectedValues = [...new Set(selectedKeys.map(key => String(map[key] ?? '').trim()))];
+        if (selectedValues.length > 1) return deny('ACCOUNT_ALIAS_CONFLICT');
+        if (selectedKeys.length > 0) {
+            const bankKey = selectedValues[0];
+            if (!bankKey) return deny('ACCOUNT_MAPPING_MISSING');
+            const account = cfg.paymentAccounts?.[bankKey];
+            if (!account || account.enabled !== true) return deny('ACCOUNT_DISABLED');
+            try {
+                if (!window.QRBankingHelpers?.normalizeBankAccountStrict) return deny('BANK_REGISTRY_NOT_READY');
+                const {bankId,bankBin,accountNo,accountName}=window.QRBankingHelpers.normalizeBankAccountStrict(account);
+                return {bankKey, bankId, accountNo, accountName, bankBin, branchKey:normalizedKey, note:String(account.note || '')};
+            } catch(e) {return deny(e.code || 'ACCOUNT_INCOMPLETE');}
+        }
+        // A multi-account installation needs an explicit branch mapping. An active
+        // bank2 must never be chosen automatically over a disabled bank1 (or vice versa).
+        const accounts = cfg.paymentAccounts || {};
+        if (Object.keys(accounts).length > 0) return deny('ACCOUNT_MAPPING_MISSING');
+        // Legacy single-account configuration, only for an unambiguous CS1 club.
+        // This is not an implicit fallback from a disabled paymentAccounts entry.
+        const legacyBranch = normalizedKey === 'CS1' || /^(mặc định|mac dinh)$/i.test(rawBranch);
+        const singleBranch = Number(cfg.branchCount) === 1;
+        if (!legacyBranch || !singleBranch) return deny('ACCOUNT_MAPPING_MISSING');
+        if (cfg.enabled === false) return deny('ACCOUNT_DISABLED');
+        try {
+            if (!window.QRBankingHelpers?.normalizeBankAccountStrict) return deny('BANK_REGISTRY_NOT_READY');
+            return {...window.QRBankingHelpers.normalizeBankAccountStrict(cfg),bankKey:'legacy',branchKey:normalizedKey,note:String(cfg.bankNote || '')};
+        } catch(e) {return deny(e.code || 'ACCOUNT_INCOMPLETE');}
+    }
+
+    function maskAccountNumber(num) {
+        const s = String(num || '');
+        if (s.length <= 4) return '****';
+        return '****' + s.slice(-4);
+    }
+
+    // ── Phase 4.0B-4J-4: testPaymentAccountForBranch debug helper ──────────
+    window.testPaymentAccountForBranch = function testPaymentAccountForBranch(branchInput) {
+        const acc = getPaymentAccountForBranch(branchInput, clubConfig);
+        const result = {
+            branchInput: branchInput,
+            normalizedKey: normalizeBranchKeyForPayment(branchInput, clubConfig),
+            bankKey: acc.bankKey || 'bank1',
+            bankId: acc.bankId,
+            accountNoMasked: maskAccountNumber(acc.accountNo),
+            accountName: acc.accountName
+        };
+        console.table(result);
+        return result;
+    };
+
+        window.printPaymentAccountMapping = function printPaymentAccountMapping() {
+        const settings = window.__store?.settings || {};
+        const result = {
+            bank1Enabled: !!(settings.paymentAccounts?.bank1?.enabled ?? true),
+            bank2Enabled: !!settings.paymentAccounts?.bank2?.enabled,
+            bank1Id: maskAccountNumber(settings.paymentAccounts?.bank1?.accountNo || settings.accountNo),
+            bank2Id: settings.paymentAccounts?.bank2?.enabled
+                ? maskAccountNumber(settings.paymentAccounts?.bank2?.accountNo)
+                : '(disabled)',
+            branchPaymentAccountMap: settings.branchPaymentAccountMap || {}
+        };
+        console.table(result);
+        return result;
+    };
+
+    window.toggleBank2Fields = function(enabled) {
+        const el = document.getElementById('cfg_bank2Fields');
+        if (el) el.style.display = enabled ? 'block' : 'none';
+    };
+
+
+
+    // ── Phase 4.0B-4J-4: generateVietQR accepts optional branchOrAccount ─────
+    function generateVietQR(amount, studentName, detailDesc, branchOrAccount, qrTemplate = 'compact2', memoOverride = null) {
+        const addInfoText = memoOverride === null ? _receiptPaymentMemo(studentName,detailDesc) : memoOverride;
+        // The receipt owner supplies the same frozen memo for both URL and EMV audit.
+        if (typeof addInfoText !== 'string' || !addInfoText || addInfoText.length > 48 ||
+            !/^[A-Za-z0-9 ]+$/.test(addInfoText)) throw _receiptError('MEMO_TOO_LONG','intent');
+        let _qrAcct = null;
+        if (branchOrAccount && typeof branchOrAccount === 'object' && branchOrAccount.accountNo) {
+            _qrAcct = branchOrAccount;
+        } else if (branchOrAccount) {
+            _qrAcct = getPaymentAccountForBranch(branchOrAccount, clubConfig);
+        }
+        // Snapshot must be complete; never splice fields from clubConfig into a
+        // selected bank or fall back after a disabled/unmapped account.
+        if (!window.QRBankingHelpers?.normalizeBankAccountStrict) throw _receiptError('BANK_REGISTRY_NOT_READY','intent');
+        const normalized=window.QRBankingHelpers.normalizeBankAccountStrict(_qrAcct || {});
+        const _bankId=normalized.bankBin,_acctNo=normalized.accountNo,_acctName=removeVietnameseTonesForQR(normalized.accountName);
+        // The report QR must be a square QR-only provider image. Never stretch compact2 (a poster).
+        if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 9999999999999) throw _receiptError('INVALID_AMOUNT','intent');
+        if (!['compact2', 'qr_only'].includes(qrTemplate)) throw new Error('Mẫu QR không hợp lệ.');
+        return `https://img.vietqr.io/image/${encodeURIComponent(String(_bankId))}-${encodeURIComponent(String(_acctNo))}-${qrTemplate}.${qrTemplate === 'qr_only' ? 'svg' : 'png'}?amount=${amount}&addInfo=${encodeURIComponent(addInfoText)}&accountName=${encodeURIComponent(_acctName)}`;
+    }
+
+    document.getElementById('transactionForm').onsubmit = async (e) => {
+        e.preventDefault();
+        if(window.userRole === 'viewer') return;
+        window.showToast('⏳ Chức năng tài chính đang khởi tạo. Vui lòng thử lại sau.');
+        return false;
+    };
+
+    window.openProfile = (name) => {
+        const p = allProfiles[name];
+        if(!p) return;
+        document.getElementById('m_old_name').value = name;
+        document.getElementById('m_name_input').value = name;
+        document.getElementById('m_memberId').value = p.memberId || '';
+        document.getElementById('m_status').value = p.status || 'active';
+        document.getElementById('m_branch').value = p.branch || 'CS1';
+        document.getElementById('m_belt').value = p.belt || 'Đai trắng - Cấp 10';
+        document.getElementById('m_dob').value = p.dob || '';
+        document.getElementById('m_gender').value = p.gender || '';
+        document.getElementById('m_phone').value = p.phone || '';
+        document.getElementById('m_cccd').value = p.cccd || '';
+        document.getElementById('m_fee_actual').value = p.tuitionFee || '';
+        document.getElementById('m_fee_display').value = p.tuitionFee ? parseInt(p.tuitionFee, 10).toLocaleString('vi-VN') : '';
+        document.getElementById('m_paidUntil').value = p.paidUntil || '';
+        document.getElementById('m_notes').value = p.notes || '';
+        // [THÊM] Nạp biệt danh vào form chỉnh sửa hồ sơ
+        const _mNickEl = document.getElementById('m_nickname'); if (_mNickEl) _mNickEl.value = p.nickname || '';
+        document.getElementById('m_feeExempt').checked = p.feeExempt === true;
+        renderAchievements(p.achievements || []);
+        // Load lịch học vào các checkbox của form sửa hồ sơ
+        document.querySelectorAll('.m_trainingDay').forEach(cb => {
+            cb.checked = Array.isArray(p.trainingDays) && p.trainingDays.includes(parseInt(cb.value));
+        });
+
+        let skippedHtml = '';
+        if(p.skippedMonths && p.skippedMonths.length > 0) {
+            p.skippedMonths.forEach(m => {
+                skippedHtml += `<span class="bg-amber-200 text-amber-800 text-[0.7rem] px-2 py-1 rounded font-bold cursor-pointer hover:bg-rose-200 shadow-sm" onclick="removeSkip('${name}', '${m}')" title="Bấm để xóa">Tháng ${formatMonth(m)} ✖</span>`;
+            });
+        } else {
+            skippedHtml = '<span class="text-[0.7rem] text-amber-600/70 italic">Chưa có tháng báo nghỉ</span>';
+        }
+        document.getElementById('m_skipped').innerHTML = skippedHtml;
+        // [SỬA ĐỒNG BỘ] Đảm bảo shifts đã load kể cả khi chưa mở tab Điểm Danh
+        const _mShiftSel = document.getElementById('m_shift');
+        if (_mShiftSel) {
+            const _savedShiftId = p.trainingShiftId || '';
+            (window._ensureClubShiftsLoaded ? window._ensureClubShiftsLoaded() : Promise.resolve()).then(function() {
+                let _msHtml = '<option value="">-- Chọn ca tập --</option>';
+                (window._getClubShifts ? window._getClubShifts() : []).forEach(function(s) {
+                    const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
+                    _msHtml += '<option value="' + s.id + '">' + s.name + _t + '</option>';
+                });
+                _mShiftSel.innerHTML = _msHtml;
+                _mShiftSel.value = _savedShiftId;
+            });
+        }
+        document.getElementById('profileModal').style.display = 'flex';
+    };
+
+    // Phase 4K-6V5U-1: legacy student status writers were removed from app.js.
+    // js/modules/students.js + StudentStatusCommandBoundary own these actions after bootstrap.
+    const _studentStatusNotReady = function(action) {
+        console.warn('[V5U-1] Student status command not ready:', action);
+        if (typeof window.showToast === 'function') window.showToast('Chức năng võ sinh đang khởi tạo, vui lòng thử lại sau.', 'warning');
+        return false;
+    };
+    window.updateProfile = async () => _studentStatusNotReady('updateProfile');
+    window.deleteProfile = async () => _studentStatusNotReady('deleteProfile');
+    window.skipMonth = async () => _studentStatusNotReady('skipMonth');
+    window.removeSkip = async () => _studentStatusNotReady('removeSkip');
+
+    window._currentAchievements = [];
+
+    function renderAchievements(list) {
+        window._currentAchievements = list ? [...list] : [];
+        const el = document.getElementById('m_achievements');
+        if (!el) return;
+        if (!list || list.length === 0) {
+            el.innerHTML = '<span style="font-size:0.72rem;color:#a16207;font-style:italic;">Chưa có thành tích nào được ghi nhận.</span>';
+            return;
+        }
+        const byYear = {};
+        list.forEach((a, i) => { const y = a.year || '?'; if (!byYear[y]) byYear[y] = []; byYear[y].push({ ...a, _idx: i }); });
+        const years = Object.keys(byYear).sort((a, b) => b - a);
+        el.innerHTML = years.map(y => `
+            <div style="margin-bottom:4px;">
+                <div style="font-size:0.65rem;font-weight:900;color:#854d0e;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Năm ${y}</div>
+                ${byYear[y].map(a => `
+                    <div style="display:flex;align-items:center;gap:8px;background:white;border:1px solid #fde68a;border-radius:8px;padding:7px 10px;margin-bottom:3px;">
+                        <span style="font-size:1rem;">🏅</span>
+                        <div style="flex:1;min-width:0;">
+                            <span style="font-weight:700;font-size:0.82rem;color:#1e293b;">${a.tournament}</span>
+                            <span style="margin-left:8px;font-size:0.72rem;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:2px 7px;border-radius:5px;">${a.result}</span>
+                        </div>
+                        <button type="button" onclick="removeAchievement(${a._idx})" style="color:#f87171;background:none;border:none;font-weight:900;font-size:0.9rem;cursor:pointer;padding:0 2px;" title="Xóa">✖</button>
+                    </div>
+                `).join('')}
+            </div>
+        `).join('');
+    }
+
+    window.addAchievementRow = () => {
+        const year = document.getElementById('m_ach_year').value.trim();
+        const tournament = document.getElementById('m_ach_tournament').value.trim();
+        const result = document.getElementById('m_ach_result').value.trim();
+        if (!year || !tournament || !result) return alert('Vui lòng nhập đủ: Năm, Tên giải đấu và Kết quả!');
+        if (isNaN(year) || year < 2000 || year > 2099) return alert('Năm không hợp lệ!');
+        window._currentAchievements.push({ year, tournament, result });
+        renderAchievements(window._currentAchievements);
+        document.getElementById('m_ach_year').value = '';
+        document.getElementById('m_ach_tournament').value = '';
+        document.getElementById('m_ach_result').value = '';
+    };
+
+    window.removeAchievement = (idx) => {
+        window._currentAchievements.splice(idx, 1);
+        renderAchievements(window._currentAchievements);
+    };
+
+    window.handleQuitOption = (name, month) => {
+        if (!window.StudentStatusCommandBoundary) return _studentStatusNotReady('handleQuitOption');
+        if (confirm(`Võ sinh ${name} có tiếp tục tập không?
+- Bấm OK để báo NGHỈ TẬP luôn.
+- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`)) {
+            return window.StudentStatusCommandBoundary.markQuit(name, getLocalToday());
+        }
+        if (confirm(`Xác nhận miễn nợ học phí tháng ${formatMonth(month)} cho ${name}?`)) {
+            return window.StudentStatusCommandBoundary.addSkippedMonth(name, month);
+        }
+        return false;
+    };
+
+    // Phase 4K-6S: formatMonthCompact fallback lives in the classic rollback layer;
+    // js/utils/format.js becomes the canonical module owner after bootstrap.
+
+    window.generateMultiMonthPaymentRequest = (name, monthsStr, branch, amount) => {
+        return window.exportReceipt(name, Number(amount), 'Học phí', getLocalToday(), monthsStr, branch, '', 'PHIẾU BÁO HỌC PHÍ');
+    };
+
+    window.copyAndOpenZalo = (name, monthsStr, phone) => {
+        const p = allProfiles[name];
+        let fee = p ? (p.tuitionFee || 0) : 0;
+        let monthsLabel = window.formatMonthCompact(monthsStr);
+        let monthCount = monthsStr.includes(',') ? monthsStr.split(',').length : 1;
+        let totalFee = monthCount * parseInt(fee);
+        const _clubNameForMsg = clubConfig.clubName || 'CLB Taekwondo';
+        let msg = `${_clubNameForMsg} thông báo:\nVõ sinh ${name} còn nợ học phí kỳ ${monthsLabel}.\nTổng số tiền: ${totalFee.toLocaleString('vi-VN')}đ.\nPhụ huynh vui lòng đóng học phí nhé!`;
+        let zphone = phone ? phone.replace(/^0/, '84') : '';
+        let zaloUrl = zphone ? `https://zalo.me/${zphone}` : 'https://zalo.me/';
+
+        const _zm = document.getElementById('_zaloMsgModal');
+        if (_zm) {
+            document.getElementById('_zaloMsgText').value = msg;
+            document.getElementById('_zaloMsgPhone').textContent = phone || '(chưa có SĐT)';
+            document.getElementById('_zaloMsgName').textContent = name;
+            document.getElementById('_zaloOpenBtn').onclick = () => { window.open(zaloUrl, '_blank'); };
+            document.getElementById('_zaloOpenBtn').style.display = phone ? '' : 'none';
+            _zm.style.display = 'flex';
+            document.getElementById('_zaloMsgText').select();
+            return;
+        }
+
+        const _copyFallback = () => {
+            const ta = document.createElement('textarea');
+            ta.value = msg; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+            document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+            document.body.removeChild(ta);
+            window.showToast("✅ Đã copy tin nhắn!");
+            if (phone) window.open(zaloUrl, '_blank');
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(msg).then(() => {
+                window.showToast("✅ Đã copy tin nhắn!");
+                if (phone) window.open(zaloUrl, '_blank');
+            }).catch(_copyFallback);
+        } else {
+            _copyFallback();
+        }
+    };
+
+    (function _injectZaloModal() {
+        if (document.getElementById('_zaloMsgModal')) return;
+        const el = document.createElement('div');
+        el.id = '_zaloMsgModal';
+        el.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:20000;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);';
+        el.innerHTML = `
+        <div style="background:#fff;width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,0.2);animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                <div>
+                    <div style="font-size:1rem;font-weight:900;color:#0068FF;display:flex;align-items:center;gap:7px;">💬 Gửi nhắc nợ qua Zalo</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Võ sinh: <strong id="_zaloMsgName"></strong> · SĐT: <strong id="_zaloMsgPhone"></strong></div>
+                </div>
+                <button onclick="document.getElementById('_zaloMsgModal').style.display='none'" style="background:#f1f5f9;border:none;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748b;">&times;</button>
+            </div>
+            <label style="font-size:0.68rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">📝 Nội dung tin nhắn (chỉnh sửa tự do)</label>
+            <textarea id="_zaloMsgText" rows="5" style="width:100%;border:1.5px solid #cbd5e1;border-radius:10px;padding:10px 12px;font-size:0.92rem;line-height:1.6;color:#1e293b;background:#f8fafc;outline:none;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+            <div style="display:flex;gap:10px;margin-top:12px;">
+                <button onclick="(function(){const t=document.getElementById('_zaloMsgText');const v=t.value;const fb=()=>{const ta=document.createElement('textarea');ta.value=v;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);window.showToast('✅ Đã copy!');};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(()=>window.showToast('✅ Đã copy!')).catch(fb);}else{fb();}})()" style="flex:1;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;font-weight:700;font-size:0.85rem;cursor:pointer;color:#334155;">📋 Copy</button>
+                <button id="_zaloOpenBtn" style="flex:2;background:#0068FF;color:white;border:none;border-radius:10px;padding:12px;font-weight:800;font-size:0.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">💬 Mở Zalo &amp; Gửi</button>
+            </div>
+            <p style="font-size:0.63rem;color:#94a3b8;text-align:center;margin-top:10px;line-height:1.5;">Bấm "Copy" → mở Zalo → dán tin nhắn → gửi.<br>Hoặc bấm "Mở Zalo" để vào chat trực tiếp.</p>
+        </div>`;
+        document.body.appendChild(el);
+        el.addEventListener('click', e => { if (e.target === el) el.style.display = 'none'; });
+    })();
+
+    let _bulkZaloDebtors = [];
+    let _bulkZaloIdx = 0;
+
+    window.openBulkZaloModal = () => {
+        const selMonth = document.getElementById('filterMonth').value;
+        const selBranch = document.getElementById('filterBranch').value;
+        const isSingleBranch = clubConfig.branchCount === 1;
+
+        _bulkZaloDebtors = [];
+        Object.keys(allProfiles).sort().forEach(name => {
+            const p = allProfiles[name];
+            const _pKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active');
+            if (_pKind !== 'active') return;
+            if (p.feeExempt) return;
+            if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
+
+            let owedMonths = [];
+            if (typeof window.getChargeableTuitionMonths === 'function') {
+                owedMonths = window.getChargeableTuitionMonths(p, selMonth, { reason: 'legacy-bulk-zalo-debt' });
+            } else if (!p.skippedMonths || !p.skippedMonths.map(function(m) { return normalizeYYYYMM(m); }).includes(normalizeYYYYMM(selMonth))) {
+                const _firstUnpaidBase = normalizeYYYYMM(p.paidUntil || '');
+                let firstUnpaid = _firstUnpaidBase ? addMonthsToYYYYMM(_firstUnpaidBase, 1) : (normalizeYYYYMM(p.createdAt) || normalizeYYYYMM(selMonth));
+                let cur = firstUnpaid;
+                // [SỬA BÁO NỢ] Thêm giới hạn 24 tháng giống renderApp — tránh vòng lặp vô hạn
+                while(cur <= normalizeYYYYMM(selMonth) && owedMonths.length < 24) { if(!p.skippedMonths || !p.skippedMonths.map(function(m) { return normalizeYYYYMM(m); }).includes(cur)) owedMonths.push(cur); cur = addMonthsToYYYYMM(cur, 1); }
+            }
+            if (owedMonths.length === 0) return;
+
+            const owedMonthsStr = owedMonths.join(',');
+            const monthsLabel = window.formatMonthCompact(owedMonthsStr);
+            const totalFee = owedMonths.length * (Number(p.tuitionFee) || 0);
+            _bulkZaloDebtors.push({ name, phone: p.phone || '', owedMonthsStr, monthsLabel, totalFee });
+        });
+
+        _bulkZaloIdx = 0;
+        document.getElementById('bulkZaloSubtitle').textContent = `${_bulkZaloDebtors.length} võ sinh chưa đóng học phí tháng ${formatMonth(selMonth)}`;
+        document.getElementById('bulkZaloProgressWrap').style.display = 'none';
+        document.getElementById('bulkZaloProgressBar').style.width = '0%';
+        document.getElementById('bulkZaloProgressText').textContent = '0 / 0 đã gửi';
+        _renderBulkZaloList();
+        document.getElementById('bulkZaloModal').style.display = 'flex';
+    };
+
+    window.closeBulkZaloModal = () => { document.getElementById('bulkZaloModal').style.display = 'none'; };
+
+    function _renderBulkZaloList() {
+        const el = document.getElementById('bulkZaloList');
+        if (_bulkZaloDebtors.length === 0) {
+            el.innerHTML = '<div style="text-align:center;padding:36px;color:#94a3b8;font-weight:700;">✅ Không có võ sinh nào đang nợ học phí!</div>';
+            return;
+        }
+        el.innerHTML = _bulkZaloDebtors.map((d, i) => {
+            const hasPhone = !!d.phone;
+            return `<div id="bzRow_${i}" style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid #f1f5f9;border-radius:8px;background:#fff;margin-bottom:2px;">
+                <div style="width:26px;height:26px;min-width:26px;background:#e0edff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.72rem;color:#0044CC;">${i+1}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:800;font-size:0.88rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.escapeHtml(String(d.name || ''))}</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:1px;">Kỳ: <span style="font-weight:700;color:#0033A0;">${window.escapeHtml(String(d.monthsLabel || ''))}</span>${d.totalFee > 0 ? ' · <b>' + d.totalFee.toLocaleString('vi-VN') + ' ₫</b>' : ''} ${hasPhone ? '' : '<span style="color:#ef4444;font-weight:700;">· Chưa có SĐT</span>'}</div>
+                </div>
+                <button onclick="sendBulkZaloOne(${i})" style="background:${hasPhone ? '#0068FF' : '#cbd5e1'};color:#fff;border:none;padding:6px 11px;border-radius:8px;font-weight:700;font-size:0.78rem;cursor:${hasPhone ? 'pointer' : 'not-allowed'};" ${hasPhone ? '' : 'disabled'}>💬</button>
+            </div>`;
+        }).join('');
+    }
+
+    window.sendBulkZaloOne = (idx) => {
+        const d = _bulkZaloDebtors[idx];
+        if (!d || !d.phone) { window.showToast('⚠️ Võ sinh này chưa có số điện thoại!'); return; }
+        const clubName = clubConfig.clubName || 'CLB Taekwondo';
+        const msg = `${clubName} thông báo:\nVõ sinh ${d.name} chưa đóng học phí kỳ ${d.monthsLabel}.${d.totalFee > 0 ? '\nSố tiền: ' + d.totalFee.toLocaleString('vi-VN') + ' ₫.' : ''}\nPhụ huynh vui lòng liên hệ HLV để đóng học phí. Xin cảm ơn!`;
+        const row = document.getElementById(`bzRow_${idx}`);
+        navigator.clipboard.writeText(msg).then(() => {
+            window.showToast('✅ Đã copy tin nhắn — mở Zalo...');
+            if (row) { row.style.background = '#f0fff4'; row.style.border = '1px solid #86efac'; }
+        }).catch(() => {});
+        const zphone = d.phone.replace(/^0/, '84');
+        window.open(`https://zalo.me/${zphone}`, '_blank');
+    };
+
+    window.startSequentialBulkZalo = async () => {
+        if (_bulkZaloDebtors.length === 0) { window.showToast('Không có võ sinh nào trong danh sách!'); return; }
+        document.getElementById('bulkZaloProgressWrap').style.display = 'block';
+        _bulkZaloIdx = 0;
+        for (let i = 0; i < _bulkZaloDebtors.length; i++) {
+            _bulkZaloIdx = i + 1;
+            const total = _bulkZaloDebtors.length;
+            document.getElementById('bulkZaloProgressText').textContent = `${_bulkZaloIdx} / ${total} đã gửi`;
+            document.getElementById('bulkZaloProgressBar').style.width = (_bulkZaloIdx / total * 100) + '%';
+            const d = _bulkZaloDebtors[i];
+            if (d.phone) {
+                window.sendBulkZaloOne(i);
+                if (i < total - 1) {
+                    const next = _bulkZaloDebtors[i + 1];
+                    const goOn = confirm(`✅ Đã gửi cho ${d.name} (${i+1}/${total})\n\nTiếp theo: ${next.name}\n\nBấm OK để gửi tiếp, Huỷ để dừng lại.`);
+                    if (!goOn) break;
+                }
+            }
+        }
+        window.showToast(`✅ Hoàn thành! Đã gửi thông báo cho ${_bulkZaloIdx} võ sinh.`);
+    };
+
+
+    // PHASE 4K-4C — Gói học phí nhập học (helper dùng chung)
+    window.buildAdmissionTuitionPackage = function(startDateOrMonth, packageCount) {
+        const count = Number(packageCount) || 1;
+        const safeCount = [1,3,6,9,12].includes(count) ? count : 1;
+        let startMonth = '';
+        const raw = String(startDateOrMonth || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+            startMonth = raw.substring(0, 7);
+        } else if (/^\d{4}-\d{2}$/.test(raw)) {
+            startMonth = raw;
+        } else {
+            startMonth = getLocalToday().substring(0, 7);
+        }
+        const months = [];
+        let [y, m] = startMonth.split('-').map(Number);
+        for (let i = 0; i < safeCount; i++) {
+            let curM = m + i, curY = y;
+            while (curM > 12) { curM -= 12; curY += 1; }
+            months.push(curY + '-' + String(curM).padStart(2, '0'));
+        }
+        return {
+            packageCount: safeCount,
+            startMonth,
+            months,
+            lastMonth: months[months.length - 1],
+            monthsStr: months.join(','),
+            label: window.formatMonthCompact
+                ? window.formatMonthCompact(months.join(','))
+                : months.join(', ')
+        };
+    };
+
+    window.debugAdmissionTuitionPackage = function() {
+        const dateEl = document.getElementById('add_date');
+        const pkgEl  = document.getElementById('add_package');
+        const feeEl  = document.getElementById('add_fee_actual');
+        const date   = dateEl ? dateEl.value : '';
+        const pkg    = pkgEl ? Number(pkgEl.value || 1) : 1;
+        const info   = typeof window.buildAdmissionTuitionPackage === 'function'
+            ? window.buildAdmissionTuitionPackage(date || getLocalToday(), pkg)
+            : null;
+        const result = {
+            href: location.href,
+            runtimeMode: window.__RUNTIME_MODE || '',
+            mainLoaded: !!window.MAIN_JS_LOADED,
+            appLoaded:  !!window.__appLoaded,
+            addDate: date,
+            selectedPackage: pkg,
+            feeAmount: feeEl ? Number(feeEl.value || 0) : 0,
+            hasBuildAdmissionTuitionPackage: typeof window.buildAdmissionTuitionPackage === 'function',
+            packageInfo: info,
+            addPackageOptions: Array.from(document.querySelectorAll('#add_package option')).map(o => ({ value: o.value, text: o.textContent.trim() }))
+        };
+        console.table({ selectedPackage: result.selectedPackage, startMonth: info && info.startMonth, lastMonth: info && info.lastMonth, monthsStr: info && info.monthsStr, label: info && info.label });
+        return result;
+    };
+
+    let _addStudentInProgress = false;
+    window.addNewStudent = async () => {
+        // Bootstrap only. The student module installs the sole admission
+        // coordinator after app context is ready; early clicks cannot write.
+        window.showToast?.('Nhập học đang tải. Vui lòng thử lại sau.', 3000);
+        return null;
+        if(window.userRole === 'viewer') return;
+        if(_addStudentInProgress) return;
+        const name = document.getElementById('add_name').value.trim(); const joinDate = document.getElementById('add_date').value;
+        const fee = Number(document.getElementById('add_fee_actual').value) || Number((document.getElementById('add_fee_display').value || '').replace(/[^0-9]/g, '')) || 0;
+        const uniformSize = document.getElementById('add_uniform_size').value.trim();
+        const uniformFee = Number(document.getElementById('add_uniform_actual').value) || Number((document.getElementById('add_uniform_display').value || '').replace(/[^0-9]/g, '')) || 0;
+        const packageCount = parseInt(document.getElementById('add_package').value) || 1; const isGift = document.getElementById('add_uniform_gift').checked;
+        const isSingleBranch = (clubConfig.branchCount === 1); const branch = isSingleBranch ? 'CS1' : _canonicalBranch(document.getElementById('add_branch').value, 'CS1');
+        const memberId = document.getElementById('add_memberId').value.trim().toUpperCase();
+
+        if(!name) { window.showToast('⚠️ Vui lòng nhập họ tên võ sinh!', 3000); const el = document.getElementById('add_name'); if(el){ el.focus(); el.style.borderColor='#ef4444'; setTimeout(()=>{ el.style.borderColor=''; },3000); } return; }
+        if(!isGift && uniformFee > 0 && !uniformSize) { window.showToast('⚠️ Vui lòng chọn Size Võ phục!', 3000); const el = document.getElementById('add_uniform_size'); if(el){ el.focus(); el.style.borderColor='#ef4444'; setTimeout(()=>{ el.style.borderColor=''; },3000); } return; }
+        _addStudentInProgress = true;
+        // [SỬA] Xử lý trùng tên — luôn tạo key riêng để KHÔNG overwrite dữ liệu võ sinh cũ.
+        // _saveKey = key lưu Firestore; name = tên hiển thị trong biên lai/giao dịch.
+        let _saveKey = name;
+        if (allProfiles[name]) {
+            const _newDobRaw  = document.getElementById('add_dob').value;
+            const _newDobYear = _newDobRaw
+                ? (_newDobRaw.includes('-') ? _newDobRaw.split('-')[0] : (_newDobRaw.split('/')[2] || ''))
+                : '';
+            const _exDobRaw  = allProfiles[name].dob || '';
+            const _exDobYear = _exDobRaw
+                ? (_exDobRaw.includes('-') ? _exDobRaw.split('-')[0] : (_exDobRaw.split('/')[2] || ''))
+                : '';
+            const _newNick = (document.getElementById('add_nickname') ? document.getElementById('add_nickname').value.trim() : '');
+            if (_newDobYear && _exDobYear && _newDobYear === _exDobYear) {
+                // Trùng tên VÀ trùng năm sinh → bắt buộc nhập biệt danh
+                if (!_newNick) {
+                    alert('⚠️ Đã có võ sinh tên "' + name + '" sinh năm ' + _newDobYear + '!\n\nVui lòng nhập Biệt danh (ví dụ: A, B, Lớn, Nhỏ...) để phân biệt hai võ sinh này trước khi lưu.');
+                    const _nickEl = document.getElementById('add_nickname');
+                    if (_nickEl) _nickEl.focus();
+                    return;
+                }
+                // Có biệt danh: dùng "Tên (năm-Biệt danh)" để phân biệt, badge tím trong profile là đủ
+                _saveKey = name + ' (' + _newDobYear + '-' + _newNick + ')';
+            } else {
+                // Cùng tên nhưng khác năm sinh: dùng "Tên (năm sinh)" làm key riêng
+                const _useYr = _newDobYear || (_exDobYear ? String(parseInt(_exDobYear, 10) + 1) : '');
+                _saveKey = name + (_useYr ? ' (' + _useYr + ')' : ' (' + Date.now() + ')');
+            }
+        }
+
+        const tuitionPkg = window.buildAdmissionTuitionPackage
+            ? window.buildAdmissionTuitionPackage(joinDate || getLocalToday(), packageCount)
+            : (function(jd,cnt){const sm=(jd||getLocalToday()).substring(0,7);const ms=[];let [y,m]=sm.split('-').map(Number);for(let i=0;i<cnt;i++){let cm=m+i,cy=y;while(cm>12){cm-=12;cy+=1;}ms.push(cy+'-'+String(cm).padStart(2,'0'));}return{packageCount:cnt,startMonth:sm,months:ms,lastMonth:ms[ms.length-1],monthsStr:ms.join(','),label:ms.join(', ')};})(joinDate,packageCount);
+        const startMonth = tuitionPkg.startMonth;
+        const monthsToRecord = tuitionPkg.months;
+        const lastMonth = tuitionPkg.lastMonth;
+        const newPaidUntil = lastMonth;
+
+        // Lấy các ngày học đã chọn trong tuần (mảng số nguyên theo Date.getDay())
+        const trainingDays = Array.from(document.querySelectorAll('.add_trainingDay:checked')).map(cb => parseInt(cb.value));
+        // [THÊM] Đọc biệt danh từ form — lưu vào hồ sơ để hiển thị trên thẻ điểm danh
+        const _addNickEl = document.getElementById('add_nickname');
+        const _addNickVal = _addNickEl ? _addNickEl.value.trim() : '';
+        // [SỬA] Dùng _saveKey (không phải name) làm Firestore doc ID để tránh overwrite
+        const _newProfileData = { status: 'active', memberId: memberId, branch, belt: document.getElementById('add_belt').value, dob: document.getElementById('add_dob').value, gender: document.getElementById('add_gender').value, cccd: document.getElementById('add_cccd').value.trim(), phone: document.getElementById('add_phone').value, tuitionFee: document.getElementById('add_fee_default_actual').value, notes: document.getElementById('add_notes').value.trim(), nickname: _addNickVal, trainingDays: trainingDays,
+        trainingShiftId: (document.getElementById('add_shift') ? document.getElementById('add_shift').value : ''), createdAt: joinDate, paidUntil: newPaidUntil, paidMonths: monthsToRecord, tuitionPackageCount: tuitionPkg.packageCount, lastAdmissionTuitionStartMonth: startMonth, lastAdmissionTuitionMonths: monthsToRecord };
+        // Phase 4.0B-4J-8A: Ghi search index khi thêm võ sinh mới
+        if (typeof buildStudentSearchIndex === 'function') {
+            Object.assign(_newProfileData, buildStudentSearchIndex(_newProfileData, _saveKey));
+        }
+        await setDoc(doc(db, "clubs", currentClubId, "profiles", _saveKey), _newProfileData);
+
+        // Phase 4K-5C: Tạo 1 bundle transaction cho học phí + võ phục nhập học
+        let _invDocId = '';
+        if(uniformSize) {
+            const _admissionInvPayload = { size: uniformSize, category: 'Võ phục', type: 'Xuất bán', qty: 1, desc: _saveKey, studentName: _saveKey, profileId: _saveKey, memberId: memberId || '', amount: uniformFee, date: joinDate, timestamp: Date.now() + 2 };
+            if (window.InventoryService && typeof window.InventoryService.addItem === 'function') {
+                _invDocId = await window.InventoryService.addItem(_admissionInvPayload);
+            } else {
+                const invDoc = await addDoc(invRef, _admissionInvPayload);
+                _invDocId = invDoc.id;
+                const _base = 'Võ phục|||' + uniformSize;
+                await setDoc(doc(db, "clubs", currentClubId, "settings", "inventory_stats"), {
+                    [_base + '_balance']: increment(-1),
+                    [_base + '_out']: increment(1)
+                }, { merge: true });
+                window.mergeInventoryIntoRuntimeStore?.({ id: _invDocId, ..._admissionInvPayload }, 'admission-uniform-created-legacy');
+            }
+            if(isGift) {
+                await addDoc(colRef, _canonicalTxPayload({ branch: 'Chung', type: 'Tặng Võ phục', description: 'Tặng ' + uniformSize + ' cho ' + _saveKey, amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invDocId }, 'admission-uniform-gift'));
+            }
+        }
+
+        const _hasFinancialPayment = fee > 0 || (!isGift && uniformFee > 0 && uniformSize);
+        let tuitionTx = null;
+        if(_hasFinancialPayment && typeof window.buildPaymentBundleTransaction === 'function') {
+            const _admComponents = [];
+            if(fee > 0) {
+                const _tuitionLabel = tuitionPkg.packageCount > 1
+                    ? 'Học phí gói ' + tuitionPkg.packageCount + ' tháng (' + tuitionPkg.label + ')'
+                    : 'Học phí tháng ' + tuitionPkg.label;
+                _admComponents.push({ kind: 'tuition', type: 'Học phí', label: _tuitionLabel, amount: fee, month: lastMonth, packageMonths: monthsToRecord });
+            }
+            if(!isGift && uniformFee > 0 && uniformSize) {
+                _admComponents.push({ kind: 'inventory', type: 'Thu Võ phục', label: 'Võ phục ' + (uniformSize || ''), amount: uniformFee, category: 'Võ phục', size: uniformSize, qty: 1, relatedInvId: _invDocId });
+            }
+            if(_admComponents.length > 0) {
+                const _bundleTx = window.buildPaymentBundleTransaction({
+                    studentName: _saveKey, branch: branch, date: joinDate, refMonth: lastMonth,
+                    receiptType: 'Thu nhập học', components: _admComponents
+                });
+                const _bundleDoc = await addDoc(colRef, _canonicalTxPayload(_bundleTx, 'payment-bundle'));
+                tuitionTx = Object.assign({ id: _bundleDoc.id }, _bundleTx);
+                if(_invDocId && !isGift) {
+                    try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id }); }
+                    catch(_e) { _recordSecondaryConsistencyFailure('inventory-payment-link-reconcile-required', _e, { domain: 'inventory', inventoryId: _invDocId, paidTxId: _bundleDoc.id, canonicalTransactionPreserved: true }); }
+                }
+                if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
+                    window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created');
+                }
+            }
+        } else if(fee > 0) {
+            // Fallback: ghi học phí riêng
+            const _txPayload = { branch: branch, type: 'Học phí', description: _saveKey, amount: fee, date: joinDate, txMonth: lastMonth, paymentMonth: startMonth, packageMonths: monthsToRecord, tuitionPackageCount: tuitionPkg.packageCount, tuitionStartMonth: startMonth, tuitionPaidUntil: lastMonth, timestamp: Date.now() };
+            const _txDoc = await addDoc(colRef, _canonicalTxPayload(_txPayload, 'admission-tuition'));
+            tuitionTx = Object.assign({ id: _txDoc.id }, _txPayload);
+            if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
+                window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-tuition-created-legacy');
+            }
+            if(!isGift && uniformFee > 0 && uniformSize && _invDocId) {
+                await addDoc(colRef, _canonicalTxPayload({ branch: 'Chung', type: 'Thu Võ phục', description: _saveKey, uniformSize: uniformSize, amount: uniformFee, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invDocId }, 'admission-uniform-sale'));
+            }
+        }
+        closeAddModal();
+        window.showToast("🎉 Đã thêm võ sinh " + _saveKey + " thành công!", 3000);
+
+        // Generate combined receipt for tuition + uniform
+        const totalPayment = fee + (isGift ? 0 : uniformFee);
+        if (totalPayment > 0 && window.exportReceipt) {
+            const breakdown = [];
+            const tuitionLabel = tuitionPkg.packageCount > 1 ? `Học phí gói ${tuitionPkg.packageCount} tháng (${tuitionPkg.label})` : `Học phí tháng ${tuitionPkg.label}`;
+            if (fee > 0) breakdown.push({ label: tuitionLabel, amount: fee });
+            if (!isGift && uniformFee > 0) breakdown.push({ label: 'Võ phục ' + (uniformSize || ''), amount: uniformFee });
+            const receiptType = fee > 0 && !isGift && uniformFee > 0 ? 'Học phí + Võ phục' : (fee > 0 ? 'Học phí' : 'Võ phục');
+            if (!allProfiles[_saveKey]) {
+                allProfiles[_saveKey] = { belt: document.getElementById('add_belt').value, branch, tuitionFee: document.getElementById('add_fee_default_actual').value };
+            }
+            await window.exportReceipt(_saveKey, totalPayment, receiptType, joinDate, tuitionPkg.monthsStr, branch, '', 'BIÊN LAI THU TIỀN', breakdown.length > 0 ? breakdown : null);
+        }
+        _addStudentInProgress = false;
+    };
+
+    document.getElementById('inventoryForm').onsubmit = async (e) => {
+        e.preventDefault(); if(window.userRole === 'viewer') return alert("Tài khoản khách không thể nhập xuất kho!");
+        const category = document.getElementById('inv_category').value || 'Võ phục';
+        // Đọc size từ element đang hiển thị (dropdown khi Võ phục hoặc danh mục có sizes, text khi nhập tự do)
+        const _invSizeEl = document.getElementById('inv_size');
+        const _invSizeTxtEl = document.getElementById('inv_size_text');
+        const size = (_invSizeEl && _invSizeEl.style.display !== 'none'
+            ? _invSizeEl.value
+            : (_invSizeTxtEl ? _invSizeTxtEl.value : '')).trim();
+        if(!size) return alert("Vui lòng nhập kích cỡ hàng hóa!");
+        const type = document.getElementById('inv_type').value; const qty = Number(document.getElementById('inv_qty').value); const desc = document.getElementById('inv_desc').value.trim(); const amount = Number(document.getElementById('inv_totalActual').value); const date = document.getElementById('inv_date').value; const branch = 'Chung';
+
+        const isUnpaid = type === 'Xuất bán' && document.getElementById('inv_unpaid') && document.getElementById('inv_unpaid').checked;
+        const invData = { category, size, type, qty, desc, amount, date, timestamp: Date.now() };
+        if(type === 'Xuất bán' && typeof window.resolveInventoryDebtIdentity === 'function') {
+            const _identity = window.resolveInventoryDebtIdentity(desc);
+            if(_identity.profileId) invData.profileId = _identity.profileId;
+            if(_identity.memberId) invData.memberId = _identity.memberId;
+            if(_identity.studentName) invData.studentName = _identity.studentName;
+        }
+        if(isUnpaid) { invData.unpaid = true; invData.inventoryDebtStatus = 'pending'; }
+        let invDoc;
+        if (window.InventoryService && typeof window.InventoryService.addItem === 'function') {
+            const _invId = await window.InventoryService.addItem(invData);
+            invDoc = { id: _invId };
+        } else {
+            invDoc = await addDoc(invRef, invData);
+            const _base = category + '|||' + size, _isIn = type === 'Nhập kho';
+            await setDoc(doc(db, 'clubs', currentClubId, 'settings', 'inventory_stats'), {
+                [_base + '_balance']: increment(_isIn ? qty : -qty), [_base + (_isIn ? '_in' : '_out')]: increment(qty)
+            }, { merge: true });
+            window.mergeInventoryIntoRuntimeStore?.({ id: invDoc.id, ...invData }, 'legacy-inventory-form-submit');
+        }
+
+        if (amount > 0) {
+             await addDoc(colRef, _canonicalTxPayload({ branch, type: type === 'Nhập kho' ? `Chi ${category}` : `Thu ${category}`, description: type === 'Nhập kho' ? `Nhập ${category} ${size} từ ${desc}` : `Bán ${category} ${size} cho ${desc}`, amount, date, timestamp: Date.now(), relatedInvId: invDoc.id }, 'inventory-form-finance'));
+        } else if (type === 'Xuất bán') {
+             await addDoc(colRef, _canonicalTxPayload({ branch, type: `Tặng ${category}`, description: `Tặng ${category} ${size} cho ${desc}`, amount: 0, date, timestamp: Date.now(), relatedInvId: invDoc.id }, 'inventory-form-gift'));
+        }
+
+        e.target.reset();
+        // Khôi phục trạng thái mặc định sau khi submit (về Võ phục)
+        document.getElementById('inv_size').style.display = '';
+        document.getElementById('inv_size_text').style.display = 'none';
+        document.getElementById('inv_priceActual').value = "";
+        document.getElementById('inv_totalActual').value = "";
+        document.getElementById('inv_date').value = getLocalToday();
+        // Cập nhật lại dropdown danh mục (bao gồm tùy chỉnh)
+        window.populateInvCategorySelects && window.populateInvCategorySelects();
+        window.toggleInvType();
+        window.showToast("✅ Đã cập nhật Kho!");
+    };
+
+    window.openEditInv = async (txId, invId) => {
+        if(!invId || invId === 'undefined') return alert("Sản phẩm này ghi trước bản nâng cấp, không hỗ trợ sửa tự động. Hãy dùng nút Xóa để ghi lại!");
+        try {
+            const docSnap = await getDoc(doc(db, "clubs", currentClubId, "inventory", invId));
+            if(docSnap.exists()) {
+                const data = docSnap.data();
+                window.__editingInventoryOriginal = { id: invId, ...data };
+                document.getElementById('ei_txId').value = txId;
+                document.getElementById('ei_invId').value = invId;
+                const eiCat = data.category || 'Võ phục';
+                document.getElementById('ei_category').value = eiCat;
+                window.toggleEditInvSize();
+                if(eiCat === 'Võ phục') { document.getElementById('ei_size').value = data.size || ''; }
+                else { document.getElementById('ei_size_text').value = data.size || ''; }
+                document.getElementById('ei_type').value = data.type || 'Xuất bán';
+                document.getElementById('ei_qty').value = data.qty || 1;
+                document.getElementById('ei_date').value = data.date || '';
+
+                const txSnap = await getDoc(doc(db, "clubs", currentClubId, "transactions", txId));
+                if(txSnap.exists()) {
+                    document.getElementById('ei_desc').value = txSnap.data().description || '';
+                    document.getElementById('ei_amountActual').value = txSnap.data().amount || 0;
+                    document.getElementById('ei_amountDisplay').value = (txSnap.data().amount || 0).toLocaleString('vi-VN');
+                }
+                document.getElementById('editInvModal').style.display = 'flex';
+            }
+        } catch (e) { console.error(e); alert("Lỗi khi tải dữ liệu sửa kho!"); }
+    };
+
+    window.closeEditInvModal = () => document.getElementById('editInvModal').style.display = 'none';
+
+    window.markInvPaid = async (invId) => {
+        if (typeof window.showToast === 'function') window.showToast('Kho đang tải. Vui lòng thử lại sau.', 3000);
+        return null;
+    };
+
+    window.saveEditInv = async () => {
+        if (typeof window.showToast === 'function') window.showToast('Kho đang tải. Vui lòng thử lại sau.', 3000);
+        return null;
+    };
+
+    window.openEditExpense = async (txId) => {
+        try {
+            const txSnap = await getDoc(doc(db, "clubs", currentClubId, "transactions", txId));
+            if(txSnap.exists()) {
+                const data = txSnap.data();
+                window.__editingExpenseOriginal = { id: txId, ...data };
+                document.getElementById('eexp_txId').value = txId;
+                document.getElementById('eexp_branch').value = data.branch || 'CS1';
+                document.getElementById('eexp_desc').value = data.description || '';
+                document.getElementById('eexp_amountActual').value = data.amount || 0;
+                document.getElementById('eexp_amountDisplay').value = (data.amount || 0).toLocaleString('vi-VN');
+                document.getElementById('eexp_date').value = data.date || getLocalToday();
+                document.getElementById('editExpModal').style.display = 'flex';
+            }
+        } catch(e) { console.error(e); alert("Lỗi khi mở giao dịch!"); }
+    };
+
+    window.saveEditExpense = async () => {
+        window.showToast?.('Chức năng sửa chi phí đang khởi tạo, vui lòng thử lại.');
+        return false;
+    };
+
+    // Phase 4K-6V5U-2: legacy Finance writers removed from app.js.
+    // main.js installs the module UI adapter and TuitionCommandBoundary.
+    window.deleteTx = async function v5u2DeleteTxNotReady() {
+        console.warn('[V5U-2] deleteTx called before Finance module/TuitionCommandBoundary is ready.');
+        window.showToast?.('Chức năng xóa giao dịch đang khởi tạo, vui lòng thử lại.', 'warning');
+        return false;
+    };
+
+    document.getElementById('expenseForm').onsubmit = async (e) => {
+        e.preventDefault();
+        window.showToast?.('Chức năng ghi chi phí đang khởi tạo, vui lòng thử lại.');
+        return false;
+    };
+
+    document.getElementById('examExpenseForm').onsubmit = async (e) => {
+        e.preventDefault();
+        window.showToast?.('Chức năng ghi chi phí kỳ thi đang khởi tạo, vui lòng thử lại.');
+        return false;
+    };
+
+    window.quickPay = async function v5u2QuickPayNotReady() {
+        console.warn('[V5U-2] quickPay called before Finance module/TuitionCommandBoundary is ready.');
+        window.showToast?.('Chức năng thu học phí đang khởi tạo, vui lòng thử lại.', 'warning');
+        return false;
+    };
+
+    window.openQuickPayModal = (name, owedMonthsStr, branch) => {
+        if (window.__RUNTIME_MODE === 'http-module') {
+            console.warn('[V5U-2] Legacy openQuickPayModal blocked until Finance module adopts canonical ownership.');
+            window.showToast?.('Chức năng thu học phí đang khởi tạo, vui lòng thử lại.', 3000);
+            return false;
+        }
+        if(window.userRole === 'viewer') { window.showToast('⚠️ Tài khoản khách không thể thu tiền!', 3000); return; }
+        const cleanName = name.replace(/\\'/g, "'");
+        const monthsList = owedMonthsStr ? owedMonthsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const profile = allProfiles[cleanName] || {};
+        const feePerMonth = Number(profile.tuitionFee) || 0;
+        const totalMonths = monthsList.length;
+        const modal = document.getElementById('quickPayModal');
+        // [SỬA THU HỌC PHÍ] Truyền skipPrompt=true khi không có modal — dùng tổng phí tính sẵn, không prompt()
+        if (!modal) { window.quickPay(name, owedMonthsStr, branch, (feePerMonth * totalMonths).toString(), true); return; }
+        document.getElementById('qpm_name').textContent = cleanName + ' — ' + totalMonths + ' tháng chưa nộp';
+        const optionsEl = document.getElementById('qpm_options');
+        optionsEl.innerHTML = '';
+        for (let i = 1; i <= totalMonths; i++) {
+            const months = monthsList.slice(0, i);
+            const amount = feePerMonth > 0 ? feePerMonth * i : 0;
+            const monthsStr = months.join(',');
+            const label = months.map(m => { const p = m.split('-'); return 'T' + parseInt(p[1]) + '/' + p[0]; }).join(', ');
+            const btn = document.createElement('button');
+            const isAll = (i === totalMonths);
+            btn.setAttribute('type', 'button');
+            btn.style.cssText = 'width:100%;padding:11px 14px;border-radius:11px;border:2px solid ' + (isAll ? '#059669' : '#e2e8f0') + ';background:' + (isAll ? '#ecfdf5' : '#f8fafc') + ';cursor:pointer;display:flex;justify-content:space-between;align-items:center;';
+            const amtText = amount > 0 ? amount.toLocaleString('vi-VN') + ' ₫' : '(Tự nhập)';
+            btn.innerHTML = '<span style="font-weight:700;color:#1e293b;font-size:0.88rem;">' + i + ' tháng <span style="font-weight:500;color:#64748b;font-size:0.78rem;">(' + label + ')</span></span><span style="font-weight:900;color:' + (isAll ? '#059669' : '#0033A0') + ';font-size:0.95rem;">' + amtText + '</span>';
+            btn.onclick = () => {
+                modal.style.display = 'none';
+                window.quickPay(name, monthsStr, branch, amount > 0 ? String(amount) : String(feePerMonth * i), true);
+            };
+            optionsEl.appendChild(btn);
+        }
+        const customBtn = document.createElement('button');
+        customBtn.setAttribute('type', 'button');
+        customBtn.style.cssText = 'width:100%;padding:9px 14px;border-radius:11px;border:1px dashed #cbd5e1;background:#fff;cursor:pointer;color:#64748b;font-weight:600;font-size:0.82rem;margin-top:4px;';
+        customBtn.textContent = '✏️ Nhập số tiền tùy chỉnh';
+        // [SỬA THU HỌC PHÍ] Thay prompt() bằng input inline trong modal — prompt() bị block trong webview/PWA
+        customBtn.onclick = () => {
+            customBtn.style.display = 'none';
+            const _row = document.createElement('div');
+            _row.style.cssText = 'margin-top:8px;display:flex;gap:8px;align-items:center;';
+            const _defaultVal = feePerMonth > 0 ? (feePerMonth * totalMonths).toLocaleString('vi-VN') : '';
+            _row.innerHTML = '<input type="tel" id="qpm_custom_input" placeholder="Nhập số tiền (₫)..." style="flex:1;padding:9px 12px;border:1.5px solid #0033A0;border-radius:9px;font-size:0.88rem;font-weight:700;outline:none;box-sizing:border-box;" value="' + _defaultVal + '" />'
+                + '<button type="button" id="qpm_custom_ok" style="padding:9px 14px;background:#059669;color:#fff;border:none;border-radius:9px;font-weight:800;font-size:0.85rem;cursor:pointer;white-space:nowrap;">✓ Thu</button>';
+            optionsEl.appendChild(_row);
+            const _inp = document.getElementById('qpm_custom_input');
+            if (_inp) { _inp.focus(); _inp.select(); }
+            const _doConfirm = () => {
+                const _raw = (_inp ? _inp.value : '').replace(/\D/g, '');
+                const _v = Number(_raw);
+                if (!_v || _v <= 0) { window.showToast('⚠️ Số tiền không hợp lệ!', 2500); return; }
+                modal.style.display = 'none';
+                window.quickPay(name, owedMonthsStr, branch, String(_v), true);
+            };
+            const _okBtn = document.getElementById('qpm_custom_ok');
+            if (_okBtn) _okBtn.onclick = _doConfirm;
+            if (_inp) _inp.addEventListener('keypress', (ev) => { if (ev.key === 'Enter') _doConfirm(); });
+        };
+        optionsEl.appendChild(customBtn);
+        modal.style.display = 'flex';
+    };
+
+    window.quickCollectExam = async (name, branch) => {
+        window.showToast?.('Chức năng thu lệ phí thi đang khởi tạo, vui lòng thử lại.', 3000);
+        return false;
+    };
+
+    window.processCombo = async () => {
+        window.showToast('⏳ Chức năng tài chính đang khởi tạo. Vui lòng thử lại sau.');
+        return false;
+    };
+
+    window.processBatchUpgrade = async () => {
+        // Phase 4K-6S1: tách tuyệt đối nghiệp vụ THĂNG ĐAI khỏi THU LỆ PHÍ THI.
+        // Hàm này chỉ được phép cập nhật hồ sơ võ sinh; không đọc phí, không dò giao dịch,
+        // không tạo transaction và không làm thay đổi doanh thu.
+        if(window.userRole === 'viewer') return alert("Tài khoản khách không thể thăng đai!");
+        if(window.__examUpgradeInFlight) {
+            return window.showToast("⏳ Hệ thống đang xác nhận thăng đai, vui lòng chờ!");
+        }
+
+        const selected = Array.from(document.querySelectorAll('.exam-check:checked')).map(cb => cb.value);
+        if(selected.length === 0) return alert("Chọn ít nhất 1 võ sinh!");
+
+        const currentBeltEl = document.getElementById('exam_filter_belt');
+        const currentBelt = currentBeltEl ? currentBeltEl.value : '';
+        const newBelt = window.BELT_NEXT[currentBelt];
+        if(!newBelt) return alert("Đai này đã là cấp cao nhất, không thể thăng thêm!");
+
+        // Chỉ xử lý các hồ sơ còn tồn tại và vẫn thuộc đúng cấp đai đang lọc.
+        // Guard này ngăn thao tác trên checkbox cũ khi dữ liệu vừa được cập nhật ở tab khác.
+        const profilesToUpgrade = selected.filter(name => {
+            let profile = allProfiles[name];
+            if(!profile) return false;
+            return (profile.belt || 'Đai trắng - Cấp 10') === currentBelt;
+        });
+        if(profilesToUpgrade.length === 0) {
+            return window.showToast("⚠️ Danh sách đã thay đổi. Vui lòng tải lại tab Thi đai và chọn lại võ sinh.");
+        }
+
+        const confirmMsg = `Xác nhận thăng đai lên [${newBelt}] cho ${profilesToUpgrade.length} võ sinh?
+(Các bạn vừa thăng sẽ được đánh dấu riêng để HLV phân biệt với võ sinh cũ)`;
+        if(!confirm(confirmMsg)) return;
+
+        const btn = document.getElementById('btnBatchUpgrade');
+        window.__examUpgradeInFlight = true;
+        if(btn) {
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+            btn.dataset.originalText = btn.dataset.originalText || btn.textContent;
+            btn.textContent = '⏳ ĐANG XÁC NHẬN...';
+        }
+
+        try {
+            const currentMonth = (document.getElementById('filterMonth') || {}).value || getLocalToday().substring(0, 7);
+            // H8R2 E: promotion is PER-STUDENT atomic/idempotent. Each write sets a
+            // deterministic target belt from the expected source belt; retries cannot
+            // increment an already-committed student again. Chunking stays inside the
+            // existing Exam owner and never exceeds Firestore batch safety limits.
+            const EXAM_CHUNK_SIZE = 400;
+            let committed = 0;
+            for (let offset = 0; offset < profilesToUpgrade.length; offset += EXAM_CHUNK_SIZE) {
+                const chunk = profilesToUpgrade.slice(offset, offset + EXAM_CHUNK_SIZE);
+                const batch = writeBatch(db);
+                for (const name of chunk) {
+                    batch.set(doc(db, "clubs", currentClubId, "profiles", name), {
+                        belt: newBelt,
+                        upgradedAt: currentMonth,
+                        upgradedFrom: currentBelt
+                    }, { merge: true });
+                }
+                try {
+                    await batch.commit();
+                } catch (chunkError) {
+                    chunkError.examCommitted = committed;
+                    chunkError.examPending = profilesToUpgrade.length - committed;
+                    throw chunkError;
+                }
+                committed += chunk.length;
+
+                // Commit-scoped RAM update: on a later chunk failure, already committed
+                // students are locally marked at target belt, making retry fail-safe.
+                for (const name of chunk) {
+                    if(allProfiles[name]) {
+                        allProfiles[name].belt = newBelt;
+                        allProfiles[name].upgradedAt = currentMonth;
+                        allProfiles[name].upgradedFrom = currentBelt;
+                    }
+                    const storeProfiles = window.__store && window.__store.profiles;
+                    if(storeProfiles && storeProfiles[name] && storeProfiles[name] !== allProfiles[name]) {
+                        storeProfiles[name].belt = newBelt;
+                        storeProfiles[name].upgradedAt = currentMonth;
+                        storeProfiles[name].upgradedFrom = currentBelt;
+                    }
+                }
+            }
+
+            window.showToast(`✅ Đã thăng đai thành công cho ${profilesToUpgrade.length} võ sinh!`);
+            const checkAll = document.getElementById('checkAllExam');
+            if(checkAll) checkAll.checked = false;
+            renderExamList();
+        } catch (error) {
+            console.error('[exam-upgrade] Không thể xác nhận thăng đai:', error);
+            const _done = Number(error && error.examCommitted) || 0;
+            const _pending = Number(error && error.examPending) || profilesToUpgrade.length;
+            if (_done > 0) {
+                window.showToast(`⚠️ Đã thăng ${_done} võ sinh; còn ${_pending} chưa commit. Có thể thử lại an toàn.`);
+                renderExamList();
+            } else {
+                window.showToast("❌ Không thể xác nhận thăng đai. Chưa có võ sinh nào được commit.");
+            }
+        } finally {
+            window.__examUpgradeInFlight = false;
+            if(btn) {
+                btn.disabled = false;
+                btn.removeAttribute('aria-busy');
+                btn.textContent = btn.dataset.originalText || '⚡ Xác nhận thăng đai';
+            }
+        }
+    };
+
+    window.downloadExcelTemplate = async () => {
+        await window.ensureXlsxReady?.('download-excel-template');
+        // ── Xây dựng tiêu đề cột cơ sở động theo cấu hình admin ──────────
+        const _bCount = clubConfig.branchCount || 1;
+        let _branchHint = 'CS1';
+        if (_bCount > 1) {
+            const _parts = [];
+            for (let _i = 1; _i <= Math.min(_bCount, 4); _i++) {
+                _parts.push(clubConfig['branchName' + _i] || ('Cơ sở ' + _i));
+            }
+            _branchHint = _parts.join('/');
+        }
+        const _branchColHeader = 'Cơ sở (' + _branchHint + ')';
+
+        // Dữ liệu mẫu dùng tên cơ sở thực tế đã cấu hình
+        const _sampleBranch1 = _bCount === 1 ? (clubConfig.branchName1 || 'Cơ sở 1') : (clubConfig.branchName1 || 'Cơ sở 1');
+        const _sampleBranch2 = _bCount >= 2 ? (clubConfig.branchName2 || 'Cơ sở 2') : _sampleBranch1;
+
+        const headers = ['Họ và tên', 'Giới tính (Nam/Nữ)', 'Mã hội viên VTF', _branchColHeader, 'Cấp đai', 'SĐT', 'Ngày sinh (DD/MM/YYYY)', 'Học phí (VNĐ)', 'Ngày nhập học (YYYY-MM-DD)', 'Đã đóng tới tháng (MM-YYYY)'];
+        const sampleData = [
+            ['Nguyễn Văn A', 'Nam', 'VTF123456', _sampleBranch1, 'Đai trắng - Cấp 10', '0909123456', '01/01/2015', 300000, '2024-01-01', '01-2024'],
+            ['Trần Thị B', 'Nữ', '', _sampleBranch2, 'Đai vàng - Cấp 7', '0988765432', '15/05/2014', 300000, '2024-01-01', '05-2024']
+        ];
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
+
+        const headerStyle = {
+            font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11, name: 'Arial' },
+            fill: { fgColor: { rgb: '0033A0' } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+            border: {
+                top:    { style: 'thin', color: { rgb: '000000' } },
+                bottom: { style: 'thin', color: { rgb: '000000' } },
+                left:   { style: 'thin', color: { rgb: '000000' } },
+                right:  { style: 'thin', color: { rgb: '000000' } }
+            }
+        };
+        const dataStyle = {
+            font: { sz: 10, name: 'Arial' },
+            alignment: { vertical: 'center', wrapText: false },
+            border: {
+                top:    { style: 'thin', color: { rgb: 'CCCCCC' } },
+                bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                left:   { style: 'thin', color: { rgb: 'CCCCCC' } },
+                right:  { style: 'thin', color: { rgb: 'CCCCCC' } }
+            }
+        };
+        const dataStyleAlt = { ...dataStyle, fill: { fgColor: { rgb: 'F0F4FF' } } };
+
+        const colLetters = ['A','B','C','D','E','F','G','H','I','J'];
+        colLetters.forEach((col, i) => {
+            const hCell = col + '1';
+            if (!ws[hCell]) ws[hCell] = { v: headers[i], t: 's' };
+            ws[hCell].s = headerStyle;
+        });
+        sampleData.forEach((row, ri) => {
+            const style = ri % 2 === 0 ? dataStyle : dataStyleAlt;
+            colLetters.forEach((col, ci) => {
+                const addr = col + (ri + 2);
+                if (!ws[addr]) ws[addr] = { v: row[ci] !== undefined ? row[ci] : '', t: typeof row[ci] === 'number' ? 'n' : 's' };
+                ws[addr].s = style;
+            });
+        });
+
+        ws['!cols'] = [
+            { wch: 22 },
+            { wch: 18 },
+            { wch: 16 },
+            { wch: 16 },
+            { wch: 24 },
+            { wch: 14 },
+            { wch: 22 },
+            { wch: 14 },
+            { wch: 22 },
+            { wch: 22 }
+        ];
+        ws['!rows'] = [{ hpt: 36 }, { hpt: 20 }, { hpt: 20 }];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "DS_Nhap_Lieu");  // [SỬA] Tên sheet khớp file mẫu mới
+        XLSX.writeFile(wb, "Mau_Nhap_Vo_Sinh.xlsx");
+    };
+
+    //  HELPER: Chuẩn hóa tên cơ sở từ Excel → mã CS1, CS2, ...
+    //  Hỗ trợ: "CS1", "cs2", "Cơ sở 1", số "1"/"2",
+    //          tên tùy chỉnh đã cấu hình admin (vd: "Nguyễn Huệ")
+    function _normalizeBranchForImport(rawBranch) {
+        const bCount = clubConfig.branchCount || 1;
+        if (bCount === 1) return 'CS1'; // CLB 1 cơ sở → luôn CS1
+
+        if (!rawBranch) return 'CS1';
+        const raw = String(rawBranch).trim();
+        if (!raw) return 'CS1';
+
+        // 1. Khớp chính xác mã CS1…CS10 (không phân biệt hoa thường)
+        const upperRaw = raw.toUpperCase();
+        for (let i = 1; i <= 10; i++) {
+            if (upperRaw === 'CS' + i) return i <= bCount ? 'CS' + i : 'CS1';
+        }
+
+        // 2. Khớp theo tên cơ sở đã cấu hình trong admin (không phân biệt hoa thường, bỏ dấu)
+        const stripDiacritics = (s) => s ? s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() : '';
+        const rawNorm = stripDiacritics(raw);
+        for (let i = 1; i <= bCount; i++) {
+            const cfgName = clubConfig['branchName' + i] || ('Cơ sở ' + i);
+            if (rawNorm === stripDiacritics(cfgName)) return 'CS' + i;
+        }
+
+        // 3. Khớp mẫu "cơ sở N" / "co so N" mặc định
+        const matchDefault = raw.match(/[Cc][oơ]\s*s[ởo]\s*(\d+)/);
+        if (matchDefault) {
+            const n = parseInt(matchDefault[1]);
+            if (n >= 1 && n <= bCount) return 'CS' + n;
+        }
+
+        // 4. Chỉ là số thuần ("1", "2", ...)
+        const matchNum = raw.match(/^(\d+)$/);
+        if (matchNum) {
+            const n = parseInt(matchNum[1]);
+            if (n >= 1 && n <= bCount) return 'CS' + n;
+        }
+
+        // 5. Fallback: CS1
+        return 'CS1';
+    }
+
+    // Phase 4K-6I-I — Excel import existing student profile updater
+    // Mục tiêu: file 📥 NHẬP TỪ EXCEL có thể bổ sung thông tin cho võ sinh
+    // đã có trên hệ thống, đặc biệt là Mã hội viên VTF, mà không tạo trùng
+    // hồ sơ và không ghi đè dữ liệu đang ổn bằng ô Excel bỏ trống.
+    function _importStripDiacritics(v) {
+        return String(v || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+    }
+
+    function _normalizeImportNameKey(v) {
+        return _importStripDiacritics(v)
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function _normalizeImportHeader(v) {
+        return _importStripDiacritics(v)
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '')
+            .trim();
+    }
+
+    function _normalizeImportMemberId(v) {
+        return String(v || '')
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, '');
+    }
+
+    function _memberIdIndexKey(v) {
+        return _normalizeImportMemberId(v).replace(/[^A-Z0-9]/g, '');
+    }
+
+    function _getImportCell(row, aliases) {
+        if (!row) return '';
+        for (const key of aliases) {
+            if (Object.prototype.hasOwnProperty.call(row, key)) return row[key];
+        }
+        const aliasSet = new Set(aliases.map(_normalizeImportHeader));
+        for (const key of Object.keys(row)) {
+            if (aliasSet.has(_normalizeImportHeader(key))) return row[key];
+        }
+        return '';
+    }
+
+    function _hasImportCell(row, aliases) {
+        if (!row) return false;
+        for (const key of aliases) {
+            if (Object.prototype.hasOwnProperty.call(row, key)) return true;
+        }
+        const aliasSet = new Set(aliases.map(_normalizeImportHeader));
+        return Object.keys(row).some(key => aliasSet.has(_normalizeImportHeader(key)));
+    }
+
+    function _excelCellToString(v) {
+        if (v === null || v === undefined) return '';
+        if (v instanceof Date && !Number.isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+        return String(v).trim();
+    }
+
+    function _formatImportDateCell(v, mode = 'date') {
+        if (v === null || v === undefined || v === '') return '';
+        if (v instanceof Date && !Number.isNaN(v.getTime())) {
+            if (mode === 'dob') {
+                const dd = String(v.getDate()).padStart(2, '0');
+                const mm = String(v.getMonth() + 1).padStart(2, '0');
+                return dd + '/' + mm + '/' + v.getFullYear();
+            }
+            return v.toISOString().slice(0, 10);
+        }
+        if (typeof v === 'number' && window.XLSX?.SSF?.format) {
+            try {
+                return window.XLSX.SSF.format(mode === 'dob' ? 'dd/mm/yyyy' : 'yyyy-mm-dd', v);
+            } catch (_) {}
+        }
+        return String(v).trim();
+    }
+
+    function _parseImportMoney(v) {
+        if (v === null || v === undefined || v === '') return null;
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        const digits = String(v).replace(/[^0-9.-]/g, '');
+        if (!digits) return null;
+        const n = Number(digits);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function _buildImportProfileIndexes() {
+        const byExact = {};
+        const byNorm = {};
+        const ambiguous = {};
+        const memberIdIndex = {};
+        Object.entries(allProfiles || {}).forEach(([profileName, profile]) => {
+            byExact[String(profileName).trim()] = { name: profileName, profile };
+            const nKey = _normalizeImportNameKey(profileName);
+            if (nKey) {
+                if (byNorm[nKey] && byNorm[nKey].name !== profileName) ambiguous[nKey] = true;
+                else byNorm[nKey] = { name: profileName, profile };
+            }
+            const mKey = _memberIdIndexKey(profile?.memberId || profile?.studentCode || profile?.vtfCode || '');
+            if (mKey) memberIdIndex[mKey] = profileName;
+        });
+        return { byExact, byNorm, ambiguous, memberIdIndex };
+    }
+
+    function _resolveExistingProfileForImport(excelName, indexes) {
+        const raw = String(excelName || '').trim();
+        if (indexes.byExact[raw]) return { found: true, matchedName: indexes.byExact[raw].name, profile: indexes.byExact[raw].profile, matchType: 'exact' };
+        const nKey = _normalizeImportNameKey(raw);
+        if (!nKey) return { found: false };
+        if (indexes.ambiguous[nKey]) return { found: false, ambiguous: true, normKey: nKey };
+        if (indexes.byNorm[nKey]) return { found: true, matchedName: indexes.byNorm[nKey].name, profile: indexes.byNorm[nKey].profile, matchType: 'normalized' };
+        return { found: false };
+    }
+
+    function _buildExistingStudentImportPayload(row, existingProfile) {
+        const payload = {};
+        const changed = [];
+        const memberId = _normalizeImportMemberId(_getImportCell(row, [
+            'Mã hội viên VTF', 'Mã HV VTF', 'Mã VTF', 'VTF', 'VTF ID', 'VTF Code',
+            'Mã hội viên', 'Mã học viên', 'Mã thành viên', 'Member ID', 'memberId'
+        ]));
+        if (memberId && memberId !== _normalizeImportMemberId(existingProfile?.memberId || '')) {
+            payload.memberId = memberId;
+            changed.push('Mã VTF');
+        }
+
+        const gender = _excelCellToString(_getImportCell(row, ['Giới tính (Nam/Nữ)', 'Giới tính', 'Gender']));
+        if (gender && gender !== String(existingProfile?.gender || '').trim()) {
+            payload.gender = gender;
+            changed.push('Giới tính');
+        }
+
+        const rawBranch = _getImportCell(row, ['Cơ sở', 'Branch', 'branch']);
+        if (_hasImportCell(row, ['Cơ sở', 'Branch', 'branch']) && _excelCellToString(rawBranch)) {
+            const branch = _normalizeBranchForImport(rawBranch);
+            if (branch && branch !== existingProfile?.branch) {
+                payload.branch = branch;
+                changed.push('Cơ sở');
+            }
+        }
+
+        const belt = _excelCellToString(_getImportCell(row, ['Cấp đai', 'Đai', 'Belt', 'belt']));
+        if (belt && belt !== String(existingProfile?.belt || '').trim()) {
+            payload.belt = belt;
+            changed.push('Cấp đai');
+        }
+
+        const phone = _excelCellToString(_getImportCell(row, ['SĐT', 'Số điện thoại', 'Điện thoại', 'Phone', 'phone']));
+        if (phone && phone !== String(existingProfile?.phone || '').trim()) {
+            payload.phone = phone;
+            changed.push('SĐT');
+        }
+
+        const dobRaw = _getImportCell(row, ['Ngày sinh', 'Ngày sinh (DD/MM/YYYY)', 'DOB', 'dob']);
+        const dob = _formatImportDateCell(dobRaw, 'dob');
+        if (dob && dob !== String(existingProfile?.dob || '').trim()) {
+            payload.dob = dob;
+            changed.push('Ngày sinh');
+        }
+
+        const feeRaw = _getImportCell(row, ['Học phí (VNĐ)', 'Học phí', 'Tuition', 'tuitionFee']);
+        const fee = _parseImportMoney(feeRaw);
+        if (fee !== null && fee !== Number(existingProfile?.tuitionFee || 0)) {
+            payload.tuitionFee = fee;
+            changed.push('Học phí');
+        }
+
+        const joinRaw = _getImportCell(row, ['Ngày nhập học (YYYY-MM-DD)', 'Ngày nhập học', 'Ngày vào học', 'Join Date', 'createdAt']);
+        const joinDate = _formatImportDateCell(joinRaw, 'date');
+        if (joinDate && !existingProfile?.createdAt) {
+            payload.createdAt = joinDate;
+            changed.push('Ngày nhập học');
+        }
+
+        // Không cập nhật paidUntil cho võ sinh đã tồn tại để tránh làm sai nợ/học phí.
+        if (Object.keys(payload).length > 0) {
+            payload.lastExcelSyncAt = new Date().toISOString();
+            payload.lastExcelSyncSource = 'active-import-update';
+        }
+        return { payload, changed };
+    }
+
+    window.debugExcelImportVtfUpsert = function() {
+        const indexes = _buildImportProfileIndexes();
+        return {
+            enabled: true,
+            phase: '4K-6I-I-excel-import-vtf-upsert-20260608',
+            profileCount: Object.keys(allProfiles || {}).length,
+            indexedNames: Object.keys(indexes.byNorm || {}).length,
+            indexedMemberIds: Object.keys(indexes.memberIdIndex || {}).length,
+            supportsExistingStudentUpdate: true,
+            supportsVtfAliases: [
+                'Mã hội viên VTF', 'Mã HV VTF', 'Mã VTF', 'VTF', 'VTF ID', 'VTF Code',
+                'Mã hội viên', 'Mã học viên', 'Mã thành viên', 'Member ID', 'memberId'
+            ],
+            protectsFinancialFields: ['paidUntil', 'status'],
+            note: 'Existing students are updated by exact/normalized name match; blank Excel cells do not overwrite existing values.'
+        };
+    };
+
+    // NHẬP TỪ EXCEL — Nhập mới + cập nhật võ sinh đã có, đặc biệt Mã VTF
+    // Phase 4K-6I-I: Nếu tên đã có trên hệ thống thì cập nhật các ô Excel
+    // không trống bằng merge, không tạo trùng và không đổi trạng thái học phí.
+    window.handleImportExcel = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                await window.ensureXlsxReady?.('import-students-excel');
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                if (jsonData.length === 0) return alert('File Excel không có dữ liệu!');
+                if (!confirm('Tìm thấy ' + jsonData.length + ' dòng trong file.\n\nHệ thống sẽ:\n- Thêm võ sinh mới nếu tên chưa có.\n- Cập nhật thông tin cho võ sinh đã có, đặc biệt Mã hội viên VTF.\n- Không ghi đè bằng ô trống và không thay đổi trạng thái học phí của võ sinh cũ.\n\nBạn có muốn bắt đầu nhập/cập nhật không?')) return;
+
+                window.showToast('⏳ Đang xử lý nhập/cập nhật dữ liệu...', 10000, true);
+                let batch = writeBatch(db);
+                let batchOps = 0;
+                const _commitImportBatchIfNeeded = async (force = false) => {
+                    if (batchOps > 0 && (force || batchOps >= 450)) {
+                        await batch.commit();
+                        batch = writeBatch(db);
+                        batchOps = 0;
+                    }
+                };
+
+                let importedCount = 0;
+                let updatedCount = 0;
+                const updatedList = [];
+                const branchSyncLog = {}; // Ghi lại các cơ sở đã được đồng bộ tự động
+                const skippedList = []; // { row, name, reason, detail }
+                const seenInFile  = {};
+                const memberIdSeenInFile = {};
+                const profileIndexes = _buildImportProfileIndexes();
+
+                for (let _rowIdx = 0; _rowIdx < jsonData.length; _rowIdx++) {
+                    const row = jsonData[_rowIdx];
+                    const _rowNum = _rowIdx + 2; // +2 vì dòng 1 là header
+                    let name = _getImportCell(row, ['Họ và tên', 'Tên', 'Name', 'Họ tên', 'Tên võ sinh']);
+
+                    if (!name || !String(name).trim()) {
+                        skippedList.push({ row: _rowNum, name: '(trống)', reason: 'Thiếu họ tên', detail: 'Ô "Họ và tên" bỏ trống' });
+                        continue;
+                    }
+                    name = String(name).trim();
+                    const nameKey = _normalizeImportNameKey(name);
+
+                    if (seenInFile[nameKey]) {
+                        skippedList.push({ row: _rowNum, name, reason: 'Trùng trong file', detail: 'Tên này xuất hiện nhiều lần trong file Excel' });
+                        continue;
+                    }
+                    seenInFile[nameKey] = true;
+
+                    const memberIdVisible = _normalizeImportMemberId(_getImportCell(row, [
+                        'Mã hội viên VTF', 'Mã HV VTF', 'Mã VTF', 'VTF', 'VTF ID', 'VTF Code',
+                        'Mã hội viên', 'Mã học viên', 'Mã thành viên', 'Member ID', 'memberId'
+                    ]));
+                    const memberIdKey = _memberIdIndexKey(memberIdVisible);
+                    if (memberIdKey && memberIdSeenInFile[memberIdKey] && memberIdSeenInFile[memberIdKey] !== name) {
+                        skippedList.push({ row: _rowNum, name, reason: 'Trùng mã VTF trong file', detail: 'Mã ' + memberIdVisible + ' đã dùng cho ' + memberIdSeenInFile[memberIdKey] });
+                        continue;
+                    }
+                    if (memberIdKey) memberIdSeenInFile[memberIdKey] = name;
+
+                    const existing = _resolveExistingProfileForImport(name, profileIndexes);
+                    if (existing.ambiguous) {
+                        skippedList.push({ row: _rowNum, name, reason: 'Tên không rõ', detail: 'Có nhiều hồ sơ trùng tên sau khi chuẩn hóa, cần cập nhật thủ công' });
+                        continue;
+                    }
+
+                    if (existing.found) {
+                        const owner = memberIdKey ? profileIndexes.memberIdIndex[memberIdKey] : '';
+                        if (memberIdKey && owner && owner !== existing.matchedName) {
+                            skippedList.push({ row: _rowNum, name, reason: 'Trùng mã VTF hệ thống', detail: 'Mã ' + memberIdVisible + ' đang thuộc về ' + owner });
+                            continue;
+                        }
+
+                        const { payload, changed } = _buildExistingStudentImportPayload(row, existing.profile || {});
+                        if (Object.keys(payload).length === 0) {
+                            skippedList.push({ row: _rowNum, name: existing.matchedName, reason: 'Không có thông tin mới', detail: 'Dòng này không có ô mới/khác để cập nhật' });
+                            continue;
+                        }
+
+                        const docRef = doc(db, 'clubs', currentClubId, 'profiles', existing.matchedName);
+                        batch.set(docRef, payload, { merge: true });
+                        batchOps++;
+                        updatedCount++;
+                        updatedList.push({ row: _rowNum, name: existing.matchedName, detail: changed.join(', ') || 'Cập nhật thông tin' });
+
+                        // Cập nhật index tạm để các dòng sau không dùng lại mã VTF.
+                        if (payload.memberId) profileIndexes.memberIdIndex[_memberIdIndexKey(payload.memberId)] = existing.matchedName;
+                        await _commitImportBatchIfNeeded(false);
+                        continue;
+                    }
+
+                    // Võ sinh mới: nếu mã VTF đã tồn tại ở hệ thống thì không tạo hồ sơ mới để tránh trùng mã.
+                    const owner = memberIdKey ? profileIndexes.memberIdIndex[memberIdKey] : '';
+                    if (memberIdKey && owner) {
+                        skippedList.push({ row: _rowNum, name, reason: 'Mã VTF đã tồn tại', detail: 'Mã ' + memberIdVisible + ' đang thuộc về ' + owner + ', không tạo hồ sơ mới' });
+                        continue;
+                    }
+
+                    let gender   = _getImportCell(row, ['Giới tính (Nam/Nữ)', 'Giới tính', 'Gender']);
+                    let memberId = memberIdVisible;
+
+                    let rawBranch = _getImportCell(row, ['Cơ sở', 'Branch', 'branch']);
+                    if (!rawBranch) {
+                        const _brKey = Object.keys(row).find(k => k.startsWith('Cơ sở ('));
+                        if (_brKey) rawBranch = row[_brKey] || '';
+                    }
+                    const branch = _normalizeBranchForImport(rawBranch);
+                    if (rawBranch && String(rawBranch).trim().toUpperCase() !== branch) {
+                        const key = String(rawBranch).trim() + ' → ' + branch + ' (' + window.getBranchNameDisplay(branch) + ')';
+                        branchSyncLog[key] = (branchSyncLog[key] || 0) + 1;
+                    }
+
+                    let belt     = _getImportCell(row, ['Cấp đai', 'Đai', 'Belt']) || 'Đai trắng - Cấp 10';
+                    let phone    = _getImportCell(row, ['SĐT', 'Số điện thoại', 'Điện thoại', 'Phone']);
+                    let dob      = _formatImportDateCell(_getImportCell(row, ['Ngày sinh', 'Ngày sinh (DD/MM/YYYY)', 'DOB']), 'dob');
+                    let fee      = _parseImportMoney(_getImportCell(row, ['Học phí (VNĐ)', 'Học phí', 'Tuition', 'tuitionFee'])) || 0;
+                    let joinDate = _formatImportDateCell(_getImportCell(row, ['Ngày nhập học (YYYY-MM-DD)', 'Ngày nhập học', 'Ngày vào học', 'Join Date']), 'date') || getLocalToday();
+
+                    let paidUntilInput = _getImportCell(row, ['Đã đóng tới tháng (MM-YYYY)', 'Đã đóng tới tháng (YYYY-MM)', 'Đã đóng tới tháng']);
+                    let paidUntil = '';
+                    if (paidUntilInput) {
+                        const _pStr   = String(paidUntilInput).trim();
+                        const _mmYYYY = _pStr.match(/^(\d{1,2})-(\d{4})$/);
+                        paidUntil = _mmYYYY ? (_mmYYYY[2] + '-' + _mmYYYY[1].padStart(2, '0')) : _pStr;
+                    } else {
+                        paidUntil = String(joinDate).substring(0, 7);
+                    }
+
+                    const docRef = doc(db, 'clubs', currentClubId, 'profiles', name);
+                    batch.set(docRef, {
+                        status: 'active',
+                        gender: _excelCellToString(gender),
+                        memberId: String(memberId || '').trim().toUpperCase(),
+                        branch,
+                        belt: String(belt).trim(),
+                        phone: _excelCellToString(phone),
+                        dob: String(dob || '').trim(),
+                        tuitionFee: fee,
+                        createdAt: String(joinDate).trim(),
+                        paidUntil,
+                        notes: 'Nhập từ Excel'
+                    });
+                    batchOps++;
+                    importedCount++;
+                    profileIndexes.byExact[name] = { name, profile: { memberId, branch, status: 'active' } };
+                    profileIndexes.byNorm[nameKey] = { name, profile: { memberId, branch, status: 'active' } };
+                    if (memberIdKey) profileIndexes.memberIdIndex[memberIdKey] = name;
+                    await _commitImportBatchIfNeeded(false);
+                }
+
+                await _commitImportBatchIfNeeded(true);
+
+                if (importedCount > 0 || updatedCount > 0) {
+                    try {
+                        if (typeof window.resetActiveRenderLimit === 'function') window.resetActiveRenderLimit('excel-import-upsert');
+                        if (typeof window.refreshListsComputation === 'function') window.refreshListsComputation(['students.activeList', 'students.debtList'], 'excel-import-upsert');
+                        if (typeof window.invalidateStudents === 'function') window.invalidateStudents('excel-import-upsert');
+                    } catch (_refreshErr) {
+                        console.warn('[ExcelImport] refresh after import failed:', _refreshErr);
+                    }
+                }
+
+                _showImportReport({ total: jsonData.length, imported: importedCount, updated: updatedCount, updatedList, skipped: skippedList, branchSync: branchSyncLog });
+
+            } catch (err) {
+                console.error(err);
+                alert('Lỗi đọc file Excel. Vui lòng dùng mẫu chuẩn. ' + (err && err.message ? err.message : ''));
+            } finally {
+                event.target.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    // ── [THÊM] Modal báo cáo kết quả nhập Excel — hiển thị chi tiết từng võ sinh nhập/cập nhật/bỏ qua ──
+    function _showImportReport({ total, imported, updated = 0, updatedList = [], skipped = [], branchSync = {} }) {
+        const _esc = (v) => String(v ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        // Nhóm theo lý do để hiển thị gọn
+        const groups = {};
+        skipped.forEach(s => {
+            if (!groups[s.reason]) groups[s.reason] = [];
+            groups[s.reason].push(s);
+        });
+
+        // Màu sắc & icon theo từng loại lý do bỏ qua
+        const _styleMap = {
+            'Thiếu họ tên':           { icon: '📭', color: '#d97706', bg: '#fefce8', border: '#fde68a' },
+            'Trùng trong file':       { icon: '🔁', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+            'Trùng tên hệ thống':     { icon: '⚠️', color: '#dc2626', bg: '#fff1f2', border: '#fecaca' },
+            'Trùng mã VTF trong file':{ icon: '🆔', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+            'Trùng mã VTF hệ thống':  { icon: '🆔', color: '#dc2626', bg: '#fff1f2', border: '#fecaca' },
+            'Mã VTF đã tồn tại':      { icon: '🆔', color: '#dc2626', bg: '#fff1f2', border: '#fecaca' },
+            'Tên không rõ':           { icon: '❓', color: '#475569', bg: '#f8fafc', border: '#cbd5e1' },
+            'Không có thông tin mới': { icon: 'ℹ️', color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' }
+        };
+
+        // HTML từng nhóm lý do
+        let skipHtml = '';
+        Object.entries(groups).forEach(([reason, list]) => {
+            const st = _styleMap[reason] || { icon: '❓', color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' };
+            const rows = list.map(s =>
+                '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid ' + st.border + ';align-items:flex-start;">' +
+                    '<span style="font-size:0.68rem;color:#94a3b8;white-space:nowrap;min-width:42px;margin-top:2px;">Dòng ' + _esc(s.row) + '</span>' +
+                    '<span style="font-weight:700;font-size:0.83rem;color:' + st.color + ';flex:1;word-break:break-all;">' + _esc(s.name) + '</span>' +
+                    '<span style="font-size:0.68rem;color:#64748b;text-align:right;flex-shrink:0;max-width:190px;line-height:1.4;">' + _esc(s.detail) + '</span>' +
+                '</div>'
+            ).join('');
+            skipHtml +=
+                '<div style="margin-bottom:12px;border:1.5px solid ' + st.border + ';border-radius:12px;overflow:hidden;">' +
+                    '<div style="background:' + st.bg + ';padding:8px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid ' + st.border + ';">' +
+                        '<span style="font-size:0.9rem;">' + st.icon + '</span>' +
+                        '<span style="font-weight:900;font-size:0.82rem;color:' + st.color + ';">' + _esc(reason) + '</span>' +
+                        '<span style="margin-left:auto;background:' + st.color + ';color:#fff;font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:99px;">' + list.length + ' dòng</span>' +
+                    '</div>' +
+                    '<div style="padding:4px 14px 4px;background:#fff;">' + rows + '</div>' +
+                '</div>';
+        });
+
+        const updateHtml = updatedList.length > 0
+            ? '<div style="margin-bottom:12px;border:1.5px solid #bfdbfe;border-radius:12px;overflow:hidden;">' +
+                '<div style="background:#eff6ff;padding:8px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #bfdbfe;">' +
+                    '<span>🆔</span><span style="font-weight:900;font-size:0.82rem;color:#1d4ed8;">Đã cập nhật võ sinh có sẵn</span>' +
+                    '<span style="margin-left:auto;background:#2563eb;color:#fff;font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:99px;">' + updatedList.length + ' VS</span>' +
+                '</div>' +
+                '<div style="padding:4px 14px;background:#fff;">' +
+                  updatedList.slice(0, 80).map(u =>
+                    '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #dbeafe;align-items:flex-start;">' +
+                      '<span style="font-size:0.68rem;color:#94a3b8;white-space:nowrap;min-width:42px;margin-top:2px;">Dòng ' + _esc(u.row) + '</span>' +
+                      '<span style="font-weight:700;font-size:0.83rem;color:#1d4ed8;flex:1;word-break:break-all;">' + _esc(u.name) + '</span>' +
+                      '<span style="font-size:0.68rem;color:#64748b;text-align:right;flex-shrink:0;max-width:190px;line-height:1.4;">' + _esc(u.detail) + '</span>' +
+                    '</div>'
+                  ).join('') +
+                  (updatedList.length > 80 ? '<div style="font-size:0.72rem;color:#64748b;padding:8px 0;">... và ' + (updatedList.length - 80) + ' võ sinh khác</div>' : '') +
+                '</div>' +
+              '</div>'
+            : '';
+
+        // HTML đồng bộ cơ sở (nếu có)
+        const syncKeys = Object.keys(branchSync || {});
+        const syncHtml = syncKeys.length > 0
+            ? '<div style="margin-top:10px;padding:10px 14px;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:12px;">' +
+                '<div style="font-weight:900;font-size:0.78rem;color:#0369a1;margin-bottom:6px;">🔄 Đã tự động đồng bộ cơ sở</div>' +
+                syncKeys.map(k => '<div style="font-size:0.75rem;color:#0369a1;padding:3px 0;border-bottom:1px solid #bae6fd;">🔄 ' + _esc(k) + ' — <b>' + branchSync[k] + '</b> võ sinh</div>').join('') +
+              '</div>'
+            : '';
+
+        const changedTotal = imported + updated;
+        const _hGrad  = skipped.length === 0 ? 'linear-gradient(135deg,#059669,#047857)' : changedTotal === 0 ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'linear-gradient(135deg,#0033A0,#0052cc)';
+        const _hTitle = skipped.length === 0 ? 'Nhập/cập nhật thành công!' : changedTotal === 0 ? 'Không có dữ liệu nào được ghi' : 'Kết quả nhập/cập nhật từ Excel';
+        const _hIcon  = skipped.length === 0 ? '✅' : changedTotal === 0 ? '❌' : '📥';
+
+        const html =
+            '<div id="_importReportOverlay" onclick="if(event.target===this)this.remove()" style="position:fixed;inset:0;background:rgba(15,23,42,0.78);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);">' +
+              '<div style="background:#fff;width:100%;max-width:620px;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,0.32);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">' +
+                '<div style="background:' + _hGrad + ';padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">' +
+                  '<div>' +
+                    '<div style="font-size:1rem;font-weight:900;color:#fff;">' + _hIcon + ' ' + _hTitle + '</div>' +
+                    '<div style="font-size:0.72rem;color:rgba(255,255,255,0.85);margin-top:3px;">' + total + ' dòng · ' + imported + ' nhập mới · ' + updated + ' cập nhật · ' + skipped.length + ' bỏ qua</div>' +
+                  '</div>' +
+                  '<button onclick="document.getElementById(\'_importReportOverlay\').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:700;">✕</button>' +
+                '</div>' +
+
+                '<div style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;flex-shrink:0;">' +
+                  '<div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:10px;border:1.5px solid #bbf7d0;">' +
+                    '<div style="font-size:1.45rem;font-weight:900;color:#16a34a;">' + imported + '</div>' +
+                    '<div style="font-size:0.6rem;font-weight:800;color:#15803d;margin-top:2px;">✅ NHẬP MỚI</div>' +
+                  '</div>' +
+                  '<div style="text-align:center;padding:10px;background:#eff6ff;border-radius:10px;border:1.5px solid #bfdbfe;">' +
+                    '<div style="font-size:1.45rem;font-weight:900;color:#2563eb;">' + updated + '</div>' +
+                    '<div style="font-size:0.6rem;font-weight:800;color:#1d4ed8;margin-top:2px;">🆔 CẬP NHẬT</div>' +
+                  '</div>' +
+                  '<div style="text-align:center;padding:10px;background:#fff1f2;border-radius:10px;border:1.5px solid #fecaca;">' +
+                    '<div style="font-size:1.45rem;font-weight:900;color:#dc2626;">' + skipped.length + '</div>' +
+                    '<div style="font-size:0.6rem;font-weight:800;color:#b91c1c;margin-top:2px;">⚠️ BỎ QUA</div>' +
+                  '</div>' +
+                  '<div style="text-align:center;padding:10px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd;">' +
+                    '<div style="font-size:1.45rem;font-weight:900;color:#0369a1;">' + total + '</div>' +
+                    '<div style="font-size:0.6rem;font-weight:800;color:#0369a1;margin-top:2px;">📋 TỔNG DÒNG</div>' +
+                  '</div>' +
+                '</div>' +
+
+                '<div style="overflow-y:auto;padding:14px 18px;flex:1;">' +
+                  '<div style="font-size:0.72rem;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px;margin-bottom:12px;line-height:1.5;">ℹ️ Với võ sinh đã có trên hệ thống, Excel chỉ cập nhật các ô có dữ liệu, ưu tiên <b>Mã hội viên VTF</b>; không thay đổi paidUntil/trạng thái học phí để tránh sai công nợ.</div>' +
+                  updateHtml +
+                  (skipped.length > 0
+                    ? '<div style="font-size:0.75rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">⚠️ Chi tiết dòng bị bỏ qua</div>' + skipHtml
+                    : (updatedList.length === 0 ? '<div style="text-align:center;padding:28px 16px;color:#16a34a;font-size:0.92rem;font-weight:700;">🎉 Tất cả dữ liệu đã được xử lý thành công!</div>' : '')) +
+                  syncHtml +
+                '</div>' +
+
+                '<div style="padding:12px 18px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;flex-shrink:0;">' +
+                  '<button onclick="document.getElementById(\'_importReportOverlay\').remove()" style="padding:10px 28px;background:linear-gradient(135deg,#0033A0,#0052cc);color:#fff;border:none;border-radius:10px;font-size:0.85rem;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(0,51,160,0.25);">Đã hiểu</button>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+
+        const _old = document.getElementById('_importReportOverlay');
+        if (_old) _old.remove();
+        document.body.insertAdjacentHTML('beforeend', html);
+    }
+
+    // Phase 4K-6U: Report/Excel globals are owned by the eager report facade.
+    // Heavy report implementations load only when an export action is requested.
+
+      const setupAutocomplete = (inputId, listId, mode) => {
+        const inp = document.getElementById(inputId); const list = document.getElementById(listId);
+        inp.onfocus = function() { if(this.value) this.oninput(); };
+        inp.oninput = function() {
+            let val = this.value.toLowerCase().trim(); list.innerHTML = '';
+            if(!val || (mode === 'inv' && document.getElementById('inv_type').value !== 'Xuất bán')) { list.style.display = 'none'; return; }
+            let matches = Object.keys(allProfiles).filter(n => {
+                const _nKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(allProfiles[n]) : (allProfiles[n].status === 'quit' ? 'quit' : 'active');
+                if(_nKind === 'quit') return false;
+                let p = allProfiles[n];
+                return n.toLowerCase().includes(val) || (p.phone || "").includes(val) || (p.belt || "").toLowerCase().includes(val) || (p.notes || "").toLowerCase().includes(val);
+            });
+            matches.forEach(name => {
+                let div = document.createElement('div');
+                const _escAutocomplete = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+                let branchHtml = (!clubConfig.branchCount || clubConfig.branchCount > 1)
+                    ? `<span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_escAutocomplete(window.getBranchNameDisplay(allProfiles[name].branch || 'CS1'))}</span>`
+                    : ``;
+
+                div.innerHTML = `<strong class="text-primary">${_escAutocomplete(name)}</strong> ${branchHtml}`;
+                div.onclick = () => {
+                    inp.value = name;
+                    if(mode === 'tx') {
+                        document.getElementById('branch').value = allProfiles[name].branch || 'CS1';
+                        if((document.getElementById('type').value === 'Học phí' || document.getElementById('type').value === 'Học phí + Lệ phí thi') && allProfiles[name].tuitionFee) {
+                            window.updateAmountByPackage();
+                        }
+                    } else if (mode === 'combo1' || mode === 'combo2') {
+                        let feeId = mode === 'combo1' ? 'combo_fee1_actual' : 'combo_fee2_actual';
+                        let dispId = mode === 'combo1' ? 'combo_fee1_display' : 'combo_fee2_display';
+                        if(allProfiles[name].tuitionFee) {
+                            document.getElementById(feeId).value = allProfiles[name].tuitionFee;
+                            document.getElementById(dispId).value = parseInt(allProfiles[name].tuitionFee, 10).toLocaleString('vi-VN');
+                            window.updateComboTotal();
+                        }
+                    }
+                    list.style.display = 'none';
+                };
+                list.appendChild(div);
+            });
+            list.style.display = matches.length ? 'block' : 'none';
+        };
+    };
+
+    const _acInputIds = new Set(['description', 'inv_desc', 'combo_name1', 'combo_name2']);
+    const _acListIds = ['autocomplete-list', 'inv-autocomplete-list', 'combo-autocomplete-1', 'combo-autocomplete-2'];
+    document.addEventListener('click', (e) => {
+        if (!_acInputIds.has(e.target.id)) {
+            _acListIds.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        setupAutocomplete('description', 'autocomplete-list', 'tx');
+        setupAutocomplete('inv_desc', 'inv-autocomplete-list', 'inv');
+        setupAutocomplete('combo_name1', 'combo-autocomplete-1', 'combo1');
+        setupAutocomplete('combo_name2', 'combo-autocomplete-2', 'combo2');
+
+        const lToday = getLocalToday(); const lMonth = lToday.substring(0, 7);
+        document.getElementById('filterMonth').value = lMonth;
+        document.getElementById('filterMonth').onchange = (e) => {
+            if (window.__RUNTIME_MODE === 'http-module' && typeof window.handleFilterMonthChange === 'function') {
+                return window.handleFilterMonthChange(e.target.value, 'legacy-onchange-bridge');
+            }
+            window.listenToData(e.target.value);
+        };
+        // [PERF] Reset pagination về trang 1 khi đổi lọc/tìm kiếm —
+        // kết quả mới không liên quan đến page cũ người dùng đang xem.
+        // [Phase 3.5C] Filter/search chỉ ảnh hưởng tab đang mở → invalidateCurrentTab().
+        // Không trigger full renderApp() toàn app — chỉ invalidate domain của tab hiện tại.
+        // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
+        document.getElementById('filterBranch').onchange = () => { window._resetListPages && window._resetListPages(); if (window.invalidateCurrentTab) { window.invalidateCurrentTab('filter-branch-change'); } else { scheduleRender(); } };
+        // PHẦN 2 FIX: LEGACY search handler — chỉ chạy khi searchRuntime chưa mount VÀ không phải http-module.
+        // Khi chạy GitHub/domain hoặc local HTTP module, app.js không tự refresh search.
+        // File legacy vẫn có fallback nếu main.js bị tắt.
+        document.getElementById('searchInput').oninput = () => {
+            // PHẦN 2: Nếu Unified Search Runtime đã mount (http-module) → không làm gì
+            if (window.__RUNTIME_MODE === 'http-module' && window.__searchRuntimeMounted) {
+                return;
+            }
+            // Phase 4K-5Q: also block when SearchRuntime V2 is mounted
+            if (window.__searchRuntimeV2Mounted) {
+                return;
+            }
+            // Tab-aware guard: chỉ chặn legacy ở ĐANG TẬP/ĐÃ NGHỈ nếu PRIMARY đã mount và không fail
+            const _curTab = typeof window.getCurrentActiveTabId === 'function'
+                ? window.getCurrentActiveTabId()
+                : (document.querySelector('.tab-content.active')?.id || '').replace(/^tab_/, '');
+            const _studentTabs = _curTab === 'active' || _curTab === 'quit';
+            if (
+                _studentTabs &&
+                window.__studentSearchControllerMounted &&
+                !window.__studentSearchControllerFailed
+            ) {
+                return;
+            }
+            // Legacy fallback — chỉ dùng cho file-legacy hoặc khi module search chưa mount
+            window._resetListPages && window._resetListPages();
+            if (typeof window.refreshListsComputation === 'function') {
+                window.refreshListsComputation([
+                    'students.activeList',
+                    'students.debtList',
+                    'students.quitList',
+                    'tx.txList',
+                    'inventory.inventoryList',
+                    'inventory.uniformTxList',
+                    'dashboard.summary',
+                ], 'global-search-change-legacy-fallback');
+            }
+            if (window.invalidateCurrentTab) { window.invalidateCurrentTab('search-change'); } else { scheduleRender(); }
+        };
+        document.getElementById('date').value = lToday;
+        document.getElementById('inv_date').value = lToday; document.getElementById('exp_date').value = lToday;
+
+        const emailInp = document.getElementById('emailInput');
+        const passInp = document.getElementById('passInput');
+
+        if(emailInp) emailInp.addEventListener("keypress", (e) => {
+            if(e.key === "Enter") passInp.focus();
+        });
+        if(passInp) passInp.addEventListener("keypress", (e) => {
+            if(e.key === "Enter") window.handleLogin();
+        });
+    });
+    const _waitReceiptPreviewReady = async (img, src) => { if (!img) { const e = new Error('receipt preview element missing'); e.code = 'preview-failed'; throw e; } img.src = src;
+        if (!(img.complete && img.naturalWidth > 0 && img.naturalHeight > 0)) { if (typeof img.decode === 'function') { try { await img.decode(); } catch (_) { const e = new Error('receipt preview image decode failed'); e.code = 'image-failed'; throw e; } } else await new Promise((resolve, reject) => { img.onload = () => { img.onload = null; img.onerror = null; resolve(); }; img.onerror = () => { img.onload = null; img.onerror = null; const e = new Error('receipt preview image failed'); e.code = 'image-failed'; reject(e); }; }); }
+        if (!(img.complete && img.naturalWidth > 0 && img.naturalHeight > 0)) { const e = new Error('receipt preview image has no dimensions'); e.code = 'image-failed'; throw e; }
+        return { naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight }; };
+    const _waitReceiptPaint = () => new Promise(resolve => { if (typeof requestAnimationFrame !== 'function') return resolve(); requestAnimationFrame(() => requestAnimationFrame(resolve)); });
+    const _inspectReceiptModalVisibility = (modal) => { if (!modal) return { visible: false, aboveFixedUi: false, reason: 'missing-modal' }; const style = getComputedStyle(modal), rect = modal.getBoundingClientRect(); const vw = window.innerWidth || document.documentElement?.clientWidth || 0, vh = window.innerHeight || document.documentElement?.clientHeight || 0, opacity = Number.parseFloat(style.opacity || '1'); const intersectsViewport = rect.right > 0 && rect.bottom > 0 && rect.left < vw && rect.top < vh; const visible = style.display !== 'none' && style.visibility !== 'hidden' && opacity > 0 && rect.width > 0 && rect.height > 0 && intersectsViewport; const modalZ = Number.parseInt(style.zIndex, 10) || 0; let maxShellZ = 0;
+        ['#mobileBottomNav', '#mobileMenuSheet', '.mobile-header-bar'].forEach(selector => document.querySelectorAll?.(selector).forEach(el => { const cs = getComputedStyle(el), r = el.getBoundingClientRect(); if (cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0) maxShellZ = Math.max(maxShellZ, Number.parseInt(cs.zIndex, 10) || 0); }));
+        return { visible, aboveFixedUi: modalZ >= maxShellZ, display: style.display, visibility: style.visibility, opacity, modalZ, maxShellZ, rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height } }; };
+    const _clearReceiptPreview = () => {
+        const dl = document.getElementById('btnDownloadReceipt');
+        if (dl) dl.onclick = null;
+        const preview = document.getElementById('receiptPreviewImg');
+        if (preview) preview.removeAttribute('src');
+        const modal = document.getElementById('receiptModal');
+        if (modal) modal.style.display = 'none';
+        const qr = document.getElementById('qrCodeImg');
+        if (qr) qr.removeAttribute('src');
+    };
+    let _receiptRequestEpoch = 0;
+    let _receiptActiveJobId = 0;
+    let _receiptActiveJobKind = 'UNKNOWN';
+    const _exportReceiptNow = async (name, amount, type, date, txMonth, branch, extraDesc = '', receiptTitle = 'BIÊN LAI THU TIỀN', breakdown = null, isReceiptRequestCurrent = () => true) => {
+        window.showToast("⏳ Đang tạo hóa đơn, vui lòng đợi...", 10000, true); let _rendered = false, _previewReady = false, _modalVisible = false, _previewNaturalWidth = 0, _previewNaturalHeight = 0;
+        let _stage='request',_canvasFlight=null;
+        const _startedAt=Date.now(),_timings={};let _stageAt=_startedAt,_httpStatus=null,_expectedMemoLength=null,_providerEndpoint=null,_providerRedirected=null;
+        const _setStage=next=>{const now=Date.now();_timings[_stage]=(_timings[_stage]||0)+Math.max(0,now-_stageAt);_stage=next;_stageAt=now;};
+        const _diagnostics=()=>{
+            const ua=String(window.navigator?.userAgent||'');
+            return {at:new Date(_startedAt).toISOString(),elapsedMs:Math.max(0,Date.now()-_startedAt),queueWaitMs:_startedAt-(isReceiptRequestCurrent.queuedAt||_startedAt),
+                timings:{..._timings,[_stage]:(_timings[_stage]||0)+Math.max(0,Date.now()-_stageAt)},httpStatus:_httpStatus,
+                expectedMemoLength:_expectedMemoLength,providerEndpoint:_providerEndpoint,providerRedirected:_providerRedirected,
+                online:typeof window.navigator?.onLine==='boolean'?window.navigator.onLine:null,
+                browser:/CriOS|Chrome|Chromium/.test(ua)?'Chromium':/Firefox/.test(ua)?'Firefox':/Safari/.test(ua)?'Safari':'unknown',
+                os:/iPad|iPhone|iPod/.test(ua)?'iOS':/Android/.test(ua)?'Android':ua?'desktop':'unknown'};
+        };
+        const _kind=isReceiptRequestCurrent.kind || _receiptKindFromTitle(receiptTitle);
+        const _assertCurrent=() => {if (!isReceiptRequestCurrent()) throw _receiptError(isReceiptRequestCurrent.failureReason?.() || 'JOB_STALE',_stage);};
+        try {
+            _clearReceiptPreview();
+            _assertCurrent();
+            const node = document.getElementById('receiptTemplate'); const cleanName = name.trim();
+            if (_kind === 'REPORT' && (!Number.isSafeInteger(amount) || amount <= 0 || amount > 9999999999999)) {
+                throw _receiptError('INVALID_AMOUNT','intent');
+            }
+            const _paymentSettings=_kind === 'REPORT' ? _receiptAuthorityConfig() : clubConfig;
+            if (_kind === 'REPORT' && type === 'Học phí') {
+                const status=window.getDebtProfileCoverageStatus?.();
+                if (!status?.ready || status.clubId !== currentClubId) throw _receiptError('DEBT_NOT_READY','debt-authority');
+            }
+            // One receipt queue; transient preview was invalidated before validation.
+            const _qrOwnerAtStart = window.__verifiedAuthContextState
+                ? { uid: window.__verifiedAuthContextState.uid, clubId: window.__verifiedAuthContextState.clubId, generation: window.__verifiedAuthContextState.generation, role:window.__verifiedAuthContextState.role, coachBranch:window.__verifiedAuthContextState.coachBranch, ready:window.__verifiedAuthContextState.ready }
+                : null;
+            const _qrClubAtStart = currentClubId;
+            const _isCurrentReceiptOwner = () => {
+                const now = window.__verifiedAuthContextState;
+                return isReceiptRequestCurrent() && _qrClubAtStart === currentClubId && (!_qrOwnerAtStart || (now && now.uid === _qrOwnerAtStart.uid && now.clubId === _qrOwnerAtStart.clubId && now.generation === _qrOwnerAtStart.generation && now.role === _qrOwnerAtStart.role && now.coachBranch === _qrOwnerAtStart.coachBranch && now.ready === _qrOwnerAtStart.ready));
+            };
+            document.getElementById('r_name').innerText = cleanName.toUpperCase(); document.getElementById('receiptTitle').innerText = receiptTitle;
+            const dParts = date ? date.split('-') : [];
+            let locText = clubConfig.location || "Quy Nhơn";
+            document.getElementById('r_date_top').innerText = dParts.length === 3 ? `${locText}, ngày ${dParts[2]} tháng ${dParts[1]} năm ${dParts[0]}` : `${locText}, ${formatDate(date)}`;
+            const p = allProfiles[cleanName] || {}; document.getElementById('r_belt').innerText = p.belt || (cleanName.includes('&') ? 'Theo danh sách' : 'Chưa cập nhật');
+            if (p.dob && !cleanName.includes('&')) { document.getElementById('r_dob').innerText = formatDate(p.dob); document.getElementById('r_dob_wrap').style.display = 'block'; } else document.getElementById('r_dob_wrap').style.display = 'none';
+            document.getElementById('r_amount').innerText = amount.toLocaleString('vi-VN') + " ₫"; document.getElementById('r_amount_words').innerText = docTienVND(amount);
+
+            let displayBranch = Array.isArray(branch)
+                ? branch.map(b => window.getBranchNameDisplay(b)).join(' / ')
+                : window.getBranchNameDisplay(branch);
+            document.getElementById('r_branch').innerText = displayBranch;
+
+            let qrDesc = type;
+            {
+                const _monthLabel = txMonth ? ('Tháng ' + window.formatMonthCompact(txMonth)) : '';
+                let typeDisplay = type.replace('Học phí', 'Học phí' + (_monthLabel ? ' ' + _monthLabel : ''));
+                document.getElementById('r_type').innerText = typeDisplay;
+                if(type === 'Học phí + Lệ phí thi') qrDesc = 'Hoc phi va Le phi thi';
+            }
+
+            const qrImgEl = document.getElementById('qrCodeImg');
+            qrImgEl.removeAttribute('src');
+            const _isReportQR = amount > 0 && _kind === 'REPORT';
+            // Do not render a QR if any reported line differs from the chosen VND total.
+            if (_isReportQR && Array.isArray(breakdown) && breakdown.length && (
+                breakdown.some(row => !Number.isSafeInteger(row.amount) || row.amount < 0) ||
+                breakdown.reduce((sum,row) => sum + row.amount, 0) !== amount
+            )) throw _receiptError('INVALID_AMOUNT','intent');
+            let _qrCfgFingerprint = null;
+            const _paymentConfigFingerprint = () => _receiptConfigFingerprint(clubConfig);
+            let _intent=null;
+            if (_isReportQR) {
+                // Branch/account proof is resolved from the same club config as the payment URL.
+                // An explicit disabled/missing mapping MUST NOT silently fall back to bank1.
+                _qrCfgFingerprint = _paymentConfigFingerprint();
+                const _branches = Array.isArray(branch) ? branch : [branch];
+                _setStage('account');
+                if (_branches.length < 1 || _branches.some(b => !String(b || '').trim())) throw _receiptError('ACCOUNT_BRANCH_UNKNOWN',_stage);
+                const _accounts = _branches.map(b => {
+                    const acc = getPaymentAccountForBranch(b, _paymentSettings);
+                    if (acc.reason || !acc.bankId || !acc.accountNo || !acc.accountName) {
+                        throw _receiptError(acc.reason || 'ACCOUNT_INCOMPLETE',_stage);
+                    }
+                    return Object.freeze({...acc});
+                });
+                if (_accounts.some(acc => acc.bankId !== _accounts[0].bankId || acc.accountNo !== _accounts[0].accountNo || acc.accountName !== _accounts[0].accountName)) throw _receiptError('ACCOUNT_ALIAS_CONFLICT',_stage);
+                const _showQRDetails = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+                _showQRDetails('r_qr_bankId', _accounts[0].bankId);
+                _showQRDetails('r_qr_accountNo', _accounts[0].accountNo);
+                _showQRDetails('r_qr_accountName', _accounts[0].accountName || 'Chưa cập nhật tên chủ tài khoản');
+                _showQRDetails('r_qr_amount_display', amount.toLocaleString('vi-VN') + ' ₫');
+                const _memoMonths=String(txMonth || '').includes(',') ? window.formatMonthCompact(txMonth) : formatMonth(txMonth);
+                let paymentContent = type === 'Học phí' && txMonth ? `${extraDesc ? removeVietnameseTonesForQR(extraDesc)+' ' : ''}Hoc Phi Thang ${_memoMonths}` : `${qrDesc}${txMonth ? ' '+_memoMonths : ''}`;
+                let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
+                _setStage('intent');
+                const _verboseMemo=_receiptPaymentMemo(qrName,paymentContent,type === 'Học phí' && txMonth ? 512 : 48);
+                const _canonicalMemo=type === 'Học phí' && txMonth
+                    ? _receiptTuitionMemo(qrName,txMonth,_verboseMemo) : _verboseMemo;
+                const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only', _canonicalMemo);
+                _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_canonicalMemo,intentKind:_kind});
+                _expectedMemoLength=_intent.memo.length;_providerEndpoint='vietqr-qr-only-svg';
+                const _loadCanvas=window.ensureHtml2CanvasReady;
+                if(!window.html2canvas && typeof _loadCanvas==='function') _canvasFlight=Promise.resolve().then(()=>_loadCanvas('receipt-export')).then(fn=>({fn}),error=>({error}));
+                document.getElementById('r_type').innerText += '\nNội dung CK: '+_intent.memo;
+                const _abortQR = new AbortController();
+                let _qrTimeout, _qrExpired = false;
+                document.getElementById('r_qr_wrap').style.display = 'block';
+                try {
+                    await Promise.race([
+                        (async () => {
+                            _setStage('fetch');
+                            let res;try {res=await fetch(_qrUrl, { signal: _abortQR.signal, redirect: 'follow', mode: 'cors', credentials:'omit', referrerPolicy:'no-referrer', headers:{Accept:'image/svg+xml,image/png;q=0.9'}, cache: 'no-store' });}
+                            catch (_) {throw _receiptError(_qrExpired ? 'QR_TIMEOUT' : 'QR_FETCH_NETWORK',_stage);}
+                            if (res.type === 'opaqueredirect' || res.type === 'opaque') throw _receiptError('QR_FETCH_REDIRECT',_stage);
+                            window.QRBankingHelpers.validateReceiptQrResponseUrl(res.url,_qrUrl);
+                            // Boolean redirect signal only: never log provider URL, which contains bank/account and memo.
+                            _providerRedirected=Boolean(res.redirected);
+                            _httpStatus=Number.isInteger(res.status)?res.status:null;
+                            if (!res.ok) throw _receiptError('QR_FETCH_HTTP',_stage);
+                            _setStage('bytes');
+                            const bytes = new Uint8Array(await res.arrayBuffer());
+                            _setStage('qr-media');
+                            const dataURI = await window.QRBankingHelpers.prepareReceiptQrImage(bytes,res.headers.get('content-type'),qrImgEl.ownerDocument);
+                            if (_qrExpired) throw _receiptError('QR_TIMEOUT','decode');
+                            _assertCurrent();
+                            qrImgEl.src = dataURI;
+                            _setStage('decode');
+                            try {if (typeof qrImgEl.decode === 'function') await qrImgEl.decode();
+                            else await new Promise((resolve,reject) => { qrImgEl.onload=resolve; qrImgEl.onerror=reject; });}
+                            catch (_) {throw _receiptError('QR_DECODE_FAILED',_stage);}
+                            if (qrImgEl.naturalWidth < 100 || qrImgEl.naturalHeight < 100 || Math.abs(qrImgEl.naturalWidth / qrImgEl.naturalHeight - 1) > 0.02) throw _receiptError('QR_MEDIA_INVALID',_stage);
+                            _setStage('provider-pixels');await _verifyReceiptQrPixels(qrImgEl,_intent,_stage);
+                            if (_qrExpired) throw _receiptError('QR_TIMEOUT',_stage);
+                            _assertCurrent();
+                            if (_qrCfgFingerprint !== _paymentConfigFingerprint()) throw _receiptError('CONFIG_STALE',_stage);
+                        })(),
+                        new Promise((_,reject) => { _qrTimeout=setTimeout(() => { _qrExpired = true; _abortQR.abort(); reject(_receiptError('QR_TIMEOUT',_stage)); }, 15000); })
+                    ]);
+                } catch(err) {
+                    _qrExpired = true;
+                    throw err?.code ? err : _receiptError('QR_BYTES_INVALID',_stage);
+                } finally { clearTimeout(_qrTimeout); }
+            } else { document.getElementById('r_qr_wrap').style.display = 'none'; }
+
+            _setStage('template');
+            const bdWrap = document.getElementById('r_breakdown_wrap');
+            const bdTable = document.getElementById('r_breakdown_table');
+            if(breakdown && breakdown.length > 0 && bdWrap && bdTable) {
+                const _escReceiptText = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                bdTable.innerHTML = breakdown.map((row, i) =>
+                    `<tr style="border-top:${i===0?'none':'1px solid #f1f5f9'}">
+                        <td style="padding:5px 10px;font-size:12px;color:#475569;">${_escReceiptText(row.label)}</td>
+                        <td style="padding:5px 10px;font-size:12px;font-weight:700;text-align:right;color:#0f172a;">${row.amount.toLocaleString('vi-VN')} ₫</td>
+                    </tr>`
+                ).join('');
+                bdWrap.style.display = 'block';
+            } else if(bdWrap) { bdWrap.style.display = 'none'; }
+
+            const sigImg = document.getElementById('r_signature_img');
+            const trainerNameEl = document.getElementById('r_trainer_name');
+            const sigBlock = document.getElementById('r_signature_block');
+            const isBienLai = _kind === 'PAID';
+            if(isBienLai && (clubConfig.signatureBase64 || clubConfig.trainerName)) {
+                if(sigBlock) sigBlock.style.display = 'flex';
+                if(trainerNameEl) trainerNameEl.innerText = clubConfig.trainerName || '';
+                if(sigImg) { if(clubConfig.signatureBase64) { sigImg.src = clubConfig.signatureBase64; sigImg.style.display = 'block'; } else { sigImg.style.display = 'none'; } }
+            } else {
+                if(sigBlock) sigBlock.style.display = 'none';
+            }
+            const logoEl = document.getElementById('receiptLogo'); if (logoCanvasData) { logoEl.src = logoCanvasData; }
+            node.style.position = 'absolute'; node.style.visibility = 'visible';
+            _setStage('canvas-asset');
+            let _html2canvasFn = window.html2canvas;
+            if(_canvasFlight){const asset=await _canvasFlight;if(asset.error)throw asset.error;_html2canvasFn=asset.fn;}
+            if (!_html2canvasFn) {
+                if (typeof window.ensureHtml2CanvasReady !== 'function') {
+                    const _assetErr = new Error('html2canvas lazy owner unavailable');
+                    _assetErr.code = 'asset-load-failed';
+                    throw _assetErr;
+                }
+                _html2canvasFn = await window.ensureHtml2CanvasReady('receipt-export');
+            }
+            // QR is a verified data URI. Never permit cross-origin canvas taint.
+            _assertCurrent();
+            if (!_isCurrentReceiptOwner() || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) throw _receiptError('CONFIG_STALE','canvas');
+            _setStage('canvas');
+            const canvas = await _html2canvasFn(node, { scale: 2, backgroundColor: '#ffffff', useCORS: false, allowTaint: false, logging: false, imageTimeout: 0 }); _rendered = true;
+            _setStage('encode');
+            const _receiptImage = canvas.toDataURL(_isReportQR ? 'image/png' : 'image/jpeg', 0.82);
+            if (!_receiptImage.startsWith(_isReportQR ? 'data:image/png;base64,' : 'data:image/jpeg;base64,')) throw _receiptError('CANVAS_EXPORT_FAILED',_stage);
+            _setStage('preview');
+            const _previewEl = document.getElementById('receiptPreviewImg'), _previewMeta = await _waitReceiptPreviewReady(_previewEl, _receiptImage); _previewReady = true; _previewNaturalWidth = _previewMeta.naturalWidth; _previewNaturalHeight = _previewMeta.naturalHeight;
+            if (_isReportQR) {_setStage('preview-pixels');await _verifyReceiptQrPixels(_previewEl,_intent,_stage);}
+            _assertCurrent();
+            if (!_isCurrentReceiptOwner() || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) throw _receiptError('CONFIG_STALE',_stage);
+            document.getElementById('btnDownloadReceipt').onclick = () => {
+                if (isReceiptRequestCurrent.isPreviewCurrent && !isReceiptRequestCurrent.isPreviewCurrent()) return;
+                if (!isReceiptRequestCurrent() || !_isCurrentReceiptOwner() || _previewEl.src !== _receiptImage || document.getElementById('receiptModal')?.style.display === 'none' || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) { _clearReceiptPreview(); window.showToast('⚠️ Phiếu đã hết hiệu lực; vui lòng tạo lại.'); return; }
+                const link=document.createElement('a');link.download=`Hoa_Don_${cleanName.replace(/\s/g,'_').replace(/&/g,'va')}.${_isReportQR?'png':'jpg'}`;link.href=_receiptImage;link.click();
+            }; document.getElementById('toastMessage').classList.remove("show");
+            _setStage('modal');
+            const _receiptModal = document.getElementById('receiptModal'); if (!_receiptModal) { const e = new Error('receipt modal missing'); e.code = 'modal-not-visible'; throw e; } _receiptModal.dataset.receiptOpenedAt = String(Date.now()); _receiptModal.style.display = 'flex';
+            _receiptModal.scrollTop=0;const _receiptScrollBox=_receiptModal.querySelector?.('.modal-content');if(_receiptScrollBox)_receiptScrollBox.scrollTop=0;await _waitReceiptPaint();
+            _assertCurrent();
+            if (!_isCurrentReceiptOwner() || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) throw _receiptError('CONFIG_STALE',_stage);
+            const _visibility = _inspectReceiptModalVisibility(_receiptModal);
+            if (!_visibility.visible) { const e = new Error('receipt modal not visible after open'); e.code = _receiptModal.style.display === 'none' ? 'modal-closed-before-display' : 'modal-not-visible'; e.receiptVisibility = _visibility; throw e; }
+            if (!_visibility.aboveFixedUi) { const e = new Error('receipt modal is below fixed application UI'); e.code = 'modal-not-visible'; e.receiptVisibility = _visibility; throw e; }
+            _modalVisible = true; return { ok: true, diagnostics:_diagnostics(), receiptJpeg: _receiptImage, receiptImage: _receiptImage, rendered: true, previewReady: true, modalVisible: true, previewOpened: true, previewNaturalWidth: _previewNaturalWidth, previewNaturalHeight: _previewNaturalHeight, visibility: _visibility };
+        } catch (error) {
+            const _code=String(error?.code || '');
+            const _paidReasons={'asset-load-timeout':'asset-timeout','asset-load-failed':'asset-load-failed','asset-load-invalid':'asset-load-failed','image-failed':'image-failed','preview-failed':'preview-failed','modal-closed-before-display':'modal-closed-before-display','modal-not-visible':'modal-not-visible'};
+            const _reason=_kind==='PAID' ? (_paidReasons[_code] || 'render-failed') : /^[A-Z_]+$/.test(_code) ? _code : ['canvas','encode'].includes(_stage) ? 'CANVAS_EXPORT_FAILED' : _stage==='modal' ? 'MODAL_NOT_VISIBLE' : _stage.startsWith('preview') ? 'PREVIEW_FAILED' : 'RENDER_FAILED';
+            _clearReceiptPreview();
+            const safeError=_receiptError(_reason,error?.stage || _stage);
+            const _safeQrPixelAudit=error?.qrPixelAudit||null;
+            console.error('[Receipt]',{stage:safeError.stage,reason:_reason,jobId:isReceiptRequestCurrent.jobId,kind:_kind,..._diagnostics(),...(_safeQrPixelAudit?{qrPixelAudit:_safeQrPixelAudit}:{})});
+            window.showToast(_kind==='REPORT' ? _receiptFailureMessage(_reason) : '❌ Lỗi tạo hình biên lai, không thực hiện thu tiền lại.');
+            // Retain the established receipt result contract; the queue attaches job metadata.
+            error=safeError;return { ok: false, reason: _reason, error, diagnostics:{..._diagnostics(),...(_safeQrPixelAudit?{qrPixelAudit:_safeQrPixelAudit}:{})} };
+        } finally {
+            const _receiptNode = document.getElementById('receiptTemplate');
+            if (_receiptNode) _receiptNode.style.cssText = 'position:absolute;left:-9999px;visibility:hidden;';
+        }
+    };
+    let _receiptRenderQueue = Promise.resolve();
+    window.exportReceipt = (...inputArgs) => {const requestId=++_receiptRequestEpoch,queuedAt=Date.now();const _clubAtRequest=currentClubId;const _ownerAtRequest=_receiptPrincipalFingerprint();const _settingsAtRequest=_receiptConfigFingerprint(clubConfig);let kind='UNKNOWN',requestError=null;try{kind=_receiptKindFromTitle(inputArgs[7]);}catch(e){requestError=e;}const args=Array.from({length:9},(_,i)=>inputArgs[i]);if(Array.isArray(args[5]))args[5]=Object.freeze(args[5].slice());if(Array.isArray(args[8]))args[8]=Object.freeze(args[8].map(row=>Object.freeze({...row})));const o=kind==='REPORT'&&inputArgs[9]==='multiItemModal'?document.getElementById('multiItemModal'):null;const ctx=()=>{const a=window.__verifiedAuthContextState||{},c=window.__clubAccessBootstrapState;return[a.sessionEpoch,a.branchGeneration,a.assignmentVersion,a.activeBranch,c?.ready,c?.status,kind==='REPORT'?window.getCurrentActiveTabId?.():null,o?[o.isConnected,o.style.display,o.dataset?.reportEpoch,...Array.from(o.querySelectorAll?.('input,select,textarea')||[],e=>[e.id,e.value,e.checked,{...e.dataset}])]:null];};const stamp=ctx();let done=false;const snap=x=>JSON.stringify(done?x.slice(0,-1):x);const failureReason=()=>{if(_clubAtRequest!==currentClubId||_ownerAtRequest!==_receiptPrincipalFingerprint())return'AUTH_STALE';const principal=window.__verifiedAuthContextState;if(!principal?.ready||!principal.uid||!Number.isSafeInteger(principal.generation)||principal.generation<1)return'AUTH_STALE';if(snap(ctx())!==snap(stamp)||(!done&&o?.style.display==='none'))return'JOB_STALE';if(kind==='REPORT'){if(_settingsAtRequest!==_receiptConfigFingerprint(clubConfig))return'CONFIG_STALE';try{_receiptAuthorityConfig();}catch(e){return e.code||'ACCOUNT_SETTINGS_UNVERIFIED';}}return'';};const sameRequest=()=>_receiptActiveJobId===requestId&&!failureReason();sameRequest.failureReason=failureReason;sameRequest.jobId=requestId;sameRequest.kind=kind;sameRequest.queuedAt=queuedAt;sameRequest.isPreviewCurrent=()=>_receiptActiveJobId===requestId;args.push(sameRequest);const _runRequestedReceipt=()=>{_receiptActiveJobId=requestId;_receiptActiveJobKind=kind;_clearReceiptPreview();const reason=requestError?.code||failureReason();if(reason){const error=_receiptError(reason,'authority');console.error('[Receipt]',{stage:error.stage,reason,jobId:requestId,kind});window.showToast(_receiptFailureMessage(reason));return{ok:false,reason,error,stage:error.stage,jobId:requestId,kind};}return _exportReceiptNow(...args).then(result=>{done=!!result.ok;return{...result,stage:result.error?.stage||(result.ok?'complete':'render'),jobId:requestId,kind};});};const run=_receiptRenderQueue.then(_runRequestedReceipt,_runRequestedReceipt);_receiptRenderQueue=run.then(()=>undefined,()=>undefined);return run;};
+
+    // Phase 4K-2B: Legacy renderApp search normalize — strips Vietnamese diacritics for correct matching
+    function _legacyNormalizeSearch(value) {
+        if (window.normalizeVNForSearch) return window.normalizeVNForSearch(value);
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, ' ');
+    }
+
+
+    // Phase 4K-6V4C2: canonical skipped-month helpers for the Active tab header.
+    // Legacy fallback render must not hide skipped-month students because of
+    // status aliases or month strings like "Tháng Sáu 2026".
+    function _legacyNormalizeSkippedMonth(value) {
+        const fn = typeof window.normalizeTuitionMonth === 'function' ? window.normalizeTuitionMonth : normalizeYYYYMM;
+        try { return fn(value) || ''; } catch (_) { return normalizeYYYYMM(value) || ''; }
+    }
+    function _legacyIsActiveForSkipped(profile) {
+        const p = profile || {};
+        try {
+            if (typeof window.deriveProfileCanonicalState === 'function') {
+                const c = window.deriveProfileCanonicalState(p) || {};
+                if (c.statusCanonical) return c.statusCanonical === 'active';
+            }
+        } catch (_) {}
+        try {
+            const kind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : String(p.status || 'active');
+            return String(kind || '').toLowerCase() !== 'quit';
+        } catch (_) {
+            return String(p.status || 'active').toLowerCase() !== 'quit';
+        }
+    }
+    function _legacyHasSkippedMonth(profile, selectedMonth) {
+        const target = _legacyNormalizeSkippedMonth(selectedMonth);
+        if (!target) return false;
+        const arr = Array.isArray(profile && profile.skippedMonths) ? profile.skippedMonths : [];
+        return arr.some(function(m) { return _legacyNormalizeSkippedMonth(m) === target; });
+    }
+    function _legacySkippedNamesForMonth(profiles, selectedMonth) {
+        return Object.keys(profiles || {}).filter(function(n) {
+            const pr = profiles[n] || {};
+            return _legacyIsActiveForSkipped(pr) && _legacyHasSkippedMonth(pr, selectedMonth);
+        });
+    }
+    function _legacyProfilesForSmallUi() {
+        const merged = {};
+        try {
+            const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
+                ? (window.studentProfileStore.getAllProfilesCompat() || {})
+                : {};
+            Object.assign(merged, compat);
+        } catch (_) {}
+        try { Object.assign(merged, allProfiles || {}); } catch (_) {}
+        try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+        try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
+        return Object.keys(merged).length ? merged : (allProfiles || {});
+    }
+    function _legacyRefreshSmallStudentUi() {
+        try { if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner(); } catch (_) {}
+        try {
+            const _curTabEl = document.querySelector('.tab-content.active');
+            const _curTabId = _curTabEl ? _curTabEl.id.replace('tab_', '') : 'tx';
+            if (_curTabId === 'active') {
+                const _fm = document.getElementById('filterMonth');
+                const _m = _legacyNormalizeSkippedMonth(_fm ? _fm.value : '') || (_fm ? _fm.value : '');
+                const _names = _legacySkippedNamesForMonth(_legacyProfilesForSmallUi(), _m);
+                const _section = document.getElementById('skippedSection');
+                if (_section) {
+                    if (_names.length > 0) {
+                        _section.classList.remove('hidden');
+                        const _title = document.getElementById('skippedSectionTitle');
+                        const _list = document.getElementById('skippedThisMonthList');
+                        if (_title) _title.innerText = `⏸ Báo nghỉ tháng ${formatMonth(_m)} — ${_names.length} võ sinh miễn học phí`;
+                        if (_list) {
+                            _list.innerHTML = '';
+                            _names.sort().forEach(n => {
+                                const badge = document.createElement('span');
+                                badge.className = 'badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300';
+                                badge.title = 'Bấm để xem hồ sơ';
+                                badge.textContent = String(n || '');
+                                badge.onclick = () => window.openProfile?.(n);
+                                _list.appendChild(badge);
+                            });
+                        }
+                    } else {
+                        _section.classList.add('hidden');
+                        const _list = document.getElementById('skippedThisMonthList');
+                        if (_list) _list.innerHTML = '';
+                    }
+                }
+            }
+            if (_curTabId === 'quit' && typeof window.renderQuitList === 'function') window.renderQuitList({ reason: 'legacy-small-ui-refresh' });
+        } catch (_) {}
+    }
+
+    function renderApp(reason) {
+        // [Phase 4K-6H] Metrics
+        window.LegacyRenderEntrypoints?.recordLegacyRenderCall?.(
+            'renderApp',
+            reason || 'unknown',
+            { source: 'app.js' }
+        );
+        if (typeof window._moduleRenderApp === 'function') { window._moduleRenderApp(); return; }
+        if(window.userRole === 'super_admin') return;
+        // [PERF FIX] Skip render nếu data chưa thay đổi kể từ lần render cuối.
+        // Ngăn re-render vô ích khi onSnapshot fire liên tiếp mà không có dữ liệu mới.
+        if(_dataVersion === _lastRenderedVersion) { _legacyRefreshSmallStudentUi(); return; }
+        _lastRenderedVersion = _dataVersion;
+        // [THÊM MỚI] Cập nhật banner sinh nhật tại phần Thông tin chung
+        // mỗi khi dữ liệu thay đổi để luôn hiện ngày sinh nhật hôm nay.
+        // Gọi qua window.* vì hàm được định nghĩa trong scope initSaaSDatabase.
+        if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
+        const _curTabEl = document.querySelector('.tab-content.active');
+        const _curTabId = _curTabEl ? _curTabEl.id.replace('tab_', '') : 'tx';
+
+        // [SỬA] Tự động load danh sách điểm danh khi dữ liệu cập nhật
+        // và tab Điểm danh đang mở (tránh trường hợp list trống sau khi data về).
+        if (_curTabId === 'attendance') {
+            if (typeof window.AttendanceModule?.renderDailyFromRam === 'function') {
+                window.AttendanceModule.renderDailyFromRam('legacy-renderApp-profile-presentation');
+            } else if (typeof window.renderAttendanceList === 'function') {
+                window.renderAttendanceList('legacy-renderApp-profile-presentation', { presentationOnly: true, allowInitialLoad: true });
+            }
+        }
+
+        const _fmEl = document.getElementById('filterMonth');
+        const _fbEl = document.getElementById('filterBranch');
+        const _srEl = document.getElementById('searchInput');
+        const selMonth = _fmEl ? _fmEl.value : ''; const selBranch = _fbEl ? _fbEl.value : 'all'; const search = _legacyNormalizeSearch(_srEl ? _srEl.value : '');
+        const _txRows = [], _utxRows = [], _expRows = [], _eexpRows = [], _debtRows = [], _activeRows = [], _quitRows = [], _invRows = [];
+        let txHtml = '', uniformTxHtml = '', expHtml = '', examExpHtml = '', debtHtml = '', activeHtml = '', quitHtml = '', invListHtml = '', reportHtml = '';
+        let inc_tuition = 0, inc_exam = 0, inc_other = 0, inc_uniform = 0, exp_uniform = 0, exp = 0, exp_exam_total = 0, totalDebtEst = 0; let studentPayments = {};
+        // [THÊM BUG 7] Biến đếm giao dịch học phí hiển thị trên badge tab Học Phí
+        let txCountRender = 0;
+
+        let isSingleBranch = clubConfig.branchCount === 1;
+        const _bCount = clubConfig.branchCount || 1;
+        const _bStats = {};
+        for(let _bi = 1; _bi <= _bCount; _bi++) _bStats['CS' + _bi] = { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} };
+        const _bExamStats = {};
+        for(let _bi = 1; _bi <= _bCount; _bi++) _bExamStats['CS' + _bi] = 0;
+
+        let sizeSelectHtml = '<option value="">-- Không mua / Trống --</option>';
+        const vpSizes = ["Size 1m", "Size 1m1", "Size 1m2", "Size 1m3", "Size 1m4", "Size 1m5", "Size 1m6", "Size 1m7", "Size 1m8"];
+        // Danh mục kho động: mặc định + tùy chỉnh của admin
+        const INV_CATEGORIES = window.getInvCategories ? window.getInvCategories() : ['Võ phục', 'Áo thun', 'Bảo hộ'];
+
+        const liveInvMap = {};
+        allInventory.forEach(t => {
+            if(!t.size) return;
+            const cat = t.category || 'Võ phục';
+            const key = cat + '|||' + t.size;
+            if(!liveInvMap[key]) liveInvMap[key] = { category: cat, size: t.size, in: 0, out: 0, source: 'history-page' };
+            if(t.type === 'Nhập kho') liveInvMap[key].in += (Number(t.qty) || 0);
+            else liveInvMap[key].out += (Number(t.qty) || 0);
+        });
+        // Phase 4K-6V2 legacy fallback: overlay inventory_stats vì history chỉ tải 100/trang.
+        Object.keys(inventoryStats || {}).forEach(_sk => {
+            if(!/_balance$|_in$|_out$/.test(_sk)) return;
+            const _base = _sk.replace(/_(balance|in|out)$/, '');
+            const _parts = _base.includes('|||') ? _base.split('|||') : ['Võ phục', _base];
+            const _cat = _parts[0] || 'Võ phục'; const _size = _parts.slice(1).join('|||') || _base;
+            const _key = _cat + '|||' + _size; const _cur = liveInvMap[_key] || { category:_cat, size:_size, in:0, out:0 };
+            const _inV = Number(inventoryStats[_base + '_in']); const _outV = Number(inventoryStats[_base + '_out']); const _balV = Number(inventoryStats[_base + '_balance']);
+            const _out = Number.isFinite(_outV) ? _outV : Number(_cur.out || 0);
+            const _in = Number.isFinite(_inV) ? _inV : (Number.isFinite(_balV) ? _balV + _out : Number(_cur.in || 0));
+            liveInvMap[_key] = { category:_cat, size:_size, in:_in, out:_out, source:'inventory-stats' };
+        });
+
+        window._liveInvMap = liveInvMap;
+        // Thứ tự sắp xếp: mặc định trước, tùy chỉnh theo thứ tự thêm vào
+        const catOrder = { 'Võ phục': 0, 'Áo thun': 1, 'Bảo hộ': 2 };
+        (window.invCustomCategories || []).forEach((c, i) => { catOrder[c.name] = 3 + i; });
+        const sortedInvKeys = Object.keys(liveInvMap).sort((a, b) => {
+            const ca = liveInvMap[a].category, cb = liveInvMap[b].category;
+            if(ca !== cb) return (catOrder[ca] ?? 9) - (catOrder[cb] ?? 9);
+            return liveInvMap[a].size.localeCompare(liveInvMap[b].size);
+        });
+
+        if (_curTabId === 'inventory') {
+        sortedInvKeys.forEach(key => {
+            const s = liveInvMap[key];
+            let inQty = s.in, outQty = s.out, bal = inQty - outQty;
+            const catColors = { 'Võ phục': 'bg-blue-50 text-blue-700 border-blue-200', 'Áo thun': 'bg-purple-50 text-purple-700 border-purple-200', 'Bảo hộ': 'bg-orange-50 text-orange-700 border-orange-200' };
+            const catBadge = `<span class="badge ${catColors[s.category] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${s.category}</span>`;
+            if (inQty > 0 || outQty > 0) {
+                invListHtml += `<tr>
+                    <td>${catBadge}</td>
+                    <td class="font-bold text-slate-800">${s.size}</td>
+                    <td class="text-emerald-600 font-bold">+${inQty}</td>
+                    <td class="text-rose-600 font-bold">-${outQty}</td>
+                    <td class="${bal < 3 ? 'text-rose-600' : 'text-emerald-600'} font-black text-base">${bal}</td>
+                </tr>`;
+            }
+        });
+        }
+
+        const _admissionStockRows = window.MultiItemInventorySafety?.buildInventoryCategorySizeOptions?.('Võ phục', {
+            stockMap: liveInvMap, defaultSizes: vpSizes, configuredSizes: []
+        }) || vpSizes.map(size => {
+            const _entry = liveInvMap['Võ phục|||' + size] || { in: 0, out: 0 };
+            return { size, balance: (Number(_entry.in) || 0) - (Number(_entry.out) || 0) };
+        });
+        _admissionStockRows.forEach(row => {
+            const size = row.size || row.value, bal = Number(row.balance) || 0;
+            sizeSelectHtml += `<option value="${size}"${bal > 0 ? '' : ' disabled'}>${size} (${bal > 0 ? `Còn: ${bal} bộ` : 'Hết hàng'})</option>`;
+        });
+
+        if(sizeSelectHtml !== _lastSizeSelectHtml) { _lastSizeSelectHtml = sizeSelectHtml; const addSizeSelect = document.getElementById('add_uniform_size'); if(addSizeSelect) addSizeSelect.innerHTML = sizeSelectHtml; }
+
+        const relatedTxByInvId = new Map();
+        allTransactions.forEach(tx => (window.TransactionDeleteIntegrity?.extractInventoryRefsFromTransaction?.(tx) || []).forEach(invId => relatedTxByInvId.set(invId, tx)));
+
+        let unpaidInvCount = 0;
+        allInventory.forEach(t => {
+            let isSearchMatch = true;
+            if (search && !_legacyNormalizeSearch(t.desc).includes(search) && !_legacyNormalizeSearch(t.size).includes(search)) isSearchMatch = false;
+
+            if(isSearchMatch) {
+                let isInc = t.type === 'Nhập kho';
+                let isUnpaid = !isInc && t.unpaid === true;
+                if(isUnpaid) unpaidInvCount++;
+                let typeBadge = `<span class="text-[0.65rem] font-bold uppercase ${isInc ? 'text-rose-600' : 'text-emerald-600'} bg-slate-50 px-2 py-1 rounded border ${isInc ? 'border-rose-200' : 'border-emerald-200'}">${isInc ? 'NHẬP' : 'XUẤT'}</span>`;
+                const unpaidBadge = isUnpaid ? `<span style="display:inline-block;font-size:0.65rem;font-weight:900;background:#f97316;color:#fff;border-radius:5px;padding:2px 7px;margin-left:5px;vertical-align:middle;letter-spacing:0.03em;">NỢ</span>` : '';
+
+                let displayDesc = t.desc; let displayAmt = t.amount;
+                let relatedTxForDesc = relatedTxByInvId.get(t.id) || null;
+                if ((!displayDesc || displayAmt === undefined) && relatedTxForDesc) {
+                    displayDesc = relatedTxForDesc.description; displayAmt = relatedTxForDesc.amount;
+                }
+
+                let amountHtml = displayAmt > 0 ? `<span class="font-bold ${isInc ? 'text-rose-600' : (isUnpaid ? 'text-orange-500' : 'text-emerald-600')}">${isInc ? '-' : '+'}${displayAmt.toLocaleString()}</span>` : `<span class="font-bold text-slate-400">0</span>`;
+                let descHtml = (displayDesc || (isInc ? `Nhập ${t.size}` : `Xuất ${t.size}`)) + unpaidBadge;
+
+                let txIdForDelete = relatedTxForDesc && relatedTxForDesc.id ? String(relatedTxForDesc.id) : '';
+
+                const txCat = t.category || 'Võ phục';
+                const txCatColors = { 'Võ phục': 'bg-blue-50 text-blue-700 border-blue-200', 'Áo thun': 'bg-purple-50 text-purple-700 border-purple-200', 'Bảo hộ': 'bg-orange-50 text-orange-700 border-orange-200' };
+                const txCatBadge = `<span class="badge ${txCatColors[txCat] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${txCat}</span>`;
+                const markPaidBtn = (isUnpaid && window.userRole === 'admin') ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="markInvPaid('${t.id}')">✅ Đã thu</button>` : '';
+                uniformTxHtml += `<tr class="${isUnpaid ? 'inv-unpaid-row' : ''}">
+                    <td class="text-slate-500 text-[0.85rem]">${formatDate(t.date)}</td>
+                    <td class="font-bold text-blue-700 text-[0.9rem]">${descHtml}</td>
+                    <td>${typeBadge}</td>
+                    <td>${txCatBadge} <span class="badge bg-slate-50 text-slate-700 border border-slate-200 text-[0.75rem] ml-1">${t.size}</span></td>
+                    <td>${amountHtml}</td>
+                    <td class="action-btns">${markPaidBtn}${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white" onclick="deleteTx('${txIdForDelete}', '${t.id}')">🗑</button>`:''}</td>
+                </tr>`;
+            }
+        });
+        if (_curTabId === 'inventory' && typeof window.getInventoryHistoryPaginationState === 'function') {
+            const _pgInv = window.getInventoryHistoryPaginationState();
+            const _pgStyle = 'text-align:center;padding:14px 10px;background:#f8fafc;';
+            if (_pgInv.loading && !_pgInv.loaded) uniformTxHtml += `<tr><td colspan="6" style="${_pgStyle}color:#64748b;font-weight:700;">⏳ Đang tải 100 giao dịch Kho gần nhất...</td></tr>`;
+            else if (_pgInv.error) uniformTxHtml += `<tr><td colspan="6" style="${_pgStyle}color:#b45309;"><button type="button" class="btn-sm bg-amber-500 text-white" onclick="window.refreshInventoryHistory?.('legacy-inventory-retry')">Thử tải lại lịch sử Kho</button></td></tr>`;
+            else if (_pgInv.hasMore) uniformTxHtml += `<tr><td colspan="6" style="${_pgStyle}"><button type="button" class="btn-sm bg-blue-600 text-white" onclick="window.loadMoreInventoryHistory(event)">⬇ Tải thêm ${_pgInv.pageSize} giao dịch</button><div style="font-size:0.68rem;color:#64748b;margin-top:6px;">Đã tải ${_pgInv.loadedCount} giao dịch</div></td></tr>`;
+            else if (_pgInv.loaded) uniformTxHtml += `<tr><td colspan="6" style="${_pgStyle}color:#64748b;font-size:0.72rem;font-weight:700;">✓ Đã tải hết ${_pgInv.loadedCount} giao dịch Kho</td></tr>`;
+        }
+        if (window.__inventoryStore && window.__inventoryStore.inventoryDebtCompleteness === 'complete' && Array.isArray(window.__inventoryStore.financeInventoryDebts)) {
+            unpaidInvCount = window.__inventoryStore.financeInventoryDebts.length;
+        } else if (window.__inventoryDebtCompleteness === 'complete' && Array.isArray(window.__completeInventoryDebts)) {
+            unpaidInvCount = window.__completeInventoryDebts.length;
+        }
+        const _unpaidWrapEl = document.getElementById('sum_uniform_unpaid_wrap');
+        const _unpaidCountEl = document.getElementById('sum_uniform_unpaid');
+        if(_unpaidWrapEl) _unpaidWrapEl.style.display = unpaidInvCount > 0 ? '' : 'none';
+        if(_unpaidCountEl) _unpaidCountEl.innerText = unpaidInvCount + ' đơn';
+
+        // ── Smart Name: đếm tên trùng toàn hệ thống (dùng cho TX + danh sách) ──
+        // [SỬA] Đếm theo tên gốc — bỏ hậu tố phân biệt như "(2016)" hoặc "(2016-Lớn)"
+        const _stripNameSuffix = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim().toLowerCase();
+        // Helper hiển thị tên — bỏ hậu tố nhưng GIỮ hoa/thường gốc
+        const _displayName = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+        const _nameNCount = {};
+        Object.keys(allProfiles || {}).forEach(n => {
+            const k = _stripNameSuffix(n);
+            _nameNCount[k] = (_nameNCount[k] || 0) + 1;
+        });
+        // Helper trả về HTML tên — gắn năm sinh dạng superscript màu xám nếu tên trùng
+        const _getYearBadge = (n, profileData) => {
+            if ((_nameNCount[_stripNameSuffix(n)] || 0) <= 1) return '';
+            const _pd = profileData || allProfiles[n] || {};
+            const dob = _pd.dob || '';
+            let yr = dob.includes('/') ? dob.split('/')[2] : (dob.includes('-') ? dob.split('-')[0] : '');
+            // Fallback: trích năm từ hậu tố key như "(2016)" hoặc "(2016-B)"
+            if (!yr) { const _ym = (n || '').match(/\((\d{4})/); if (_ym) yr = _ym[1]; }
+            return yr ? '<sup style="font-size:0.55rem;color:#94a3b8;font-weight:700;vertical-align:super;line-height:0;margin-left:2px;">' + yr + '</sup>' : '';
+        };
+
+        allTransactions.forEach(t => {
+            const cleanName = t.description ? t.description.trim() : "";
+            // Phase 4K-4D: dùng classifyInventoryFinanceTx hỗ trợ custom categories
+            const _invClass = typeof window.classifyInventoryFinanceTx === 'function'
+                ? window.classifyInventoryFinanceTx(t)
+                : (function(t) {
+                    const _cats = window.getInvCategories ? window.getInvCategories() : ['Võ phục','Áo thun','Bảo hộ'];
+                    const _type = String(t && t.type || '').trim();
+                    for (const cat of _cats) {
+                        if (_type === 'Thu ' + cat)  return { isInventory:true, direction:'income',  amount: Number(t.amount||0) };
+                        if (_type === 'Chi ' + cat)  return { isInventory:true, direction:'expense', amount: Number(t.amount||0) };
+                        if (_type === 'Tặng ' + cat) return { isInventory:true, direction:'gift',    amount: 0 };
+                    }
+                    if (_type === 'Võ phục') return { isInventory:true, direction:'income', amount: Number(t.amount||0) };
+                    if (t && t.relatedInvId) {
+                        if (_type.startsWith('Thu '))  return { isInventory:true, direction:'income',  amount: Number(t.amount||0) };
+                        if (_type.startsWith('Chi '))  return { isInventory:true, direction:'expense', amount: Number(t.amount||0) };
+                        if (_type.startsWith('Tặng ')) return { isInventory:true, direction:'gift',    amount: 0 };
+                    }
+                    return { isInventory:false };
+                })(t);
+            let isUniformTx = _invClass.isInventory;
+
+            let isBranchMatch = true;
+            if (!isSingleBranch && selBranch !== 'all' && t.branch !== selBranch && t.branch !== 'Chung') isBranchMatch = false;
+            let isSearchMatch = true;
+            if (search && !_legacyNormalizeSearch(cleanName).includes(search) && !_legacyNormalizeSearch(t.examTitle).includes(search)) isSearchMatch = false;
+
+            let safeBranch = t.branch || "CS1"; let safeNameEscaped = cleanName.replace(/'/g, "\\'");
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.escapeHtml(String(window.getBranchNameDisplay(safeBranch) || ''))}</span></td>`;
+            const btnDel = window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white ml-1" onclick="deleteTx('${t.id}', '${t.relatedInvId || ''}')">🗑</button>` : '';
+
+            if (isUniformTx) {
+                if      (_invClass.direction === 'income')  inc_uniform += Number(t.amount) || 0;
+                else if (_invClass.direction === 'expense') exp_uniform += Number(t.amount) || 0;
+                // direction === 'gift' → không cộng doanh thu / chi
+                return;
+            }
+
+            if (!isBranchMatch || !isSearchMatch) return;
+
+            const btnEditExp = window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white" onclick="openEditExpense('${t.id}')">✏️</button>` : '';
+
+            if(t.type === 'Chi phí') {
+                exp += Number(t.amount) || 0;
+                if(_curTabId === 'expense') expHtml += `<tr><td>${formatDate(t.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800">${window.escapeHtml(String(t.description || ''))}</td><td class="text-rose-600 font-bold">-${(Number(t.amount)||0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
+            } else if (t.type === 'Chi phí kỳ thi') {
+                exp_exam_total += Number(t.amount) || 0;
+                if(_curTabId === 'exam') examExpHtml += `<tr><td>${formatDate(t.date)}</td><td class="font-bold text-slate-800">${window.escapeHtml(String(t.description || ''))}</td><td class="text-rose-600 font-bold">-${(Number(t.amount)||0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
+            } else {
+                // [THÊM BUG 7] Đếm giao dịch thu học phí qua filter hiện tại để cập nhật badge
+                txCountRender++;
+                let allocatedAmount = Number(t.amount) || 0;
+                const _normTxType = typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : (String(t.type || '').trim() === 'Thu nhập học' ? 'Học phí' : t.type);
+                if(_normTxType === 'Học phí') { allocatedAmount = t.packageMonths ? allocatedAmount / t.packageMonths.length : allocatedAmount; inc_tuition += allocatedAmount; }
+                else if(_normTxType === 'Học phí + Lệ phí thi') { allocatedAmount = t.packageMonths ? (Number(t.tuitionAmount) || 0) / t.packageMonths.length : (Number(t.tuitionAmount) || 0); inc_tuition += allocatedAmount; inc_exam += (Number(t.examAmount) || 0); }
+                else if(_normTxType === 'Lệ phí thi') { inc_exam += allocatedAmount; }
+                else { inc_other += allocatedAmount; }
+                const _txBr = t.branch || 'CS1';
+                if(_bStats[_txBr] !== undefined) {
+                    const _examPart = (_normTxType === 'Học phí + Lệ phí thi') ? (Number(t.examAmount)||0) : 0;
+                    const _txInc = allocatedAmount + _examPart;
+                    _bStats[_txBr].income += _txInc;
+                    if(_normTxType === 'Lệ phí thi') {
+                        const _ek = Math.round(allocatedAmount);
+                        if(_ek > 0) _bStats[_txBr].examFeeMap[_ek] = (_bStats[_txBr].examFeeMap[_ek] || 0) + 1;
+                    } else if(_normTxType === 'Học phí + Lệ phí thi') {
+                        const _tk = Math.round(allocatedAmount);
+                        if(_tk > 0) _bStats[_txBr].tuitionMap[_tk] = (_bStats[_txBr].tuitionMap[_tk] || 0) + 1;
+                        const _ek = Math.round(_examPart);
+                        if(_ek > 0) _bStats[_txBr].examFeeMap[_ek] = (_bStats[_txBr].examFeeMap[_ek] || 0) + 1;
+                    } else {
+                        const _tk = Math.round(allocatedAmount);
+                        if(_tk > 0) _bStats[_txBr].tuitionMap[_tk] = (_bStats[_txBr].tuitionMap[_tk] || 0) + 1;
+                    }
+                }
+                if(_bExamStats[_txBr] !== undefined) {
+                    if(_normTxType === 'Lệ phí thi') _bExamStats[_txBr] += allocatedAmount;
+                    else if(_normTxType === 'Học phí + Lệ phí thi') _bExamStats[_txBr] += (Number(t.examAmount) || 0);
+                }
+
+                let studentNameBase = cleanName.split(' (')[0]; let safeStudentNameBase = studentNameBase.replace(/'/g, "\\'");
+                let safeExamTitle = t.examTitle ? t.examTitle.replace(/'/g, "\\'") : '';
+                let displayTxMonth = t.packageMonths && t.packageMonths.length > 1 ? `${t.packageMonths.length} Tháng` : (t.txMonth ? formatMonth(t.txMonth) : "-");
+                // Smart Name: gắn năm sinh vào tên nếu trùng; truyền profile theo key đầy đủ để lấy đúng DOB
+                const _txYrBadge = _getYearBadge(cleanName, allProfiles[cleanName] || allProfiles[studentNameBase]);
+
+                // Build display name and type badge based on transaction type
+                let displayName, typeBadgeHtml;
+                if(t.type === 'Lệ phí thi') {
+                    displayName = studentNameBase + _txYrBadge + ' <span style="font-size:0.75rem;font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 6px;vertical-align:middle;">🏆 Thi lên đai</span>';
+                    typeBadgeHtml = '';
+                } else if(t.type === 'Học phí + Lệ phí thi') {
+                    displayName = studentNameBase + _txYrBadge + ' <span style="font-size:0.75rem;font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 6px;vertical-align:middle;">🏆 HP + Thi lên đai</span>';
+                    typeBadgeHtml = '';
+                } else {
+                    displayName = cleanName + _txYrBadge;
+                    let badgeTypeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                    let printTypeBadge = t.type;
+                    typeBadgeHtml = `<span class="badge ${badgeTypeClass} border">${printTypeBadge}</span>`;
+                }
+
+                let amountHTML = '';
+                if (t.packageMonths && t.packageMonths.length > 1) {
+                    let totalAllo = t.type === 'Học phí + Lệ phí thi' ? (allocatedAmount + (Number(t.examAmount)||0)) : allocatedAmount;
+                    amountHTML = `<div class="text-emerald-600 font-black text-base">+${totalAllo.toLocaleString()}</div><div class="text-[0.65rem] text-slate-500 font-bold whitespace-nowrap">Tổng: ${(Number(t.amount)||0).toLocaleString()}</div>`;
+                } else {
+                    amountHTML = `<span class="text-emerald-600 font-black text-base">+${(Number(t.amount)||0).toLocaleString()}</span>`;
+                }
+
+                if(_curTabId === 'tx') txHtml += `<tr class="tx-mobile-card"><td class="tx-date-cell">${formatDate(t.date)}</td>${branchTdHTML}<td class="tx-month-cell"><span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">${displayTxMonth}</span></td><td class="tx-name-cell name-link text-[0.95rem]" onclick="openProfile('${safeStudentNameBase}')">${displayName}</td><td class="tx-type-cell">${typeBadgeHtml}</td><td class="tx-amount-cell">${amountHTML}</td><td class="tx-actions-cell action-btns"><button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white" onclick="exportReceipt('${safeStudentNameBase}', ${Number(t.amount)||0}, '${t.type}', '${t.date}', '${t.packageMonths ? t.packageMonths.join(',') : (t.txMonth||'')}', '${safeBranch}', '${safeExamTitle}', 'BIÊN LAI THU TIỀN')">🧾 In</button>${btnDel}</td></tr>`;
+            }
+        });
+
+        let activeCount = 0, debtCountRender = 0;
+        let m_new = 0, m_quit = 0, m_active_theo = 0, m_skipped = 0;
+
+        // [PERF] Client-side display pagination — giảm DOM nodes trên mobile.
+        // Toàn bộ allProfiles vẫn được duyệt đầy đủ để tính badge nợ / active count.
+        // Chỉ giới hạn số dòng HTML render ra màn hình (mỗi trang 100 dòng).
+        // Người dùng bấm "Tải thêm" → window._loadMore(tab) → render trang tiếp.
+        const _PAGE_LIMIT    = 100;
+        const _activeLimit   = (window._activePage || 1) * _PAGE_LIMIT;
+        const _debtLimit     = (window._debtPage   || 1) * _PAGE_LIMIT;
+        const _quitLimit     = (window._quitPage   || 1) * _PAGE_LIMIT;
+        let _activeRendered = 0, _debtRendered = 0, _quitRendered = 0;
+        let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
+
+        Object.keys(allProfiles).forEach(name => {
+            const p = allProfiles[name]; let safeBranch = p.branch || "CS1";
+            const _joinM = p.createdAt ? p.createdAt.substring(0, 7) : "2000-01";
+            const _quitM = p.quitDate ? p.quitDate.substring(0, 7) : null;
+            if (_joinM === selMonth) m_new++;
+            if (_quitM === selMonth) m_quit++;
+            if (_joinM <= selMonth && (!_quitM || _quitM >= selMonth)) { m_active_theo++; if (_legacyHasSkippedMonth(p, selMonth)) m_skipped++; }
+            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) === 'active' && _bStats[safeBranch] !== undefined) {
+                _bStats[safeBranch].active++;
+            }
+            if(!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) return;
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(safeBranch)}</span></td>`;
+
+            let safePhone = p.phone || ""; let safeBelt = p.belt || ""; let safeNotes = p.notes || ""; let safeNameEscaped = name.replace(/'/g, "\\'");
+            let matchesSearch = true;
+            if (search) {
+                matchesSearch =
+                    _legacyNormalizeSearch(name).includes(search) ||
+                    String(safePhone || '').includes(search) ||
+                    _legacyNormalizeSearch(safeBelt).includes(search) ||
+                    _legacyNormalizeSearch(safeNotes).includes(search);
+            }
+            if (!matchesSearch) return;
+            // Smart Name: gắn năm sinh nếu tên trùng
+            const _listYrBadge = _getYearBadge(name, p);
+            // [THÊM] Badge "Mới" — hiện khi võ sinh đăng ký trong tháng đang xem
+            const _newBadge = (_joinM === selMonth)
+                ? ' <span style="font-size:0.62rem;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:5px;padding:1px 5px;font-weight:900;vertical-align:middle;">MỚI</span>'
+                : '';
+
+            let beltHTML = window.getBeltBadge ? window.getBeltBadge(p.belt) : `<span class="badge bg-slate-100 text-slate-700 border border-slate-300">${window.escapeHtml(String(p.belt || ''))}</span>`;
+            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) === 'active') {
+                activeCount++;
+                let lastPaidStr = p.paidUntil ? formatMonth(p.paidUntil) : "Chưa cập nhật";
+                // [ĐÃ XÓA] Không còn hiện badge "Miễn phí" bên cạnh tên — chỉ hiển thị ở cột "đã đóng tới tháng"
+                const paidBadge = p.feeExempt ? `<span class="badge hidden md:inline-block" style="background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;font-weight:900;">Miễn Học Phí</span><span class="badge md:hidden" style="background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;font-weight:900;">Miễn HP</span>` : `<span class="badge badge-active">${lastPaidStr}</span>`;
+                // [THÊM] Badge biệt danh hiển thị ngay trong danh sách (không phải chỉ trong hồ sơ)
+                const _activeNickBadge = p.nickname ? ' <span style="font-size:0.65rem;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:4px;padding:1px 5px;font-weight:800;vertical-align:middle;">🏷 ' + window.escapeHtml(String(p.nickname)) + '</span>' : '';
+                // [PERF] Đếm tổng trước — badge count vẫn chính xác dù giới hạn render
+                if(_curTabId === 'active') { _activeTotalCount++; if(_activeRendered < _activeLimit) { _activeRendered++; activeHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${window.escapeHtml(String(_displayName(name) || ''))}${_listYrBadge}${_newBadge}${p.notes ? ' <span title="'+window.escapeHtml(String(p.notes))+'">📝</span>' : ''}${_activeNickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${window.escapeHtml(String(p.memberId || '-'))}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${window.escapeHtml(String(safePhone || ''))}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEscaped}')">${window.userRole === 'admin' ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`; } }
+
+                let isDebt = false;
+                let unpaidMonthsCount = 0;
+                let owedMonths = [];
+
+                if (!p.feeExempt) {
+                    owedMonths = typeof window.getChargeableTuitionMonths === 'function'
+                        ? window.getChargeableTuitionMonths(p, selMonth, { reason: 'legacy-render-debt-list' })
+                        : [];
+                    unpaidMonthsCount = owedMonths.length;
+                    if (unpaidMonthsCount > 0) isDebt = true;
+                }
+
+                if(isDebt) {
+                    debtCountRender++;
+                    if(_bStats[safeBranch] !== undefined) _bStats[safeBranch].debt++;
+                    let totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0); totalDebtEst += totalDebtAmount;
+                    const isOverdue = unpaidMonthsCount >= 2;
+                    const rowBg = isOverdue ? 'style="background:#fff1f2;"' : '';
+                    const countBadgeClass = isOverdue ? 'bg-rose-600 text-white border-rose-700' : 'bg-rose-50 text-rose-700 border border-rose-200';
+
+                    const owedMonthsStr = owedMonths.join(',') || selMonth;
+                    const safeOwedMonths = owedMonthsStr.replace(/'/g, '');
+                    let lastPaidLabel = `<span class="font-bold text-primary text-[0.8rem]">${window.formatMonthCompact(owedMonthsStr)}</span>`;
+
+                    // [PERF] Debt list pagination — đếm tổng nợ vẫn chính xác
+                    _debtTotalCount++;
+                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="ReceiptHelpers.withPendingReportButton(this,()=>generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}'))">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEscaped}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEscaped}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
+                }
+            } else {
+                // [PERF] Quit list pagination
+                if(_curTabId === 'quit') { _quitTotalCount++; if(_quitRendered < _quitLimit) { _quitRendered++; const _quitDateDisplay = p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate; quitHtml += `<tr data-quit-id="${safeNameEscaped}" data-profile-name="${_displayName(name).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(_quitDateDisplay)}</td><td>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEscaped}')">🔄 Khôi phục</button>` : ''}</td></tr>`; } }
+            }
+        });
+
+        document.getElementById('debtTabCountBadge').innerText = debtCountRender;
+        // [THÊM BUG 7] Cập nhật số giao dịch thu lên badge tab Học Phí
+        const _txBadgeEl = document.getElementById('txTabCountBadge');
+        if(_txBadgeEl) _txBadgeEl.innerText = txCountRender;
+
+        let chartLabels = []; let chartIncome = []; let chartExpense = []; let chartActive = []; let chronologicalMonths = [];
+        let [sy, sm] = selMonth.split('-').map(Number);
+        for(let i=0; i<6; i++) { let m = sm - i; let y = sy; if(m <= 0) { m += 12; y -= 1; } chronologicalMonths.push(`${y}-${String(m).padStart(2, '0')}`); }
+        chronologicalMonths.reverse();
+
+        let m_actual = m_active_theo - m_skipped;
+
+        reportHtml = `<tr><td class="font-black text-primary">${formatMonth(selMonth)}</td><td class="text-slate-800 font-bold text-base">${m_actual}</td><td class="text-emerald-600 font-medium">+${m_new}</td><td class="text-rose-600 font-medium">-${m_quit}</td><td class="text-emerald-600 font-bold">${(inc_tuition + inc_exam + inc_other + inc_uniform).toLocaleString()} ₫</td><td class="text-rose-600 font-bold">${(exp + exp_exam_total + exp_uniform).toLocaleString()} ₫</td><td class="${((inc_tuition + inc_exam + inc_other + inc_uniform)-(exp + exp_exam_total + exp_uniform))<0 ? 'text-rose-600' : 'text-emerald-600'} font-black text-base bg-slate-50">${((inc_tuition + inc_exam + inc_other + inc_uniform)-(exp + exp_exam_total + exp_uniform)).toLocaleString()} ₫</td></tr>`;
+
+        chronologicalMonths.forEach((m, index) => { chartLabels[index] = formatMonth(m); if (m === selMonth) { chartIncome[index] = inc_tuition + inc_exam + inc_other + inc_uniform; chartExpense[index] = exp + exp_exam_total + exp_uniform; chartActive[index] = m_actual; } else { chartIncome[index] = 0; chartExpense[index] = 0; chartActive[index] = 0; } });
+
+        // [PERF] Thêm nút "Tải thêm" nếu còn dữ liệu chưa render (> 100 dòng đầu).
+        // Nút bấm gọi window._loadMore(tab) → tăng page → re-render trang tiếp.
+        const _moreColspan = isSingleBranch ? 8 : 9;
+        const _moreStyle = 'style="padding:10px;text-align:center;"';
+        const _moreBtnStyle = 'class="btn-sm" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;"';
+        // Phase 4K-5Q: DISABLED — active load-more row moved outside table (single source via #pgWrap_activeList)
+        // if(_activeTotalCount > _activeLimit)  activeHtml += `<tr>...</tr>`;
+        if(_debtTotalCount   > _debtLimit)    debtHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
+        if(_quitTotalCount   > _quitLimit)    quitHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
+
+        _tabHtmlCache = { txList: txHtml, uniformTxList: uniformTxHtml, expenseList: expHtml, examExpenseList: examExpHtml, debtList: debtHtml, activeList: activeHtml, quitList: quitHtml, inventoryList: invListHtml, reportList: reportHtml };
+        if (window.__store) window.__store.tabHtmlCache = _tabHtmlCache; // [Phase 2b] sync cache
+        (_TAB_LISTS[_curTabId] || []).forEach(listId => { const el = document.getElementById(listId); if(el) el.innerHTML = _tabHtmlCache[listId] || ''; });
+
+        const skippedNames = _legacySkippedNamesForMonth(allProfiles, selMonth);
+        const skippedSection = document.getElementById('skippedSection');
+        if(skippedSection) {
+            if(skippedNames.length > 0) {
+                skippedSection.classList.remove('hidden');
+                document.getElementById('skippedSectionTitle').innerText = `⏸ Báo nghỉ tháng ${formatMonth(selMonth)} — ${skippedNames.length} võ sinh miễn học phí`;
+                const _skippedList = document.getElementById('skippedThisMonthList');
+                if (_skippedList) {
+                    _skippedList.innerHTML = '';
+                    skippedNames.sort().forEach(n => {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300';
+                        badge.title = 'Bấm để xem hồ sơ';
+                        badge.textContent = String(n || '');
+                        badge.onclick = () => window.openProfile?.(n);
+                        _skippedList.appendChild(badge);
+                    });
+                }
+            } else {
+                skippedSection.classList.add('hidden');
+            }
+        }
+
+        let tIncActive = inc_tuition + inc_other + inc_exam + inc_uniform; let tExpActive = exp + exp_exam_total + exp_uniform; let uniformProfit = inc_uniform - exp_uniform;
+
+        document.getElementById('sum_tuition').innerText = inc_tuition.toLocaleString() + " ₫"; document.getElementById('sum_other').innerText = inc_other.toLocaleString() + " ₫";
+        if(document.getElementById('sum_exam_tab')) document.getElementById('sum_exam_tab').innerText = inc_exam.toLocaleString() + " ₫";
+        if(document.getElementById('sum_exam_expense_tab')) document.getElementById('sum_exam_expense_tab').innerText = exp_exam_total.toLocaleString() + " ₫";
+        if(document.getElementById('sum_exam_profit_tab')) document.getElementById('sum_exam_profit_tab').innerText = (inc_exam - exp_exam_total).toLocaleString() + " ₫";
+        const _examBrFeeEl = document.getElementById('exam_branch_fees');
+        if(_examBrFeeEl && _bCount > 1 && inc_exam > 0) {
+            let _ebHtml = '<div class="mt-3 pt-3 border-t border-orange-100"><div class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wide mb-2">💰 Lệ phí thu theo cơ sở</div><div class="flex flex-wrap gap-2">';
+            for(let _bi = 1; _bi <= _bCount; _bi++) {
+                const _bc = 'CS' + _bi;
+                const _bn = clubConfig['branchName' + _bi] || ('Cơ sở ' + _bi);
+                const _bf = _bExamStats[_bc] || 0;
+                if(_bf > 0) _ebHtml += `<div class="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-1.5"><span class="text-[0.7rem] font-bold text-orange-800 truncate max-w-[100px]">${_bn}</span><span class="font-black text-orange-600 text-sm whitespace-nowrap">${_bf.toLocaleString()} ₫</span></div>`;
+            }
+            _ebHtml += '</div></div>';
+            _examBrFeeEl.innerHTML = _ebHtml;
+            _examBrFeeEl.classList.remove('hidden');
+        } else if(_examBrFeeEl) {
+            _examBrFeeEl.classList.add('hidden');
+        }
+
+        document.getElementById('totalIncomeDashboard').innerText = tIncActive.toLocaleString() + " ₫"; document.getElementById('totalExpenseDashboard').innerText = tExpActive.toLocaleString() + " ₫"; document.getElementById('totalProfitDashboard').innerText = (tIncActive - tExpActive).toLocaleString() + " ₫"; document.getElementById('totalUniformProfitDashboard').innerText = uniformProfit.toLocaleString() + " ₫";
+
+        document.getElementById('activeStudentCount').innerText = activeCount; document.getElementById('debtCount').innerText = debtCountRender + " Bạn"; document.getElementById('debtEst').innerText = `Dự thu: ${totalDebtEst.toLocaleString()} ₫`;
+        const _mhbAC = document.getElementById('mhbActiveCount'); if(_mhbAC) _mhbAC.innerText = activeCount;
+        const _mhbDC = document.getElementById('mhbDebtCount'); if(_mhbDC) _mhbDC.innerText = debtCountRender;
+        const _mhbInc = document.getElementById('mhbIncome'); if(_mhbInc) { const _v = tIncActive; _mhbInc.innerText = _v >= 1000000 ? (_v/1000000).toFixed(1).replace(/\.0$/,'') + 'tr' : _v >= 1000 ? Math.round(_v/1000) + 'k' : (_v||0).toLocaleString(); }
+        const _mhbMon = document.getElementById('mhbMonth'); if(_mhbMon && selMonth) _mhbMon.innerText = 'T' + parseInt(selMonth.split('-')[1]) + '/' + selMonth.split('-')[0].substring(2);
+
+        // Update per-branch stats section on dashboard
+        const _bsSec = document.getElementById('branchStatsSection');
+        const _bsGrid = document.getElementById('branchStatsGrid');
+        if(_bsSec && _bsGrid && _bCount > 1) {
+            _bsSec.style.display = '';
+            let _bsHtml = '';
+            for(let _bi = 1; _bi <= _bCount; _bi++) {
+                const _bCode = 'CS' + _bi;
+                const _bName = clubConfig['branchName' + _bi] || ('Cơ sở ' + _bi);
+                const _bData = _bStats[_bCode] || { income: 0, active: 0 };
+                const _tuitionEntries = Object.entries(_bData.tuitionMap || {}).sort((a, b) => Number(b[0]) - Number(a[0]));
+                const _examEntries = Object.entries(_bData.examFeeMap || {}).sort((a, b) => Number(b[0]) - Number(a[0]));
+                let _feeBreakdownHtml = '';
+                const _hasAny = _tuitionEntries.length > 0 || _examEntries.length > 0;
+                if(_hasAny) {
+                    const _tuitionBadges = _tuitionEntries.map(([fee, count]) => `<span style="font-size:0.72rem;font-weight:700;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:8px;padding:2px 8px;white-space:nowrap;">${Number(fee).toLocaleString()}₫ × ${count} VS</span>`).join('');
+                    const _examBadges = _examEntries.map(([fee, count]) => `<span title="Lệ phí thi" style="font-size:0.72rem;font-weight:700;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:8px;padding:2px 8px;white-space:nowrap;">🎖️ ${Number(fee).toLocaleString()}₫ × ${count} VS</span>`).join('');
+                    _feeBreakdownHtml = '<div class="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100">' + _tuitionBadges + _examBadges + '</div>';
+                }
+                const _debtHtml = _bData.debt > 0 ? `<div class="text-xs mt-1" style="color:#dc2626;font-weight:700;">⚠️ ${_bData.debt} võ sinh nợ học phí</div>` : '';
+                _bsHtml += `<div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-xl flex-shrink-0">🏢</div><div class="flex-1 min-w-0"><div class="font-black text-slate-800 text-sm truncate">${window.escapeHtml(String(_bName || ''))}</div><div class="text-emerald-600 font-bold text-base">${_bData.income.toLocaleString()} ₫</div><div class="text-slate-500 text-xs mt-0.5">👥 ${_bData.active} võ sinh đang tập</div>${_debtHtml}</div></div>${_feeBreakdownHtml}</div>`;
+            }
+            _bsGrid.innerHTML = _bsHtml;
+        } else if(_bsSec) {
+            _bsSec.style.display = 'none';
+        }
+
+        if(document.getElementById('sum_expense_tab')) document.getElementById('sum_expense_tab').innerText = exp.toLocaleString() + " ₫";
+        if(document.getElementById('sum_debt_count_tab')) document.getElementById('sum_debt_count_tab').innerText = debtCountRender + " Bạn";
+        if(document.getElementById('sum_debt_amount_tab')) document.getElementById('sum_debt_amount_tab').innerText = totalDebtEst.toLocaleString() + " ₫";
+
+        document.getElementById('sum_uniform_in').innerText = inc_uniform.toLocaleString() + " ₫";
+        document.getElementById('sum_uniform_out').innerText = exp_uniform.toLocaleString() + " ₫";
+        document.getElementById('sum_uniform_profit').innerText = (inc_uniform - exp_uniform).toLocaleString() + " ₫";
+
+        _tabHtmlCache._chartData = { labels: chartLabels, income: chartIncome, expense: chartExpense, active: chartActive };
+        if (window.__store) window.__store.tabHtmlCache = _tabHtmlCache; // [Phase 2b] sync after chartData
+        if(_curTabId === 'dashboard') {
+            if(typeof Chart === 'undefined') { window.ensureChartJsReady?.('legacy-dashboard-render').then(() => { try { window.scheduleRender?.('chartjs-lazy-loaded'); } catch (_) {} }).catch((err) => console.warn('[legacy dashboard] Chart.js lazy load failed:', err)); }
+        else if(financeChartInstance) { financeChartInstance.data.labels = chartLabels; financeChartInstance.data.datasets[0].data = chartIncome; financeChartInstance.data.datasets[1].data = chartExpense; financeChartInstance.update('none'); }
+            else { financeChartInstance = new Chart(document.getElementById('financeChart'), { type: 'bar', data: { labels: chartLabels, datasets: [{ label: 'Tổng Thu', data: chartIncome, backgroundColor: 'rgba(16, 185, 129, 0.9)', borderRadius: 6 }, { label: 'Tổng Chi', data: chartExpense, backgroundColor: 'rgba(244, 63, 94, 0.9)', borderRadius: 6 }]}, options: { animation: false, maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, grid: { color: '#f8fafc' } }, x: { grid: { display: false } } }, plugins: { legend: { labels: { font: { family: "'Inter', sans-serif", weight: 'bold' } } } } } }); }
+            if(typeof Chart === 'undefined') { /* lazy Chart.js pending */ }
+            else if(memberChartInstance) { memberChartInstance.data.labels = chartLabels; memberChartInstance.data.datasets[0].data = chartActive; memberChartInstance.update('none'); }
+            else { memberChartInstance = new Chart(document.getElementById('memberChart'), { type: 'line', data: { labels: chartLabels, datasets: [{ label: 'Võ sinh Đang tập', data: chartActive, borderColor: '#0033A0', backgroundColor: 'rgba(0, 51, 160, 0.08)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2 }]}, options: { animation: false, maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, grid: { color: '#f8fafc' } }, x: { grid: { display: false } } }, plugins: { legend: { labels: { font: { family: "'Inter', sans-serif", weight: 'bold' } } } } } }); }
+        }
+        if (window.__store) { window.__store.financeChartInstance = financeChartInstance; window.__store.memberChartInstance = memberChartInstance; } // [Phase 2c] sync chart instances
+
+        if(_curTabId === 'exam') window.renderExamList();
+    }
+
+    window.getBeltBadge = function(belt) {
+        if(!belt) belt = 'Đai trắng - Cấp 10'; let bg = '#fff'; let col = '#334155'; let border = '1px solid #cbd5e1'; let extra = '';
+        if(belt.includes('trắng')) { bg = '#fff'; col = '#334155'; }
+        else if(belt.includes('vàng')) { bg = 'var(--belt-yellow)'; border = 'none'; }
+        else if(belt.includes('xanh lá')) { bg = 'var(--belt-green)'; col = '#fff'; border = 'none'; }
+        else if(belt.includes('xanh dương')) { bg = 'var(--belt-blue)'; col = '#fff'; border = 'none'; }
+        else if(belt.includes('Đen - Đỏ') || belt.includes('Đỏ - Đen')) { bg = 'linear-gradient(to bottom, #1e293b 50%, #C8102E 50%)'; col = '#fff'; border = 'none'; extra = 'text-shadow:0 1px 3px rgba(0,0,0,0.6);'; }
+        else if(belt.includes('đỏ')) { bg = 'var(--belt-red)'; col = '#fff'; border = 'none'; }
+        else if(belt.includes('Đen')) { bg = 'var(--belt-black)'; col = '#fff'; border = 'none'; }
+        const safeBelt = window.escapeHtml(String(belt || ''));
+        return `<span class="badge shadow-sm" style="background:${bg}; color:${col}; border:${border}; min-width: 90px; text-align:center;${extra}">${safeBelt}</span>`;
+    }
+
+    window.renderExamList = () => {
+        const filterBelt = document.getElementById('exam_filter_belt').value; const uiExam = document.getElementById('examList'); if(!uiExam) return;
+        const selMonth = document.getElementById('filterMonth').value;
+        const isSingleBranch = clubConfig.branchCount === 1;
+
+        // Phase 4K-5C: Dùng canonical ledger — paidStudents luôn dedupe + nhất quán
+        const examLedger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+            ? window.buildCanonicalExamPaymentLedger()
+            : null;
+        let paidStudents = examLedger ? examLedger.byName : {};
+
+        // Phase 4K-5J-2: fallback dùng extractExamStudentName khi không có ledger
+        if (!examLedger) {
+            paidStudents = {};
+            const _txList = (window.__store && Array.isArray(window.__store.transactions))
+                ? window.__store.transactions : (allTransactions || []);
+            _txList.forEach(function(t) {
+                if (!t) return;
+                if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+                if (t.examPaidCancelled === true) return;
+                const _examAmt = t.type === 'Học phí + Lệ phí thi'
+                    ? Number(t.examAmount || 0) : Number(t.amount || 0);
+                if (_examAmt <= 0) return;
+                const rawName = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : String(t.studentName || t.profileName || t.description || '').trim();
+                const stuName = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawName, allProfiles)
+                    : rawName.replace(/\s*\($/, '').trim();
+                if (!stuName) return;
+                const _prof = allProfiles[stuName] || {};
+                paidStudents[stuName] = {
+                    id: t.id || t.txId || '',
+                    amount: _examAmt,
+                    type: t.type,
+                    targetBelt: typeof window.getExamTargetBeltFromTx === 'function'
+                        ? window.getExamTargetBeltFromTx(t, _prof)
+                        : (t.examTargetBelt || ''),
+                };
+            });
+        }
+
+        let htmlOriginal = '';
+        let htmlNewlyUpgraded = '';
+        let newlyUpgradedCount = 0;
+
+        Object.keys(allProfiles).sort().forEach(name => {
+            const p = allProfiles[name];
+            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
+
+            let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
+            const examDisplayName = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
+                ? window.ProfileCanonicalStore.resolveDisplayName(name, p)
+                : String(p.displayName || p.name || p.fullName || p.studentName || name || '').trim();
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.escapeHtml(String(window.getBranchNameDisplay(p.branch || 'CS1') || ''))}</span></td>`;
+            let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${Number(isPaid.amount).toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
+            let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', '${safeName}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
+
+            const isNewlyUpgraded = typeof window.isNewlyUpgradedExamStudent === 'function'
+                ? window.isNewlyUpgradedExamStudent(name, p, selMonth)
+                : (p.upgradedAt && String(p.upgradedAt).slice(0, 7) >= selMonth.substring(0, 7) && p.upgradedFrom);
+            const newBadge = isNewlyUpgraded ? `<span class="ml-1 text-[0.65rem] font-black bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded uppercase" title="Vừa thăng từ ${window.escapeHtml(String(p.upgradedFrom || ''))} tháng ${window.escapeHtml(String(p.upgradedAt || ''))}">↑ Mới lên</span>` : '';
+
+            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}"></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeName}')">${window.escapeHtml(String(examDisplayName || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
+
+            if(isNewlyUpgraded) { htmlNewlyUpgraded += row; newlyUpgradedCount++; }
+            else { htmlOriginal += row; }
+        });
+
+        let htmlExam = htmlOriginal;
+        if(newlyUpgradedCount > 0) {
+            const colSpan = isSingleBranch ? 5 : 6;
+            htmlExam += `<tr><td colspan="${colSpan}" class="bg-amber-100 border-t-2 border-amber-300 px-3 py-2"><span class="text-[0.7rem] font-black text-amber-800 uppercase tracking-wide">↑ Vừa thăng đai lên cấp này (${newlyUpgradedCount} võ sinh) — Chưa thi kỳ này</span></td></tr>`;
+            htmlExam += htmlNewlyUpgraded;
+        }
+
+        uiExam.innerHTML = htmlExam || `<tr><td colspan="${isSingleBranch ? 5 : 6}" class="text-center text-slate-400 py-8 italic">Không có võ sinh nào ở cấp đai này</td></tr>`;
+
+        // Phase 4K-5C: Cập nhật thẻ ĐÃ ĐĂNG KÝ + TỔNG THU từ canonical ledger
+        if (examLedger) {
+            const _regEl = document.getElementById('exam_registered_count_tab');
+            if (_regEl) _regEl.textContent = examLedger.count + ' Người';
+            const _sumEl = document.getElementById('sum_exam_tab');
+            if (_sumEl) _sumEl.textContent = examLedger.totalAmount.toLocaleString('vi-VN') + ' ₫';
+            const _expEl = document.getElementById('sum_exam_expense_tab');
+            const _expAmt = _expEl ? Number((_expEl.textContent || '').replace(/[^0-9]/g, '')) || 0 : 0;
+            const _profEl = document.getElementById('sum_exam_profit_tab');
+            if (_profEl) _profEl.textContent = (examLedger.totalAmount - _expAmt).toLocaleString('vi-VN') + ' ₫';
+        } else if (typeof window.computeExamRegistrationStats === 'function') {
+            const _examStats = window.computeExamRegistrationStats();
+            const _regEl = document.getElementById('exam_registered_count_tab');
+            if (_regEl) _regEl.textContent = _examStats.registeredCount + ' Người';
+        }
+    };
+
+    // ─── Phase 4K-4H: cancelExamPayment ─────────────────────────────────────
+    window.cancelExamPayment = async function(txId, studentName) {
+        if (window.userRole === 'viewer') return;
+        if (window.cancelExamPayment.__inFlight) return;
+        try {
+            if (typeof window.guardFinancialWriteIntent !== 'function'
+                || typeof window.isFinancialWriteAllowed !== 'function'
+                || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('exam.cancelPayment', { txId: txId, studentName: studentName || '' })) !== true) return;
+        } catch (_) { return; }
+        if (!confirm('Hủy trạng thái đã nộp lệ phí thi cho võ sinh này?')) return;
+
+        const st = window.__store || {};
+        const txs = [...(Array.isArray(st.transactions) ? st.transactions : []),
+            ...(Array.isArray(st.allTransactions) ? st.allTransactions : []), ...(allTransactions || [])];
+        const tx = txs.find(t => String(t.id || t.txId || '') === String(txId));
+
+        if (!tx) {
+            console.warn('[exam-cancel] transaction not found in runtime store:', txId);
+            return;
+        }
+
+        const db2 = st.db || db;
+        const clubId = st.clubId || st.currentClubId || currentClubId;
+
+        if (!db2 || !clubId) {
+            console.warn('[exam-cancel] missing db/clubId');
+            return;
+        }
+
+        const financeOwner = window.FinanceService;
+        if (typeof financeOwner?.cancelExamPayment !== 'function') return;
+        window.cancelExamPayment.__inFlight = true;
+        let cancelResult;
+        try {
+            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('exam.cancelPayment', 'before', {
+                txId: txId,
+                studentName: studentName || '',
+                type: tx && tx.type || '',
+                amount: tx && tx.amount || 0
+            });
+            cancelResult = await financeOwner.cancelExamPayment(tx);
+        } catch(err) {
+            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('exam.cancelPayment', 'error', {
+                txId: txId,
+                studentName: studentName || '',
+                error: err && err.message || String(err)
+            });
+            console.error('[exam-cancel] Firestore error:', err);
+            alert('Lỗi khi hủy: ' + err.message);
+            return;
+        } finally { window.cancelExamPayment.__inFlight = false; }
+
+        // Cập nhật local store ngay để UI phản ánh ngay
+        const updateLocalExamLedger = rows => cancelResult.deleted
+            ? rows.filter(t => String(t?.id || t?.txId || '') !== String(txId))
+            : rows.map(t => String(t?.id || t?.txId || '') === String(txId)
+                ? { ...t, ...cancelResult.patch } : t);
+        if (window.__store) {
+            if (Array.isArray(st.transactions)) st.transactions = updateLocalExamLedger(st.transactions);
+            if (Array.isArray(st.allTransactions)) st.allTransactions = updateLocalExamLedger(st.allTransactions);
+            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+            window.__store._lastExamCancelAt = Date.now();
+        }
+
+        allTransactions = updateLocalExamLedger(allTransactions || []);
+
+        if (typeof window.invalidateFinance === 'function') window.invalidateFinance('exam-payment-cancelled');
+        if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard('exam-payment-cancelled');
+
+        if (typeof window.renderExamList === 'function') window.renderExamList();
+        if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('exam.cancelPayment', 'after', {
+            txId: txId,
+            studentName: studentName || '',
+            type: tx && tx.type || '',
+            amount: tx && tx.amount || 0
+        });
+        window.showToast('✅ Đã hủy lệ phí thi!');
+    };
+
+    // ─── Phase 4K-4H: Debug helpers ─────────────────────────────────────────
+    window.debugExamPaymentIdentity = function(studentName) {
+        studentName = studentName || '';
+        const st = window.__store || {};
+        const txs = Array.isArray(st.transactions) ? st.transactions : (allTransactions || []);
+        const profiles = st.profiles || allProfiles || {};
+        const month = document.getElementById('filterMonth') ? document.getElementById('filterMonth').value : (st.selectedMonth || '');
+
+        // Phase 4K-5B: track duplicate counts per canonical name
+        const canonicalCounts = {};
+        txs.forEach(t => {
+            if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+            if (t.examPaidCancelled === true) return;
+            const rawN = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '');
+            const canN = window.getCanonicalStudentName ? window.getCanonicalStudentName(rawN, profiles) : rawN;
+            if (canN) canonicalCounts[canN] = (canonicalCounts[canN] || 0) + 1;
+        });
+
+        const rows = txs
+            .filter(t =>
+                (t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') &&
+                (!month || t.txMonth === month || (t.date && String(t.date).startsWith(month)))
+            )
+            .map(t => {
+                const rawExtractedName = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '');
+                const canonicalName = window.getCanonicalStudentName ? window.getCanonicalStudentName(rawExtractedName, profiles) : rawExtractedName;
+                const p = profiles[canonicalName] || profiles[rawExtractedName] || {};
+                return {
+                    id: t.id,
+                    type: t.type,
+                    description: t.description,
+                    studentNameField: t.studentName || '',
+                    rawExtractedName,
+                    canonicalName,
+                    profileFoundByCanonical: !!profiles[canonicalName],
+                    duplicateCount: canonicalCounts[canonicalName] || 1,
+                    examPaidCancelled: !!t.examPaidCancelled,
+                    gender: p.gender || '',
+                    dob: p.dob || '',
+                    memberId: p.memberId || '',
+                    currentBelt: p.belt || '',
+                    targetBelt: window.getExamTargetBeltFromTx ? window.getExamTargetBeltFromTx(t, p) : '',
+                    amount: t.type === 'Học phí + Lệ phí thi' ? t.examAmount : t.amount,
+                    examTitle: t.examTitle || '',
+                    examTargetBelt: t.examTargetBelt || '',
+                };
+            })
+            .filter(r => !studentName || r.canonicalName.includes(studentName) || r.rawExtractedName.includes(studentName));
+
+        console.table(rows);
+        return rows;
+    };
+
+    window.debugExamCancelState = function(studentName) {
+        studentName = studentName || '';
+        const st = window.__store || {};
+        const txs = Array.isArray(st.transactions) ? st.transactions : (allTransactions || []);
+        const month = document.getElementById('filterMonth') ? document.getElementById('filterMonth').value : (st.selectedMonth || '');
+
+        const rows = txs
+            .filter(t => t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')
+            .map(t => {
+                const name = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '');
+                return {
+                    id: t.id,
+                    type: t.type,
+                    extractedName: name,
+                    description: t.description,
+                    amount: t.amount,
+                    examAmount: t.examAmount,
+                    examPaidCancelled: !!t.examPaidCancelled,
+                    txMonth: t.txMonth,
+                    date: t.date
+                };
+            })
+            .filter(r =>
+                (!month || r.txMonth === month || (r.date && String(r.date).startsWith(month))) &&
+                (!studentName || r.extractedName.includes(studentName))
+            );
+
+        console.table(rows);
+        return rows;
+    };
+
+    // ─── Phase 4K-5B: Debug duplicate exam payments ─────────────────────────
+    window.debugExamDuplicatePayments = function(studentName) {
+        const st = window.__store || {};
+        const txs = Array.isArray(st.transactions) ? st.transactions : (allTransactions || []);
+        const profiles = st.profiles || allProfiles || {};
+        const month = document.getElementById('filterMonth') ? document.getElementById('filterMonth').value : (st.selectedMonth || '');
+        const q = String(studentName || '').trim();
+
+        const groups = {};
+
+        txs.forEach(t => {
+            if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+            if (t.examPaidCancelled === true) return;
+
+            const amount = t.type === 'Học phí + Lệ phí thi'
+                ? Number(t.examAmount || 0)
+                : Number(t.amount || 0);
+            if (amount <= 0) return;
+
+            const matchMonth = !month || t.txMonth === month || (t.date && String(t.date).startsWith(month));
+            if (!matchMonth) return;
+
+            const raw = window.extractExamStudentName ? window.extractExamStudentName(t) : String(t.description || '');
+            const name = window.getCanonicalStudentName ? window.getCanonicalStudentName(raw, profiles) : raw;
+
+            if (q && !name.includes(q)) return;
+
+            if (!groups[name]) groups[name] = [];
+            groups[name].push({
+                id: t.id || t.txId || '',
+                type: t.type,
+                description: t.description,
+                amount,
+                rawExtracted: raw,
+                canonicalName: name,
+                timestamp: t.timestamp || 0,
+                date: t.date,
+                txMonth: t.txMonth
+            });
+        });
+
+        const duplicates = Object.entries(groups)
+            .filter(([, arr]) => arr.length > 1)
+            .map(([name, arr]) => ({ name, count: arr.length, txs: arr }));
+
+        console.table(duplicates.map(d => ({ name: d.name, count: d.count })));
+        console.log('[debugExamDuplicatePayments:detail]', duplicates);
+        return { groups, duplicates };
+    };
+
+    window.finishExamSession = async () => {
+        if(window.userRole === 'viewer') return alert("Tài khoản khách không có quyền này!");
+        const selMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0,7);
+        const upgradedNames = Object.keys(allProfiles).filter(n => allProfiles[n].upgradedAt && allProfiles[n].upgradedAt >= selMonth.substring(0,7));
+        if(upgradedNames.length === 0) return alert("Không có võ sinh nào được đánh dấu thăng đai trong kỳ này.");
+        if(!confirm(`Hoàn tất kỳ thi?\n\nThao tác này sẽ:\n✅ Xóa nhãn "Mới lên" của ${upgradedNames.length} võ sinh\n✅ Hệ thống trở lại trạng thái ban đầu cho kỳ thi tiếp theo\n\nDữ liệu thu chi và đai hiện tại KHÔNG bị thay đổi.`)) return;
+        try {
+            // H8R2 E: session-marker reset is also per-student idempotent. Setting
+            // null repeatedly is deterministic, so chunk retry cannot corrupt belts.
+            const EXAM_CHUNK_SIZE = 400;
+            let committed = 0;
+            for (let offset = 0; offset < upgradedNames.length; offset += EXAM_CHUNK_SIZE) {
+                const chunk = upgradedNames.slice(offset, offset + EXAM_CHUNK_SIZE);
+                const batch = writeBatch(db);
+                for(const name of chunk) {
+                    batch.set(doc(db, "clubs", currentClubId, "profiles", name), { upgradedAt: null, upgradedFrom: null }, { merge: true });
+                }
+                try {
+                    await batch.commit();
+                } catch (chunkError) {
+                    chunkError.examCommitted = committed;
+                    chunkError.examPending = upgradedNames.length - committed;
+                    throw chunkError;
+                }
+                committed += chunk.length;
+                for (const name of chunk) {
+                    if (allProfiles[name]) {
+                        allProfiles[name].upgradedAt = null;
+                        allProfiles[name].upgradedFrom = null;
+                    }
+                    const storeProfiles = window.__store && window.__store.profiles;
+                    if (storeProfiles && storeProfiles[name] && storeProfiles[name] !== allProfiles[name]) {
+                        storeProfiles[name].upgradedAt = null;
+                        storeProfiles[name].upgradedFrom = null;
+                    }
+                }
+            }
+            window.showToast(`🏁 Đã hoàn tất kỳ thi! Đã reset ${upgradedNames.length} võ sinh về trạng thái bình thường.`);
+            renderExamList();
+        } catch(err) {
+            console.error(err);
+            const _done = Number(err && err.examCommitted) || 0;
+            const _pending = Number(err && err.examPending) || upgradedNames.length;
+            alert(_done > 0
+                ? `Đã reset ${_done} võ sinh; còn ${_pending} chưa commit. Có thể thử lại an toàn.`
+                : `Lỗi: ${err.message}`);
+            if (_done > 0) renderExamList();
+        }
+    };
+
+    // ─── Phase 4K-5B: Helper chuẩn hóa tên võ sinh từ giao dịch thi ───────────
+    // Hotfix: regex cũ không có "(" trước "Thi" dẫn đến trả về "Dương Vũ An ("
+    window.extractExamStudentName = function(tx) {
+        if (!tx) return '';
+
+        const structured = String(
+            tx.studentName ||
+            tx.profileName ||
+            tx.profileId ||
+            tx.studentId ||
+            ''
+        ).trim();
+
+        if (structured) return structured;
+
+        let desc = String(tx.description || '').trim();
+        if (!desc) return '';
+
+        // Chuẩn hóa: chuỗi kết thúc bằng "(" chưa đóng → cắt
+        desc = desc.replace(/\s*\(\s*$/, '').trim();
+
+        // Dạng: Nguyễn Văn A (Thi lên Đai vàng - Cấp 7) — có dấu "(" trước "Thi lên"
+        let m = desc.match(/^(.*?)\s*\(\s*Thi lên\s*.*?\)\s*$/i);
+        if (m && m[1]) return m[1].trim();
+
+        // Dạng: Nguyễn Văn A (Thi Quý 2/2026) — có dấu "(" trước "Thi"
+        m = desc.match(/^(.*?)\s*\(\s*Thi\s+.*?\)\s*$/i);
+        if (m && m[1]) return m[1].trim();
+
+        // Dạng thiếu dấu đóng ngoặc: Nguyễn Văn A (Thi Quý 2/2026
+        m = desc.match(/^(.*?)\s*\(\s*Thi\s+.*$/i);
+        if (m && m[1]) return m[1].trim();
+
+        // Dạng thiếu dấu đóng ngoặc: Nguyễn Văn A (Thi lên Đai vàng
+        m = desc.match(/^(.*?)\s*\(\s*Thi lên\s+.*$/i);
+        if (m && m[1]) return m[1].trim();
+
+        // Fallback: cắt mọi phần ngoặc cuối nếu có
+        m = desc.match(/^(.*?)\s*\([^)]*\)\s*$/);
+        if (m && m[1]) return m[1].trim();
+
+        // Cuối cùng: đảm bảo không còn kết thúc bằng "("
+        desc = desc.replace(/\s*\(\s*$/, '').trim();
+        return desc;
+    };
+
+    // ─── Phase 4K-5B: Canonical name resolver ─────────────────────────────────
+    // Dùng để map tên bị parse lỗi ("Dương Vũ An (") về tên profile đúng.
+    window.getCanonicalStudentName = function(name, profiles) {
+        const raw = String(name || '').trim().replace(/\s*\(\s*$/, '').trim();
+        const map = profiles || (window.__store && window.__store.profiles) || (typeof allProfiles !== 'undefined' ? allProfiles : {}) || {};
+
+        if (!raw) return '';
+        if (map[raw]) return raw;
+
+        const _norm = function(s) {
+            if (typeof window.normalizeVNForSearch === 'function') return window.normalizeVNForSearch(s);
+            return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+        };
+
+        const normRaw = _norm(raw);
+        const matches = Object.keys(map).filter(function(k) {
+            const p = map[k] || {};
+            const candidates = [k, p.displayName, p.name, p.fullName, p.studentName]
+                .map(function(v) { return String(v || '').trim(); })
+                .filter(Boolean);
+            return candidates.some(function(v) { return _norm(v) === normRaw; });
+        });
+        return matches.length === 1 ? matches[0] : raw;
+    };
+
+    window.getExamTargetBeltFromTx = function(tx, profile) {
+        if (!tx) return '';
+
+        const structured = String(
+            tx.examTargetBelt ||
+            tx.targetBelt ||
+            tx.nextBelt ||
+            ''
+        ).trim();
+
+        if (structured) return structured;
+
+        const desc = String(tx.description || '');
+        const m = desc.match(/(Thi lên\s*(.*?))\s*\)?$/i);
+        if (m && m[1]) return m[1].trim();
+
+        const p = profile || {};
+        const curBelt = p.belt || tx.currentBeltAtPayment || '';
+        if (curBelt && window.BELT_NEXT && window.BELT_NEXT[curBelt]) {
+            return window.BELT_NEXT[curBelt];
+        }
+
+        return tx.examTitle || 'Kỳ thi';
+    };
+
+    window.BELT_NEXT = {
+        'Đai trắng - Cấp 10':       'Đai trắng 1 vạch - Cấp 9',
+        'Đai trắng 1 vạch - Cấp 9': 'Đai trắng 2 vạch - Cấp 8',
+        'Đai trắng 2 vạch - Cấp 8': 'Đai vàng - Cấp 7',
+        'Đai vàng - Cấp 7':         'Đai xanh lá - Cấp 6',
+        'Đai xanh lá - Cấp 6':      'Đai xanh dương - Cấp 5',
+        'Đai xanh dương - Cấp 5':   'Đai đỏ - Cấp 4',
+        'Đai đỏ - Cấp 4':           'Đai đỏ 1 vạch - Cấp 3',
+        'Đai đỏ 1 vạch - Cấp 3':    'Đai đỏ 2 vạch - Cấp 2',
+        'Đai đỏ 2 vạch - Cấp 2':    'Đai đỏ 3 vạch - Cấp 1',
+        'Đai đỏ 3 vạch - Cấp 1':    'Đai Đen - Đỏ',
+        'Đai Đen - Đỏ':             'Đai Đen',
+    };
+
+    window.updateNextBeltPreview = () => {
+        const cur = document.getElementById('exam_filter_belt').value;
+        const next = window.BELT_NEXT[cur];
+        const el = document.getElementById('nextBeltPreview');
+        if(el) el.textContent = next ? `→ Thăng lên: ${next}` : '→ Đã là cấp cao nhất';
+    };
+
+    // Phase 4K-5R: selectPaidStudents dùng canonical ledger
+    window.selectPaidStudents = () => {
+        const selMonth =
+            (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+            (window.__store && window.__store.selectedMonth) ||
+            getLocalToday().substring(0, 7);
+
+        const profiles =
+            (window.__store && window.__store.profiles) ||
+            allProfiles ||
+            {};
+
+        // Phase 4K-5R: helpers (extractExamStudentName, getCanonicalStudentName) dùng cho canonical path + fallback
+        const _extractName = typeof window.extractExamStudentName === 'function' ? window.extractExamStudentName : null;
+        const _getCanonical = typeof window.getCanonicalStudentName === 'function' ? window.getCanonicalStudentName : null;
+
+        const ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+            ? window.buildCanonicalExamPaymentLedger({ month: selMonth })
+            : null;
+
+        const paidNames = new Set();
+        const paidNameNorms = new Set();
+
+        const normalize = typeof window.normalizeVNForSearch === 'function'
+            ? window.normalizeVNForSearch
+            : function(s) {
+                return String(s || '').normalize('NFD')
+                    .replace(/[̀-ͯ]/g, '')
+                    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+                    .toLowerCase().trim();
+              };
+
+        if (ledger && Array.isArray(ledger.records)) {
+            ledger.records.forEach(r => {
+                // Phase 4K-5R: dùng extractExamStudentName để lấy tên từ sourceTx nếu có
+                const rawName = (r.sourceTx && typeof window.extractExamStudentName === 'function')
+                    ? window.extractExamStudentName(r.sourceTx)
+                    : String(r.studentName || r.rawName || '').trim();
+                const canonicalName = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawName, profiles)
+                    : rawName;
+                if (canonicalName) { paidNames.add(canonicalName); paidNameNorms.add(normalize(canonicalName)); }
+                if (rawName) paidNameNorms.add(normalize(rawName));
+            });
+        } else {
+            // Fallback legacy — chỉ dùng khi canonical ledger chưa tồn tại
+            const txs =
+                Array.isArray((window.__store || {}).allTransactions) ? window.__store.allTransactions :
+                Array.isArray(window.allTransactions) ? window.allTransactions :
+                Array.isArray((window.__store || {}).transactions) ? window.__store.transactions :
+                Array.isArray(allTransactions) ? allTransactions : [];
+
+            txs.forEach(t => {
+                if (!t) return;
+                if (t.examPaidCancelled === true) return;
+                const txMonth = String(t.txMonth || t.month || t.date || '').slice(0, 7);
+                const monthOk = !selMonth || txMonth === selMonth ||
+                    (t.date && String(t.date).startsWith(selMonth)) ||
+                    (Array.isArray(t.packageMonths) && t.packageMonths.includes(selMonth));
+                if (!monthOk) return;
+
+                let examAmount = 0;
+                if (t.type === 'Lệ phí thi') {
+                    examAmount = Number(t.amount || 0);
+                } else if (t.type === 'Học phí + Lệ phí thi') {
+                    examAmount = Number(t.examAmount || 0);
+                } else if (t.type === 'Thu gộp' || t.type === 'Thu nhập học' ||
+                           t.paymentKind === 'bundle' || Array.isArray(t.components)) {
+                    if (Array.isArray(t.components)) {
+                        t.components.forEach(c => {
+                            if (c && (c.kind === 'exam' || c.type === 'Lệ phí thi'))
+                                examAmount += Number(c.amount || 0);
+                        });
+                    } else { examAmount = Number(t.examAmount || 0); }
+                }
+                if (examAmount <= 0) return;
+
+                const rawName = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : String(t.studentName || t.profileName || t.description || '').trim();
+                const canonicalName = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawName, profiles) : rawName;
+                if (canonicalName) { paidNames.add(canonicalName); paidNameNorms.add(normalize(canonicalName)); }
+                if (rawName) paidNameNorms.add(normalize(rawName));
+            });
+        }
+
+        let checked = 0, visible = 0, paidButNewlyUpgradedSkipped = 0;
+        const paidButNotChecked = [], newlySkippedNames = [];
+
+        document.querySelectorAll('.exam-check').forEach(cb => {
+            const cbName = String(cb.value || '').trim();
+            visible++;
+            const profile = profiles[cbName] || {};
+            const canonicalCbName = typeof window.getCanonicalStudentName === 'function'
+                ? window.getCanonicalStudentName(cbName, profiles) : cbName;
+
+            const isPaid =
+                paidNames.has(cbName) ||
+                paidNames.has(canonicalCbName) ||
+                paidNameNorms.has(normalize(cbName)) ||
+                paidNameNorms.has(normalize(canonicalCbName));
+
+            const isNewlyUpgraded = typeof window.isNewlyUpgradedExamStudent === 'function'
+                ? window.isNewlyUpgradedExamStudent(cbName, profile, selMonth)
+                : (profile.upgradedAt && String(profile.upgradedAt).slice(0, 7) >= selMonth && profile.upgradedFrom);
+
+            cb.checked = !!(isPaid && !isNewlyUpgraded);
+            if (cb.checked) { checked++; }
+            else if (isPaid && isNewlyUpgraded) { paidButNewlyUpgradedSkipped++; newlySkippedNames.push(cbName); }
+            else if (isPaid) { paidButNotChecked.push(cbName); }
+        });
+
+        if (window.__store) {
+            window.__store._lastSelectPaidStudents = {
+                month: selMonth, checked, visible,
+                ledgerCount: ledger ? ledger.count : null,
+                paidNames: Array.from(paidNames),
+                paidButNotChecked, paidButNewlyUpgradedSkipped, newlySkippedNames,
+                at: Date.now()
+            };
+        }
+
+        if (checked === 0) {
+            if (paidButNewlyUpgradedSkipped > 0)
+                window.showToast('\u26a0\ufe0f Có ' + paidButNewlyUpgradedSkipped + ' võ sinh đã đóng phí nhưng thuộc nhóm mới lên nên không tự chọn');
+            else
+                window.showToast('\u26a0\ufe0f Chưa có võ sinh nào đóng phí thi trong tháng này');
+        } else {
+            let msg = '\u2705 Đã chọn ' + checked + ' võ sinh đã đóng lệ phí thi';
+            if (paidButNewlyUpgradedSkipped > 0) msg += ', bỏ qua ' + paidButNewlyUpgradedSkipped + ' võ sinh mới lên';
+            window.showToast(msg);
+        }
+    };
+
+    window.toggleAllExam = (source) => document.querySelectorAll('.exam-check').forEach(cb => cb.checked = source.checked);
+
+// ═══ THU GỘP NHIỀU KHOẢN (Multi-Item Receipt) ═══════════════
+
+window.openMultiItemModal = () => {window.resetMultiItemTuitionPackageManualState&&window.resetMultiItemTuitionPackageManualState('open-modal');const m=document.getElementById('multiItemModal');m.dataset.reportEpoch=+(m.dataset.reportEpoch||0)+1;document.getElementById('multiItemModal').style.display='flex';const fm=document.getElementById('filterMonth');if(fm&&fm.value)document.getElementById('mi_tuition_month').value=fm.value;document.getElementById('mi_name').value='';delete document.getElementById('mi_name').dataset.profileId;delete document.getElementById('mi_name').dataset.memberId;document.getElementById('mi_profile_info').style.display='none';document.getElementById('mi_history_panel').style.display='none';document.getElementById('mi_history_body').style.display='none';document.getElementById('mi_history_toggle_icon').textContent='▼';document.getElementById('mi_history_list').innerHTML='';document.getElementById('mi_tuition_discount').checked=false;document.getElementById('mi_discount_pct').value='10';document.getElementById('mi_discount_saved').style.display='none';document.getElementById('mi_tuition_actual').value='';document.getElementById('mi_tuition_display').value='';document.getElementById('mi_exam_toggle').checked=false;document.getElementById('mi_other_toggle').checked=false;document.getElementById('mi_exam_section').style.display='none';document.getElementById('mi_other_section').style.display='none';document.getElementById('mi_inv_toggle').checked=false;document.getElementById('mi_inv_section').style.display='none';document.getElementById('mi_inv_total_actual').value='0';document.getElementById('mi_inv_price_actual').value='';document.getElementById('mi_inv_price_display').value='';document.getElementById('mi_inv_qty').value='1';document.getElementById('mi_inv_size_text').value='';document.getElementById('mi_inv_total_display').value='';document.getElementById('mi_inv_debt_panel').style.display='none';document.getElementById('mi_inv_debt_list').innerHTML='';document.getElementById('mi_inv_debt_total_actual').value='0';document.getElementById('mi_inv_debt_total_display').textContent='0 ₫';const prevDebtOpt=document.getElementById('mi_tuition_pkg').querySelector('option[data-debt="true"]');if(prevDebtOpt)prevDebtOpt.remove();document.getElementById('mi_tuition_pkg').value='1';if(window._setupMiAutocomplete)window._setupMiAutocomplete();updateMultiItemTotal();};
+
+window.toggleMultiItemExam = () => {
+    const on = document.getElementById('mi_exam_toggle').checked;
+    document.getElementById('mi_exam_section').style.display = on ? 'grid' : 'none';
+    if(on) {
+        const defaultFeeEl = document.getElementById('exam_fee_all_actual');
+        if(defaultFeeEl && defaultFeeEl.value) {
+            const feeVal = Number(defaultFeeEl.value) || 0;
+            document.getElementById('mi_exam_actual').value = feeVal;
+            document.getElementById('mi_exam_display').value = feeVal > 0 ? feeVal.toLocaleString('vi-VN') : '';
+        }
+        const txTitle = document.getElementById('tx_exam_title');
+        if(txTitle && txTitle.value) {
+            document.getElementById('mi_exam_title').value = txTitle.value;
+        } else {
+            const now = new Date(); const m = now.getMonth() + 1; const q = Math.ceil(m/3);
+            document.getElementById('mi_exam_title').value = `Thi Quý ${q}/${now.getFullYear()}`;
+        }
+    }
+    updateMultiItemTotal();
+};
+
+window.toggleMultiItemOther = () => {
+    document.getElementById('mi_other_section').style.display =
+        document.getElementById('mi_other_toggle').checked ? 'grid' : 'none';
+    updateMultiItemTotal();
+};
+
+window.toggleMultiItemInv = () => {
+    const on = document.getElementById('mi_inv_toggle').checked;
+    document.getElementById('mi_inv_section').style.display = on ? 'block' : 'none';
+    if (on) {
+        if (typeof window.ensureMultiItemInventoryReady === 'function') {
+            window.ensureMultiItemInventoryReady('multi-item-toggle-inventory')
+                .then(() => {
+                    window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-inventory', force: true });
+                    if (typeof window.toggleMiInvCategory === 'function') {
+                        window.toggleMiInvCategory();
+                    }
+                })
+                .catch(e => console.warn('[multiItem] inventory toggle hydration failed:', e));
+        } else {
+            window.toggleMiInvCategory();
+        }
+    } else {
+        document.getElementById('mi_inv_total_actual').value = '0';
+    }
+    updateMultiItemTotal();
+};
+
+window.toggleMiInvCategory = () => {
+    // Phase 4K-6L: read-only UI ownership for MultiItem inventory stock selector; legacy MultiItemInventorySafety fallback preserved below.
+    if (window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.renderMultiItemInventoryCategoryOptions === 'function') {
+        try {
+            const _uiResult = window.InventoryMultiItemReadOnlyUI.renderMultiItemInventoryCategoryOptions({ reason: 'legacy-toggleMiInvCategory' });
+            if (_uiResult && _uiResult.ok) {
+                if (typeof window.updateMultiItemTotal === 'function') window.updateMultiItemTotal();
+                return;
+            }
+        } catch (_e) {
+            console.warn('[4K-6L] MultiItem inventory category UI fallback:', _e);
+        }
+    }
+    const cat = document.getElementById('mi_inv_category').value;
+    const sel = document.getElementById('mi_inv_size_select');
+    const txt = document.getElementById('mi_inv_size_text');
+    const hint = document.getElementById('mi_inv_stock_hint');
+    // Phase 4K-6V2A: rebuild from inventory_stats; history is lazy and must not be required.
+    if (
+        window.MultiItemInventorySafety &&
+        window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem
+    ) {
+        window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem({ reason: 'toggle-mi-category', force: true });
+    }
+    if (cat === 'Võ phục') {
+        // Võ phục: dropdown size cố định kèm thông tin tồn kho
+        sel.style.display = ''; txt.style.display = 'none';
+        sel.innerHTML = '';
+        const inv = window._liveInvMap || {};
+        const vpSizes = ["Size 1m","Size 1m1","Size 1m2","Size 1m3","Size 1m4","Size 1m5","Size 1m6","Size 1m7","Size 1m8"];
+        let hasStock = false;
+        vpSizes.forEach(sz => {
+            const key = 'Võ phục|||' + sz;
+            const s = inv[key] || { in: 0, out: 0 };
+            const bal = s.in - s.out;
+            const opt = document.createElement('option');
+            opt.value = sz;
+            if(bal > 0) { opt.textContent = sz + ' (Tồn: ' + bal + ')'; hasStock = true; }
+            else { opt.textContent = sz + ' (Hết hàng)'; opt.disabled = true; }
+            sel.appendChild(opt);
+        });
+        hint.textContent = hasStock ? '' : '— Kho trống';
+    } else {
+        // Kiểm tra danh mục tùy chỉnh có sizes định sẵn không
+        const customCat = (window.invCustomCategories || []).find(c => c.name === cat);
+        if (customCat && customCat.sizes && customCat.sizes.length > 0) {
+            // Có sizes định sẵn → dùng dropdown, hiện số lượng tồn kho nếu có
+            sel.style.display = ''; txt.style.display = 'none';
+            sel.innerHTML = '';
+            const inv = window._liveInvMap || {};
+            let hasStock = false;
+            customCat.sizes.forEach(sz => {
+                const key = cat + '|||' + sz;
+                const s = inv[key] || { in: 0, out: 0 };
+                const bal = s.in - s.out;
+                const opt = document.createElement('option');
+                opt.value = sz;
+                if (bal > 0) { opt.textContent = sz + ' (Tồn: ' + bal + ')'; hasStock = true; }
+                else { opt.textContent = sz + ' (Hết hàng)'; opt.disabled = true; }
+                sel.appendChild(opt);
+            });
+            if (hint) hint.textContent = hasStock ? '' : '— Kho trống';
+        } else {
+            // Áo thun, Bảo hộ, danh mục không có sizes → nhập tự do
+            sel.style.display = 'none'; txt.style.display = '';
+            hint.textContent = '';
+        }
+    }
+    updateMultiItemTotal();
+};
+
+window.calcMiInvTotal = () => {
+    // Phase 4K-6L: read-only UI ownership for MultiItem inventory line total.
+    if (window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.calculateMultiItemInventoryLineTotal === 'function') {
+        try {
+            const _uiResult = window.InventoryMultiItemReadOnlyUI.calculateMultiItemInventoryLineTotal({ reason: 'legacy-calcMiInvTotal' });
+            if (_uiResult && _uiResult.ok) return;
+        } catch (_e) {
+            console.warn('[4K-6L] MultiItem inventory line-total UI fallback:', _e);
+        }
+    }
+    const qty = Number(document.getElementById('mi_inv_qty').value) || 0;
+    const price = Number(document.getElementById('mi_inv_price_actual').value) || 0;
+    const total = qty * price;
+    document.getElementById('mi_inv_total_actual').value = total;
+    document.getElementById('mi_inv_total_display').value = total > 0 ? total.toLocaleString('vi-VN') + ' ₫' : '';
+    updateMultiItemTotal();
+};
+
+// ═══ Toggle học phí trong phiếu Thu Gộp ═══
+window.toggleMiTuitionSection = () => {
+    const enabled = document.getElementById('mi_tuition_enabled');
+    const body    = document.getElementById('mi_tuition_body');
+    const badge   = document.getElementById('mi_tuition_status_badge');
+    const isOn = enabled ? enabled.checked : true;
+    if (body)  body.style.display  = isOn ? '' : 'none';
+    // Đã bỏ chữ "Bắt buộc" — học phí không còn bắt buộc nữa
+    if (badge) badge.textContent   = isOn ? 'Đang thu' : '— Không thu';
+    if (!isOn) {
+        // Xóa số tiền học phí khi HLV bỏ tích
+        const el = document.getElementById('mi_tuition_actual');
+        const dl = document.getElementById('mi_tuition_display');
+        if (el) el.value = '';
+        if (dl) dl.value = '';
+        window.updateMultiItemTotal && window.updateMultiItemTotal();
+    } else {
+        // Bật lại → tính lại học phí
+        window.updateMultiItemAutoFee && window.updateMultiItemAutoFee();
+    }
+};
+
+window.updateMultiItemAutoFee = () => {
+    const nameEl = document.getElementById('mi_name');
+    const name = nameEl ? nameEl.value.trim() : '';
+    let profile = allProfiles[name];
+    if (!profile && name) {
+        const nameLower = name.toLowerCase();
+        const matchKey = Object.keys(allProfiles).find(k => k.toLowerCase() === nameLower);
+        if (matchKey) profile = allProfiles[matchKey];
+    }
+    const baseFee = profile ? (Number(profile.tuitionFee) || 0) : 0;
+    // Phase 4K-5M/6K-D: ưu tiên data-months chỉ khi đang chọn option thu nợ tự sinh.
+    // Nếu HLV chọn gói chuẩn 3/6/9/12, phải tôn trọng lựa chọn thủ công và không để _refreshMiHistoryBadges ghi đè về 1 tháng/thu nợ.
+    const pkgSelect = document.getElementById('mi_tuition_pkg');
+    const _pkgState = window.getSelectedMultiItemTuitionPackageState ? window.getSelectedMultiItemTuitionPackageState() : { pkgSelect: pkgSelect };
+    if (pkgSelect && _pkgState && !_pkgState.isDebtOption && window.__miManualTuitionPackage) {
+        pkgSelect.removeAttribute('data-months');
+        pkgSelect.setAttribute('data-manual-package', 'true');
+    }
+    let chargeMonths = [];
+    try {
+        const rawMonths = (pkgSelect && _pkgState && _pkgState.isDebtOption) ? pkgSelect.getAttribute('data-months') : '';
+        chargeMonths = rawMonths ? JSON.parse(rawMonths) : [];
+    } catch (_) {
+        chargeMonths = [];
+    }
+    const pkg = chargeMonths.length > 0
+        ? chargeMonths.length
+        : (Number(pkgSelect ? pkgSelect.value : 1) || 1);
+    const discountOn = document.getElementById('mi_tuition_discount').checked;
+    const savedEl = document.getElementById('mi_discount_saved');
+    const pct = discountOn ? (Number(document.getElementById('mi_discount_pct').value) || 10) : 0;
+    const actualEl = document.getElementById('mi_tuition_actual');
+    let rawFee;
+    if (baseFee > 0) {
+        rawFee = baseFee * pkg;
+        actualEl.setAttribute('data-raw', rawFee);
+    } else {
+        const storedRaw = Number(actualEl.getAttribute('data-raw')) || 0;
+        const currentActual = Number(actualEl.value) || 0;
+        rawFee = storedRaw > 0 ? storedRaw : currentActual;
+    }
+    let fee = discountOn && pct > 0 ? Math.round(rawFee * (1 - pct / 100)) : rawFee;
+    let saved = rawFee - fee;
+    if (savedEl) {
+        if (discountOn && saved > 0) {
+            savedEl.style.display = 'block';
+            savedEl.textContent = '↓ Giảm ' + saved.toLocaleString('vi-VN') + '₫ (' + pct + '%)';
+        } else { savedEl.style.display = 'none'; }
+    }
+    // Chỉ ghi học phí nếu HLV đã bật "Thu học phí"
+    const _tuitionOn = !document.getElementById('mi_tuition_enabled') || document.getElementById('mi_tuition_enabled').checked;
+    if (rawFee > 0 && _tuitionOn) {
+        actualEl.value = fee;
+        document.getElementById('mi_tuition_display').value = fee > 0 ? fee.toLocaleString('vi-VN') : '';
+    } else if (!_tuitionOn) {
+        actualEl.value = '';
+        document.getElementById('mi_tuition_display').value = '';
+    }
+    const infoCard = document.getElementById('mi_profile_info');
+    if (profile && name && infoCard) {
+        document.getElementById('mi_profile_belt').textContent = profile.belt || 'Chưa có đai';
+        document.getElementById('mi_profile_branch').textContent = window.getBranchNameDisplay ? window.getBranchNameDisplay(profile.branch) : (profile.branch || '');
+        document.getElementById('mi_profile_fee').textContent = baseFee > 0 ? baseFee.toLocaleString('vi-VN') + ' ₫/tháng' : 'Chưa cài';
+        infoCard.style.display = 'flex';
+        // Không refresh badges khi HLV vừa đổi gói học phí thủ công, vì _refreshMiHistoryBadges có thể tự chọn lại option thu nợ/default.
+        if (!(window.__miManualTuitionPackage && pkgSelect && pkgSelect.getAttribute('data-manual-package') === 'true')) {
+            try {
+                Promise.resolve(window._refreshMiHistoryBadges(name, profile))
+                    .catch(e => console.warn('[multiItem] refresh badges failed:', e));
+            } catch (e) {
+                console.warn('[multiItem] refresh badges dispatch failed:', e);
+            }
+        }
+    } else if (infoCard && !name) {
+        infoCard.style.display = 'none';
+        document.getElementById('mi_history_panel').style.display = 'none';
+    }
+    updateMultiItemTotal();
+};
+
+window._refreshMiHistoryBadges = async (name, profile) => {
+    // Guard: prevent infinite recursion with updateMultiItemAutoFee
+    if (window._miRefreshingBadges) return;
+    window._miRefreshingBadges = true;
+    try {
+    const panel = document.getElementById('mi_history_panel');
+    panel.style.display = 'block';
+    const paidUntil = profile ? profile.paidUntil : null;
+    const paidUntilBadge = document.getElementById('mi_paid_until_badge');
+    const debtBadge = document.getElementById('mi_debt_badge');
+    const debtMonths = document.getElementById('mi_debt_months');
+    const pkgSelect = document.getElementById('mi_tuition_pkg');
+    // Remove any previous auto-debt option
+    const prevDebtOpt = pkgSelect.querySelector('option[data-debt="true"]');
+    if(prevDebtOpt) prevDebtOpt.remove();
+
+    if (paidUntil) {
+        paidUntilBadge.textContent = '✅ Đến ' + formatMonth(paidUntil);
+        // Phase 4K-5M: dùng helper chung để loại trừ skippedMonths
+        const today = getLocalToday().substring(0, 7);
+        const chargeableMonths = typeof window.getChargeableTuitionMonths === 'function'
+            ? window.getChargeableTuitionMonths(profile, today, { reason: 'multi-item-badges' })
+            : [];
+        const unpaid = chargeableMonths.length;
+        if (unpaid > 0) {
+            debtBadge.style.display = 'inline-block';
+            debtBadge.textContent = '⚠️ Nợ ' + unpaid + ' tháng';
+            debtMonths.style.display = 'inline-block';
+            debtMonths.textContent = chargeableMonths.map(formatMonth).join(', ');
+            const firstChargeableMonth = chargeableMonths[0];
+            document.getElementById('mi_tuition_month').value = firstChargeableMonth;
+            const optValue = String(unpaid);
+            if (!pkgSelect.querySelector('option[data-debt="true"]')) {
+                const opt = document.createElement('option');
+                opt.value = optValue;
+                opt.textContent = unpaid + ' tháng (thu nợ ' + (window.formatTuitionMonthList ? window.formatTuitionMonthList(chargeableMonths) : chargeableMonths.map(formatMonth).join(', ')) + ')';
+                opt.setAttribute('data-debt', 'true');
+                pkgSelect.insertBefore(opt, pkgSelect.firstChild);
+            } else {
+                const opt = pkgSelect.querySelector('option[data-debt="true"]');
+                opt.value = optValue;
+                opt.textContent = unpaid + ' tháng (thu nợ ' + (window.formatTuitionMonthList ? window.formatTuitionMonthList(chargeableMonths) : chargeableMonths.map(formatMonth).join(', ')) + ')';
+            }
+            if (!(window.__miManualTuitionPackage && pkgSelect.getAttribute('data-manual-package') === 'true')) {
+                pkgSelect.value = optValue;
+                pkgSelect.setAttribute('data-months', JSON.stringify(chargeableMonths));
+            } else {
+                // HLV đã chọn gói chuẩn 3/6/9/12: vẫn hiển thị nợ, nhưng không ghi đè gói đang chọn.
+                pkgSelect.removeAttribute('data-months');
+            }
+        } else {
+            debtBadge.style.display = 'none';
+            debtMonths.style.display = 'none';
+            pkgSelect.removeAttribute('data-months');
+            const fm = document.getElementById('filterMonth');
+            if (fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
+            if (!(window.__miManualTuitionPackage && pkgSelect.getAttribute('data-manual-package') === 'true')) {
+                pkgSelect.value = '1';
+            }
+        }
+    } else {
+        paidUntilBadge.textContent = '❓ Chưa có dữ liệu';
+        debtBadge.style.display = 'none';
+        debtMonths.style.display = 'none';
+        pkgSelect.removeAttribute('data-months');
+        const fm = document.getElementById('filterMonth');
+        if(fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
+        if (!(window.__miManualTuitionPackage && pkgSelect.getAttribute('data-manual-package') === 'true')) {
+            pkgSelect.value = '1';
+        }
+    }
+    // Phase 4K-5M: bind pkg change — clear data-months khi HLV chọn gói thủ công
+    if (pkgSelect && !pkgSelect.__clearDebtMonthsBound) {
+        pkgSelect.__clearDebtMonthsBound = true;
+        pkgSelect.addEventListener('change', function() {
+            const opt = pkgSelect.options[pkgSelect.selectedIndex];
+            if (!opt || opt.getAttribute('data-debt') !== 'true') {
+                window.markManualMultiItemTuitionPackage && window.markManualMultiItemTuitionPackage('select-change-listener');
+                pkgSelect.removeAttribute('data-months');
+            } else {
+                window.__miManualTuitionPackage = false;
+                pkgSelect.removeAttribute('data-manual-package');
+            }
+            window.updateMultiItemAutoFee && window.updateMultiItemAutoFee();
+        });
+    }
+    updateMultiItemAutoFee();
+
+    // Load unpaid inventory (kho đồ) items for this student
+    // Phase 4K-6G: Use MultiItemInventorySafety for async-safe hydration
+    const invDebtPanel = document.getElementById('mi_inv_debt_panel');
+    const invDebtList = document.getElementById('mi_inv_debt_list');
+    const invDebtBadge = document.getElementById('mi_inv_debt_badge');
+    invDebtList.innerHTML = '';
+    if (invDebtBadge) invDebtBadge.textContent = 'Đang kiểm tra...';
+
+    let ensureResult = null;
+    if (typeof window.ensureMultiItemInventoryReady === 'function') {
+        ensureResult = await window.ensureMultiItemInventoryReady('multi-item-refresh-badges');
+    }
+
+    const _miNameEl = document.getElementById('mi_name');
+    const _miDebtIdentity = {
+        profileId: String((_miNameEl && _miNameEl.dataset && _miNameEl.dataset.profileId) || name || '').trim(),
+        memberId: String((_miNameEl && _miNameEl.dataset && _miNameEl.dataset.memberId) || (profile && profile.memberId) || '').trim(),
+        name: name,
+        studentName: name
+    };
+    const unpaidInvItems = typeof window.resolveMultiItemInventoryDebts === 'function'
+        ? window.resolveMultiItemInventoryDebts(_miDebtIdentity, {
+            reason: 'multi-item-refresh-badges',
+            ensureResult
+          })
+        : (typeof window.getInventoryDebtsForStudent === 'function'
+            ? window.getInventoryDebtsForStudent(_miDebtIdentity, { allowFallback: true, reason: 'multi-item-refresh-badges' })
+            : []
+          );
+
+    if (window.MultiItemInventorySafety && window.MultiItemInventorySafety.renderMultiItemInventoryDebtPanel) {
+        window.MultiItemInventorySafety.renderMultiItemInventoryDebtPanel(name, unpaidInvItems, {
+            ensureResult,
+            reason: 'multi-item-refresh-badges'
+        });
+    } else {
+        // fallback legacy render
+        invDebtList.innerHTML = '';
+        if (unpaidInvItems.length > 0) {
+            invDebtPanel.style.display = 'block';
+            if (invDebtBadge) invDebtBadge.textContent = unpaidInvItems.length + ' khoản';
+            unpaidInvItems.forEach(item => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #fff7ed;';
+                const label = (item.category || '') + (item.size ? ' ' + item.size : '') + (item.qty > 1 ? ' ×' + item.qty : '');
+                const amt = Number(item.amount || 0);
+                div.innerHTML = `<input type="checkbox" class="mi-inv-debt-check w-4 h-4 accent-orange-500 cursor-pointer rounded" data-inv-id="${item.id}" data-amount="${amt}" data-label="${label.replace(/"/g,'&quot;')}" checked>
+                    <div style="flex:1;min-width:0;"><div style="font-size:0.8rem;font-weight:700;color:#1e293b;">${label}</div><div style="font-size:0.65rem;color:#94a3b8;">${item.date || ''}</div></div>
+                    <span style="font-size:0.85rem;font-weight:900;color:#f97316;">${amt.toLocaleString('vi-VN')}₫</span>`;
+                div.querySelector('input').addEventListener('change', window.recalcMiInvDebt);
+                invDebtList.appendChild(div);
+            });
+            window.recalcMiInvDebt();
+        } else {
+            invDebtPanel.style.display = 'none';
+            document.getElementById('mi_inv_debt_total_actual').value = '0';
+            document.getElementById('mi_inv_debt_total_display').textContent = '0 ₫';
+            updateMultiItemTotal();
+        }
+    }
+    // Auto-toggle "Thu học phí" dựa vào trạng thái đóng tiền của võ sinh
+    const _tuitionCb = document.getElementById('mi_tuition_enabled');
+    if (_tuitionCb) {
+        if (paidUntil) {
+            const _todayM = getLocalToday().substring(0, 7);
+            // Đã đóng đến tháng hiện tại trở lên → bỏ tích học phí
+            _tuitionCb.checked = paidUntil < _todayM;
+        } else {
+            _tuitionCb.checked = true; // Chưa đóng → mặc định thu
+        }
+        window.toggleMiTuitionSection && window.toggleMiTuitionSection();
+    }
+    } catch (e) {
+        console.warn('[multiItem] refresh badges failed:', e);
+    } finally {
+        window._miRefreshingBadges = false;
+    }
+};
+
+window.recalcMiInvDebt = () => {
+    // Phase 4K-6L: read-only UI ownership for MultiItem inventory debt total.
+    if (window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.recalculateMultiItemInventoryDebt === 'function') {
+        try {
+            const _uiResult = window.InventoryMultiItemReadOnlyUI.recalculateMultiItemInventoryDebt({ reason: 'legacy-recalcMiInvDebt' });
+            if (_uiResult && _uiResult.ok) return;
+        } catch (_e) {
+            console.warn('[4K-6L] MultiItem inventory debt-total UI fallback:', _e);
+        }
+    }
+    const checks = document.querySelectorAll('.mi-inv-debt-check:checked');
+    let total = 0;
+    checks.forEach(c => { total += Number(c.getAttribute('data-amount')) || 0; });
+    document.getElementById('mi_inv_debt_total_actual').value = total;
+    document.getElementById('mi_inv_debt_total_display').textContent = total.toLocaleString('vi-VN') + ' ₫';
+    updateMultiItemTotal();
+};
+
+window.toggleMiHistory = async () => {
+    const body = document.getElementById('mi_history_body');
+    const icon = document.getElementById('mi_history_toggle_icon');
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    icon.textContent = isOpen ? '▼' : '▲';
+    if (!isOpen) {
+        const name = document.getElementById('mi_name').value.trim();
+        let profile = allProfiles[name];
+        if (!profile && name) {
+            const k = Object.keys(allProfiles).find(k => k.toLowerCase() === name.toLowerCase());
+            if (k) profile = allProfiles[k];
+        }
+        if (name) await window.loadMiPaymentHistory(name);
+    }
+};
+
+window.loadMiPaymentHistory = async (name) => {
+    const list = document.getElementById('mi_history_list');
+    const loading = document.getElementById('mi_history_loading');
+    const empty = document.getElementById('mi_history_empty');
+    list.innerHTML = '';
+    loading.style.display = 'block';
+    empty.style.display = 'none';
+    try {
+        const snap = await getDocs(query(colRef,
+            where('description', '>=', name),
+            where('description', '<=', name + '\uf8ff'),
+            orderBy('description'),
+            limit(30)
+        ));
+        loading.style.display = 'none';
+        const txs = [];
+        snap.forEach(d => {
+            const t = d.data();
+            const desc = (t.description || '').trim();
+            // Exact match OR starts with name + ' (' for exam entries like "Nguyễn A (Thi lên...)"
+            if (desc === name || desc.startsWith(name + ' (')) txs.push(t);
+        });
+        if (txs.length === 0) { empty.style.display = 'block'; return; }
+        txs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        txs.slice(0, 8).forEach(t => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:5px 2px;border-bottom:1px solid #f8fafc;';
+            const icon = t.type === 'Học phí' ? '🎓' : t.type === 'Lệ phí thi' ? '🏆' : t.type === 'Thu Võ phục' ? '👘' : '💰';
+            const monthStr = t.txMonth ? formatMonth(t.txMonth) : (t.date || '').substring(0, 7).replace('-', '/');
+            const pkgStr = t.packageMonths && t.packageMonths.length > 1 ? ' ×' + t.packageMonths.length : '';
+            const dateStr = t.date ? formatDate(t.date) : '';
+            row.innerHTML = `<div style="min-width:0;flex:1;"><div style="font-size:0.68rem;color:#334155;font-weight:700;">${icon} ${t.type}${pkgStr} <span style="color:#94a3b8;font-weight:500;">${monthStr}</span></div><div style="font-size:0.6rem;color:#94a3b8;">${dateStr}</div></div><span style="font-size:0.72rem;font-weight:800;color:#1e40af;flex-shrink:0;margin-left:8px;">${Number(t.amount || 0).toLocaleString('vi-VN')}₫</span>`;
+            list.appendChild(row);
+        });
+    } catch(err) {
+        loading.style.display = 'none';
+        list.innerHTML = '<div style="font-size:0.68rem;color:#ef4444;padding:4px 0;">Không thể tải dữ liệu</div>';
+    }
+};
+
+window.updateMultiItemTotal = () => {
+    // Phase 4K-6L: read-only UI ownership for MultiItem total display.
+    if (window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.updateMultiItemTotalDisplay === 'function' && !window.__miReadOnlyTotalDelegating) {
+        window.__miReadOnlyTotalDelegating = true;
+        try {
+            const _uiResult = window.InventoryMultiItemReadOnlyUI.updateMultiItemTotalDisplay({ reason: 'legacy-updateMultiItemTotal' });
+            if (_uiResult && _uiResult.ok) return;
+        } catch (_e) {
+            console.warn('[4K-6L] MultiItem total UI fallback:', _e);
+        } finally {
+            window.__miReadOnlyTotalDelegating = false;
+        }
+    }
+    const tuition = Number(document.getElementById('mi_tuition_actual').value) || 0;
+    const exam = document.getElementById('mi_exam_toggle').checked ? (Number(document.getElementById('mi_exam_actual').value) || 0) : 0;
+    const other = document.getElementById('mi_other_toggle').checked ? (Number(document.getElementById('mi_other_actual').value) || 0) : 0;
+    const inv = document.getElementById('mi_inv_toggle').checked ? (Number(document.getElementById('mi_inv_total_actual').value) || 0) : 0;
+    const invDebt = Number(document.getElementById('mi_inv_debt_total_actual').value) || 0;
+    const total = tuition + exam + other + inv + invDebt;
+    document.getElementById('mi_total').textContent = total.toLocaleString('vi-VN') + ' ₫';
+    let parts = [];
+    if(tuition > 0) parts.push('HP: ' + tuition.toLocaleString('vi-VN') + '₫');
+    if(exam > 0) parts.push('Thi: ' + exam.toLocaleString('vi-VN') + '₫');
+    if(inv > 0) parts.push('Kho mới: ' + inv.toLocaleString('vi-VN') + '₫');
+    if(invDebt > 0) parts.push('Nợ KĐ: ' + invDebt.toLocaleString('vi-VN') + '₫');
+    if(other > 0) parts.push('Khác: ' + other.toLocaleString('vi-VN') + '₫');
+    document.getElementById('mi_total_breakdown').textContent = parts.join(' + ');
+};
+
+window._setupMiAutocomplete = () => {
+    const inp = document.getElementById('mi_name');
+    const listEl = document.getElementById('mi-autocomplete-list');
+    if(!inp || !listEl) return;
+    Object.assign(listEl.style, {
+        position: 'fixed', zIndex: '99999', borderRadius: '0 0 10px 10px',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.15)', border: '1px solid #e2e8f0',
+        background: '#fff', maxHeight: '240px', overflowY: 'auto', display: 'none'
+    });
+    const positionList = () => {
+        const rect = inp.getBoundingClientRect();
+        listEl.style.left = rect.left + 'px';
+        listEl.style.top = rect.bottom + 'px';
+        listEl.style.width = rect.width + 'px';
+    };
+    const pickName = (nm) => {
+        inp.value = nm;
+        const selectedProfile = allProfiles[nm] || {};
+        inp.dataset.profileId = nm;
+        inp.dataset.memberId = String(selectedProfile.memberId || selectedProfile.memberCode || '');
+        listEl.style.display = 'none';
+        updateMultiItemAutoFee();
+    };
+    const renderMatches = (val) => {
+        listEl.innerHTML = '';
+        const allActive = Object.keys(allProfiles).filter(n => (typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(allProfiles[n]) : allProfiles[n].status) === 'active');
+        const matches = val ? allActive.filter(n => n.toLowerCase().includes(val.toLowerCase())).slice(0, 12) : allActive.slice(0, 12);
+        if(matches.length === 0) { listEl.style.display = 'none'; return; }
+        positionList();
+        listEl.style.display = 'block';
+        matches.forEach(nm => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding:10px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9;font-size:0.92rem;';
+            div.onmouseenter = () => div.style.background = '#f0f4ff';
+            div.onmouseleave = () => div.style.background = '';
+            const p2 = allProfiles[nm];
+            const beltStr = p2 ? (p2.belt || '') : '';
+            const feeStr = p2 && p2.tuitionFee ? ' · ' + Number(p2.tuitionFee).toLocaleString('vi-VN') + '₫' : '';
+            const _escMi = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+            div.innerHTML = '<span style="font-weight:700;color:#1e293b;">' + _escMi(nm) + '</span><span style="color:#94a3b8;font-size:0.72rem;">' + _escMi(beltStr) + feeStr + '</span>';
+            div.addEventListener('mousedown', e => { e.preventDefault(); pickName(nm); });
+            div.addEventListener('touchend', e => { e.preventDefault(); pickName(nm); });
+            listEl.appendChild(div);
+        });
+    };
+    if(!inp._miListenersAdded) {
+        inp._miListenersAdded = true;
+        inp.addEventListener('input', function() {
+            if (this.dataset.profileId && this.value.trim() !== this.dataset.profileId) {
+                delete this.dataset.profileId;
+                delete this.dataset.memberId;
+            }
+            renderMatches(this.value.trim());
+            updateMultiItemAutoFee();
+        });
+        inp.addEventListener('focus', function() { renderMatches(this.value.trim()); });
+        inp.addEventListener('blur', function() { setTimeout(() => { listEl.style.display = 'none'; }, 200); });
+    }
+    if(!window._miClickOutsideRegistered) {
+        window._miClickOutsideRegistered = true;
+        document.addEventListener('mousedown', e => {
+            const i = document.getElementById('mi_name'); const l = document.getElementById('mi-autocomplete-list');
+            if(i && l && e.target !== i && !l.contains(e.target)) l.style.display = 'none';
+        });
+        document.addEventListener('touchstart', e => {
+            const i = document.getElementById('mi_name'); const l = document.getElementById('mi-autocomplete-list');
+            if(i && l && e.target !== i && !l.contains(e.target)) l.style.display = 'none';
+        }, { passive: true });
+    }
+};
+
+document.getElementById('multiItemModal').addEventListener('click', e => {
+    if(e.target === e.currentTarget) e.currentTarget.style.display = 'none';
+});
+
+
+// Phase 4K-5E — Bundle Label Helpers
+window.getPaymentComponentDisplayName = function(component) {
+    const c = component || {};
+    const kind = c.kind || '';
+    if (kind === 'tuition')       return 'Học phí';
+    if (kind === 'exam')          return 'Thi đai';
+    if (kind === 'inventory')     return c.category || 'Kho đồ';
+    if (kind === 'inventoryDebt') return 'Thu nợ kho';
+    if (kind === 'other')         return c.label || c.type || 'Khoản khác';
+    return c.label || c.type || kind || 'Khoản thu';
+};
+
+window.getBundleTypeLabel = function(tx) {
+    const comps = Array.isArray(tx && tx.components) ? tx.components : [];
+    if (!comps.length) return tx && tx.type ? tx.type : '';
+    const names = [];
+    comps.forEach(function(c) {
+        const name = typeof window.getPaymentComponentDisplayName === 'function'
+            ? window.getPaymentComponentDisplayName(c)
+            : (c.label || c.type || c.kind || '');
+        if (name && !names.includes(name)) names.push(name);
+    });
+    return names.join(' + ') || (tx && tx.type ? tx.type : 'Khoản thu');
+};
+
+// Phase 4K-5F: getBundleDetailSummary — chỉ trả detail (không có tên võ sinh)
+window.getBundleDetailSummary = function(tx) {
+    const comps = Array.isArray(tx && tx.components) ? tx.components : [];
+    if (!comps.length) return tx && tx.type ? tx.type : '';
+    const labels = comps.map(function(c) {
+        if (c.kind === 'tuition') {
+            if (Array.isArray(c.packageMonths) && c.packageMonths.length) {
+                const monthLabel = typeof window.formatMonthCompact === 'function'
+                    ? window.formatMonthCompact(c.packageMonths.join(','))
+                    : c.packageMonths.map(function(m) { const p=String(m).split('-'); return p.length>=2?'T'+parseInt(p[1],10)+'/'+p[0]:m; }).join(', ');
+                return 'Học phí ' + monthLabel;
+            }
+            return c.label || 'Học phí';
+        }
+        if (c.kind === 'exam') return c.examTitle || c.label || 'Thi đai';
+        if (c.kind === 'inventory') {
+            const parts = [];
+            parts.push(c.category || 'Kho đồ');
+            if (c.size) parts.push(c.size);
+            if (c.qty)  parts.push('x' + c.qty);
+            return parts.join(' ');
+        }
+        if (c.kind === 'inventoryDebt') return c.label || 'Thu nợ kho';
+        return c.label || c.type || 'Khoản khác';
+    }).filter(Boolean);
+    return labels.join(' + ');
+};
+
+// getBundleSummaryLine — trả "Tên — Detail" cho biên lai/debug/tooltip
+window.getBundleSummaryLine = function(tx) {
+    const name   = String(tx && tx.studentName ? tx.studentName : (tx && tx.description ? tx.description : '')).trim();
+    const detail = typeof window.getBundleDetailSummary === 'function'
+        ? window.getBundleDetailSummary(tx)
+        : '';
+    return name + (detail ? ' — ' + detail : '');
+};
+
+
+// Phase 4K-6K-G — Admission Tuition Type Normalization
+// "Thu nhập học" là nhãn nghiệp vụ/biên lai, KHÔNG phải phân loại kế toán.
+// Với giao dịch nhập học có component học phí, hệ thống phải tính/hiển thị vào Học phí.
+window.isAdmissionTuitionType = function(type) {
+    return String(type || '').trim().toLowerCase() === 'thu nhập học';
+};
+
+window.getBundleAccountingTypeFromComponents = function(components, fallbackType) {
+    const comps = Array.isArray(components) ? components : [];
+    const hasTuition = comps.some(function(c) { return c && c.kind === 'tuition' && Number(c.amount || 0) > 0; });
+    const hasExam    = comps.some(function(c) { return c && c.kind === 'exam' && Number(c.amount || 0) > 0; });
+    const hasInv     = comps.some(function(c) { return c && (c.kind === 'inventory' || c.kind === 'inventoryDebt') && Number(c.amount || 0) > 0; });
+    const hasOther   = comps.some(function(c) { return c && c.kind === 'other' && Number(c.amount || 0) > 0; });
+
+    // Ưu tiên Học phí nếu có component tuition. Các khoản phụ vẫn được tách bằng components.
+    if (hasTuition && hasExam && !hasInv && !hasOther) return 'Học phí + Lệ phí thi';
+    if (hasTuition) return 'Học phí';
+    if (hasExam && !hasInv && !hasOther) return 'Lệ phí thi';
+    if (hasInv && !hasOther) return 'Thu kho đồ';
+    return fallbackType || 'Thu gộp';
+};
+
+window.normalizeFinanceTransactionType = function(txOrType) {
+    const isObj = txOrType && typeof txOrType === 'object';
+    const tx = isObj ? txOrType : null;
+    const rawType = String(isObj ? (txOrType.type || '') : (txOrType || '')).trim();
+    if (window.isAdmissionTuitionType(rawType)) {
+        if (tx && Array.isArray(tx.components) && tx.components.length) {
+            return window.getBundleAccountingTypeFromComponents(tx.components, 'Học phí');
+        }
+        return 'Học phí';
+    }
+    return rawType;
+};
+
+window.getFinanceTransactionDisplayType = function(tx) {
+    const t = tx || {};
+    if (Array.isArray(t.components) && t.components.length && typeof window.getBundleTypeLabel === 'function') {
+        const label = window.getBundleTypeLabel(t);
+        if (label) return label;
+    }
+    return window.normalizeFinanceTransactionType(t) || t.type || 'Khoản thu';
+};
+
+window.isTuitionFinanceTransaction = function(tx) {
+    if (!tx) return false;
+    if (Array.isArray(tx.components) && tx.components.some(function(c) { return c && c.kind === 'tuition' && Number(c.amount || 0) > 0; })) return true;
+    const type = window.normalizeFinanceTransactionType(tx);
+    return type === 'Học phí' || type === 'Học phí + Lệ phí thi';
+};
+
+window.debugAdmissionTuitionTypeNormalization = function() {
+    const st = window.__store || {};
+    const txs = Array.isArray(st.allTransactions) ? st.allTransactions
+        : Array.isArray(window.allTransactions) ? window.allTransactions
+        : Array.isArray(st.transactions) ? st.transactions : [];
+    const admissionRaw = txs.filter(function(t) { return t && window.isAdmissionTuitionType(t.type); });
+    const result = {
+        ok: true,
+        buildVersion: window.APP_BUILD_VERSION || '',
+        admissionRawCount: admissionRaw.length,
+        rawTypes: admissionRaw.slice(0, 10).map(function(t) { return { id: t.id || t.txId || '', rawType: t.type, normalizedType: window.normalizeFinanceTransactionType(t), displayType: window.getFinanceTransactionDisplayType(t), hasComponents: Array.isArray(t.components), componentSummary: t.componentSummary || '' }; }),
+        buildPaymentBundleTransactionReady: typeof window.buildPaymentBundleTransaction === 'function',
+        normalizerReady: typeof window.normalizeFinanceTransactionType === 'function'
+    };
+    console.table(result.rawTypes);
+    return result;
+};
+
+// Phase 4K-5C — buildPaymentBundleTransaction (Phase 8)
+window.buildPaymentBundleTransaction = function(payload) {
+    payload = payload || {};
+    const studentName = payload.studentName || '';
+    const profileName = payload.profileName || studentName;
+    const profileId   = payload.profileId || studentName;
+    const branch      = payload.branch || 'CS1';
+    const date        = payload.date || '';
+    const refMonth    = payload.refMonth || '';
+    const receiptType = payload.receiptType || '';
+    const components  = Array.isArray(payload.components) ? payload.components : [];
+
+    const safeComponents = components
+        .filter(function(c) { return c && Number(c.amount || 0) > 0; })
+        .map(function(c) {
+            return {
+                kind: c.kind || 'other',
+                type: c.type || '',
+                label: c.label || c.type || c.kind || '',
+                amount: Number(c.amount || 0),
+                month: c.month || '',
+                packageMonths: Array.isArray(c.packageMonths) ? c.packageMonths : [],
+                relatedInvId: c.relatedInvId || '',
+                category: c.category || '',
+                size: c.size || '',
+                qty: Number(c.qty || 0),
+                examTitle: c.examTitle || '',
+                examTargetBelt: c.examTargetBelt || '',
+                currentBeltAtPayment: c.currentBeltAtPayment || ''
+            };
+        });
+    if (!safeComponents.length) throw new Error('Không có khoản thu hợp lệ để tạo giao dịch.');
+    const total       = safeComponents.reduce(function(s, c) { return s + Number(c.amount || 0); }, 0);
+    const hasTuition  = safeComponents.some(function(c) { return c.kind === 'tuition'; });
+    const hasExam     = safeComponents.some(function(c) { return c.kind === 'exam'; });
+    const hasInv      = safeComponents.some(function(c) { return c.kind === 'inventory' || c.kind === 'inventoryDebt'; });
+    const hasOther    = safeComponents.some(function(c) { return c.kind === 'other'; });
+
+    // Phase 4K-6K-G: receiptType chỉ là nhãn biên lai, không được ghi đè phân loại kế toán.
+    // Đặc biệt: "Thu nhập học" phải về Học phí để không bị đưa vào Khoản thu khác.
+    let type = 'Thu gộp';
+    if (hasTuition && hasExam && !hasInv && !hasOther) type = 'Học phí + Lệ phí thi';
+    else if (hasTuition) type = 'Học phí';
+    else if (hasExam && !hasTuition && !hasInv && !hasOther) type = 'Lệ phí thi';
+    else if (receiptType && receiptType !== 'Thu nhập học') type = receiptType;
+
+    const safeReceiptType = receiptType || type;
+
+    const tuitionComp = safeComponents.find(function(c) { return c.kind === 'tuition'; });
+    const examComp    = safeComponents.find(function(c) { return c.kind === 'exam'; });
+
+    const transaction = {
+        branch: branch,
+        type: type,
+        receiptType: safeReceiptType,
+        paymentKind: safeComponents.length > 1 ? 'bundle' : 'single',
+        description: studentName,
+        studentName: studentName,
+        profileName: profileName,
+        profileId: profileId,
+        amount: total,
+        date: date,
+        txMonth: refMonth,
+        paymentMonth: tuitionComp ? (tuitionComp.month || refMonth) : refMonth,
+        packageMonths: tuitionComp ? (tuitionComp.packageMonths || []) : [],
+        tuitionAmount: tuitionComp ? Number(tuitionComp.amount || 0) : 0,
+        examAmount: examComp ? Number(examComp.amount || 0) : 0,
+        examTitle: examComp ? (examComp.examTitle || '') : '',
+        currentBeltAtPayment: examComp ? (examComp.currentBeltAtPayment || '') : '',
+        examTargetBelt: examComp ? (examComp.examTargetBelt || '') : '',
+        components: safeComponents,
+        componentSummary: safeComponents.map(function(c) { return c.label; }).join(' + '),
+        bundleTypeLabel: typeof window.getBundleTypeLabel === 'function'
+            ? window.getBundleTypeLabel({ components: safeComponents, type: type })
+            : safeComponents.map(function(c){ return c.label || c.type || c.kind; }).join(' + '),
+        bundleSummaryLine: typeof window.getBundleSummaryLine === 'function'
+            ? window.getBundleSummaryLine({ studentName: studentName, description: studentName, components: safeComponents, type: type })
+            : studentName + ' — ' + safeComponents.map(function(c){ return c.label || c.type || c.kind; }).join(' + '),
+        timestamp: Date.now()
+    };
+    return _canonicalTxPayload(transaction, 'payment-bundle-builder');
+};
+
+// Phase 12: expandTransactionComponentsForAccounting
+window.expandTransactionComponentsForAccounting = function(tx) {
+    if (!tx) return [];
+    if (Array.isArray(tx.components) && tx.components.length) {
+        return tx.components.map(function(c) {
+            return {
+                sourceTxId: tx.id || tx.txId || '',
+                studentName: tx.studentName || tx.description || '',
+                kind: c.kind,
+                type: c.type || c.label || '',
+                amount: Number(c.amount || 0),
+                packageMonths: c.packageMonths || [],
+                month: c.month || tx.paymentMonth || tx.txMonth || '',
+                txMonth: tx.txMonth,
+                date: tx.date,
+                branch: tx.branch,
+                category: c.category || '',
+                size: c.size || '',
+                examTitle: c.examTitle || tx.examTitle || '',
+                examTargetBelt: c.examTargetBelt || tx.examTargetBelt || ''
+            };
+        });
+    }
+    const type = tx.type || '';
+    if (type === 'Học phí') return [{ kind:'tuition', type:'Học phí', amount:Number(tx.amount||0), packageMonths:tx.packageMonths||[], month:tx.paymentMonth||tx.txMonth||'', date:tx.date, branch:tx.branch, studentName:tx.description }];
+    if (type === 'Lệ phí thi') return [{ kind:'exam', type:'Lệ phí thi', amount:Number(tx.amount||0), month:tx.txMonth||'', date:tx.date, branch:tx.branch, studentName:tx.studentName||tx.description, examTitle:tx.examTitle, examTargetBelt:tx.examTargetBelt }];
+    if (type === 'Học phí + Lệ phí thi') {
+        const arr = [];
+        if (Number(tx.tuitionAmount||0) > 0) arr.push({ kind:'tuition', type:'Học phí', amount:Number(tx.tuitionAmount||0), packageMonths:tx.packageMonths||[], month:tx.paymentMonth||tx.txMonth||'', date:tx.date, branch:tx.branch, studentName:tx.description });
+        if (Number(tx.examAmount||0) > 0) arr.push({ kind:'exam', type:'Lệ phí thi', amount:Number(tx.examAmount||0), month:tx.txMonth||'', date:tx.date, branch:tx.branch, studentName:tx.description, examTitle:tx.examTitle, examTargetBelt:tx.examTargetBelt });
+        return arr;
+    }
+    return [{ kind:'other', type:type, amount:Number(tx.amount||0), month:tx.txMonth||'', date:tx.date, branch:tx.branch, studentName:tx.description }];
+};
+
+// Phase 4K-5E: getAccountingComponents — dùng components làm nguồn chính
+window.getAccountingComponents = function(tx) {
+    return typeof window.expandTransactionComponentsForAccounting === 'function'
+        ? window.expandTransactionComponentsForAccounting(tx)
+        : [];
+};
+
+// Phase 13: debugBundleTransactions
+window.debugBundleTransactions = function(studentName) {
+    studentName = typeof studentName === 'string' ? studentName : '';
+    const st = window.__store || {};
+    const txs = Array.isArray(st.transactions) ? st.transactions : (window.allTransactions || []);
+    const q = studentName.trim();
+
+    const bundles = txs.filter(function(t) {
+        return (!q || String(t.studentName || t.description || '').includes(q)) &&
+               (t.paymentKind === 'bundle' || Array.isArray(t.components));
+    });
+
+    console.table(bundles.map(function(t) {
+        return {
+            id: t.id || t.txId || '',
+            type: t.type,
+            studentName: t.studentName || t.description || '',
+            amount: t.amount,
+            components: Array.isArray(t.components) ? t.components.length : 0,
+            componentSummary: t.componentSummary || '',
+            date: t.date,
+            txMonth: t.txMonth
+        };
+    }));
+    return bundles;
+};
+
+// Phase 4K-5E: debugBundleDisplay
+window.debugBundleDisplay = function(studentName) {
+    const st = window.__store || {};
+    const txs = Array.isArray(st.transactions) ? st.transactions : (window.allTransactions || []);
+    const q = String(typeof studentName === 'string' ? studentName : '').trim();
+    const rows = txs
+        .filter(function(t) {
+            return (t.paymentKind === 'bundle' || Array.isArray(t.components)) &&
+                   (!q || String(t.studentName || t.description || '').includes(q));
+        })
+        .map(function(t) {
+            return {
+                id: t.id || t.txId || '',
+                studentName: t.studentName || t.description || '',
+                type: t.type,
+                bundleTypeLabel: t.bundleTypeLabel || (typeof window.getBundleTypeLabel === 'function' ? window.getBundleTypeLabel(t) : ''),
+                bundleSummaryLine: t.bundleSummaryLine || (typeof window.getBundleSummaryLine === 'function' ? window.getBundleSummaryLine(t) : ''),
+                amount: t.amount,
+                components: Array.isArray(t.components) ? t.components.map(function(c){ return c.kind + ':' + c.amount; }).join(' | ') : '',
+                componentSummary: t.componentSummary || ''
+            };
+        });
+    console.table(rows);
+    return rows;
+};
+
+// Phase 4K-5F — Debt Coverage + Active/Quit Debug
+
+// ensureDebtProfilesReady — Phase 4K-6V3D debt profile read boundary.
+// Primary source: active profiles listener already loaded at login.
+// Emergency compatibility: DebtProfileReadBoundary may call loadFullProfilesFallback only
+// when lightweight count coverage detects legacy/missing status documents.
+window.ensureDebtProfilesReady = async function(reason) {
+    reason = reason || 'debt-tab-open';
+    if (typeof window.loadAllProfilesForDebt === 'function') {
+        return window.loadAllProfilesForDebt(reason);
+    }
+    if (typeof window.ensureDebtProfileCoverage === 'function') {
+        return window.ensureDebtProfileCoverage(reason);
+    }
+    const st = window.__store || {};
+    return {
+        ok: false,
+        ready: false,
+        source: 'coverage-boundary-unavailable',
+        profilesCount: Object.keys(st.profiles || {}).length,
+        reason,
+    };
+};
+
+// debugDebtCoverage — compare DOM debt rows to computed debt from profiles
+window.debugDebtCoverage = async function() {
+    const st       = window.__store || {};
+    const profiles = st.profiles || {};
+    const selMonth = (document.getElementById('filterMonth') || {}).value || st.selectedMonth || '';
+    const rows     = document.querySelectorAll('#debtList tr[data-student-id]').length;
+    const classify = typeof window.classifyProfileStatus === 'function'
+        ? window.classifyProfileStatus
+        : function(p) { return p && p.status === 'quit' ? 'quit' : 'active'; };
+
+    const activeProfiles = Object.entries(profiles).filter(function(_ref) {
+        var name = _ref[0], p = _ref[1];
+        return classify(p) === 'active';
+    });
+
+    let debtCount = 0;
+    activeProfiles.forEach(function(_ref) {
+        var name = _ref[0], p = _ref[1];
+        if (p.feeExempt) return;
+        const months = typeof window.getChargeableTuitionMonths === 'function'
+            ? window.getChargeableTuitionMonths(p, selMonth, { reason: 'debugDebtCoverage' })
+            : [];
+        if (months.length > 0) debtCount++;
+    });
+
+    const result = {
+        href:                location.href,
+        selectedMonth:       selMonth,
+        profilesCount:       Object.keys(profiles).length,
+        activeProfilesCount: activeProfiles.length,
+        estimatedDebtCount:  debtCount,
+        debtRowsDom:         rows,
+        paginationItems:     st.pagination && st.pagination.students && st.pagination.students.currentItems
+            ? st.pagination.students.currentItems.length : 0,
+        debtSourceQuality:   st._lastDebtSourceQuality || null,
+        hasEnsureDebtProfilesReady: typeof window.ensureDebtProfilesReady === 'function',
+    };
+    console.table(result);
+    return result;
+};
+
+// debugActiveQuitLeak — find quit students leaking into #activeList DOM
+window.debugActiveQuitLeak = function() {
+    const st       = window.__store || {};
+    const profiles = st.profiles || {};
+    const classify = typeof window.classifyProfileStatus === 'function'
+        ? window.classifyProfileStatus
+        : function(p) { return p && p.status === 'quit' ? 'quit' : 'active'; };
+    const activeDom = Array.from(document.querySelectorAll('#activeList tr[data-student-id]'))
+        .map(function(tr) { return tr.getAttribute('data-student-id'); });
+
+    const leaks = activeDom.filter(function(name) {
+        const p    = profiles[name] || {};
+        const kind = classify(p);
+        return kind === 'quit';
+    });
+
+    console.table(leaks.map(function(name) {
+        return { name: name, status: profiles[name] ? profiles[name].status : '?', quitDate: profiles[name] ? profiles[name].quitDate : '' };
+    }));
+    return { activeDomCount: activeDom.length, leaks: leaks };
+};
+
+
+// Phase 4K-6K-D — MultiItem Tuition Package Guard
+// Giữ lựa chọn gói học phí thủ công (3/6/9/12 tháng) không bị _refreshMiHistoryBadges ghi đè.
+// Mục tiêu: Thu gộp gói 3 tháng từ 2026-06 phải ghi đủ 2026-06,2026-07,2026-08 và paidUntil=2026-08.
+window.__miManualTuitionPackage = false;
+window.__miLastManualTuitionPackage = '';
+window.__miLastPackageMonths = [];
+window.__miLastPackageCoverage = null;
+
+window.normalizeTuitionMonthForMultiItem = window.normalizeTuitionMonthForMultiItem || function(month) {
+    const raw = String(month || '').slice(0, 7);
+    if (!raw) return '';
+    const parts = raw.split('-');
+    if (parts.length !== 2) return raw;
+    const y = Number(parts[0]);
+    const m = Number(parts[1]);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) return raw;
+    return String(y).padStart(4, '0') + '-' + String(m).padStart(2, '0');
+};
+
+window.addMonthsForMultiItem = window.addMonthsForMultiItem || function(month, offset) {
+    const norm = window.normalizeTuitionMonthForMultiItem(month);
+    if (!norm) return '';
+    let parts = norm.split('-').map(Number);
+    let y = parts[0], m = parts[1] + Number(offset || 0);
+    while (m > 12) { m -= 12; y += 1; }
+    while (m < 1) { m += 12; y -= 1; }
+    return String(y).padStart(4, '0') + '-' + String(m).padStart(2, '0');
+};
+
+window.getSelectedMultiItemTuitionPackageState = window.getSelectedMultiItemTuitionPackageState || function() {
+    const pkgSelect = document.getElementById('mi_tuition_pkg');
+    const opt = pkgSelect && pkgSelect.options ? pkgSelect.options[pkgSelect.selectedIndex] : null;
+    const value = String((pkgSelect && pkgSelect.value) || '1');
+    const isDebtOption = !!(opt && opt.getAttribute && opt.getAttribute('data-debt') === 'true');
+    const manual = !!(window.__miManualTuitionPackage || (pkgSelect && pkgSelect.getAttribute('data-manual-package') === 'true'));
+    return { pkgSelect, opt, value, isDebtOption, manual };
+};
+
+window.markManualMultiItemTuitionPackage = window.markManualMultiItemTuitionPackage || function(reason) {
+    const st = window.getSelectedMultiItemTuitionPackageState ? window.getSelectedMultiItemTuitionPackageState() : {};
+    const pkgSelect = st.pkgSelect || document.getElementById('mi_tuition_pkg');
+    const opt = st.opt || (pkgSelect && pkgSelect.options ? pkgSelect.options[pkgSelect.selectedIndex] : null);
+    if (!pkgSelect || !opt) return false;
+    // Chỉ đánh dấu thủ công khi HLV chọn gói chuẩn, không phải option thu nợ tự sinh.
+    if (opt.getAttribute && opt.getAttribute('data-debt') === 'true') {
+        window.__miManualTuitionPackage = false;
+        pkgSelect.removeAttribute('data-manual-package');
+        return false;
+    }
+    const allowed = ['1', '3', '6', '9', '12'];
+    if (!allowed.includes(String(pkgSelect.value))) return false;
+    window.__miManualTuitionPackage = true;
+    window.__miLastManualTuitionPackage = String(pkgSelect.value || '1');
+    pkgSelect.setAttribute('data-manual-package', 'true');
+    pkgSelect.setAttribute('data-manual-package-reason', String(reason || 'manual-change'));
+    pkgSelect.removeAttribute('data-months');
+    return true;
+};
+
+window.bindMultiItemTuitionPackageGuard = window.bindMultiItemTuitionPackageGuard || function() {
+    if (window.__miTuitionPackageGuardBound) return true;
+    window.__miTuitionPackageGuardBound = true;
+    // Capture-phase để chạy trước inline onchange="updateMultiItemAutoFee()" trong index.html.
+    document.addEventListener('change', function(e) {
+        const target = e && e.target;
+        if (!target || target.id !== 'mi_tuition_pkg') return;
+        window.markManualMultiItemTuitionPackage && window.markManualMultiItemTuitionPackage('select-change-capture');
+    }, true);
+    return true;
+};
+window.bindMultiItemTuitionPackageGuard && window.bindMultiItemTuitionPackageGuard();
+
+window.resetMultiItemTuitionPackageManualState = window.resetMultiItemTuitionPackageManualState || function(reason) {
+    const pkgSelect = document.getElementById('mi_tuition_pkg');
+    window.__miManualTuitionPackage = false;
+    window.__miLastManualTuitionPackage = '';
+    window.__miLastPackageMonths = [];
+    window.__miLastPackageCoverage = null;
+    if (pkgSelect) {
+        pkgSelect.removeAttribute('data-manual-package');
+        pkgSelect.removeAttribute('data-manual-package-reason');
+        pkgSelect.removeAttribute('data-months');
+        pkgSelect.setAttribute('data-reset-reason', String(reason || 'reset'));
+    }
+};
+
+window.buildMultiItemTuitionPackageMonths = window.buildMultiItemTuitionPackageMonths || function(tuitionMonth, pkg, profile, options) {
+    const opts = options || {};
+    const pkgSelect = opts.pkgSelect || document.getElementById('mi_tuition_pkg');
+    const selectedOpt = pkgSelect && pkgSelect.options ? pkgSelect.options[pkgSelect.selectedIndex] : null;
+    const isDebtOption = !!(selectedOpt && selectedOpt.getAttribute && selectedOpt.getAttribute('data-debt') === 'true');
+    const startMonth = window.normalizeTuitionMonthForMultiItem(tuitionMonth || opts.startMonth || '');
+    let rawMonths = [];
+    if (isDebtOption) {
+        try {
+            const raw = pkgSelect ? pkgSelect.getAttribute('data-months') : '';
+            rawMonths = raw ? JSON.parse(raw) : [];
+        } catch (_) { rawMonths = []; }
+    }
+
+    let months = [];
+    let source = 'manual-package';
+    if (Array.isArray(rawMonths) && rawMonths.length > 0) {
+        months = rawMonths.map(function(m) { return window.normalizeTuitionMonthForMultiItem(m); }).filter(Boolean);
+        source = 'debt-data-months';
+    } else if (startMonth) {
+        const count = Math.max(1, Number(pkg) || Number(pkgSelect && pkgSelect.value) || 1);
+        for (let i = 0; i < count; i++) months.push(window.addMonthsForMultiItem(startMonth, i));
+        const skipped = Array.isArray(profile && profile.skippedMonths)
+            ? profile.skippedMonths.map(function(m) { return window.normalizeTuitionMonthForMultiItem(m); }).filter(Boolean)
+            : [];
+        if (skipped.length > 0) {
+            months = months.filter(function(m) { return !skipped.includes(m); });
+            source = 'manual-package-minus-skipped';
+        }
+    }
+
+    const seen = new Set();
+    months = months.filter(function(m) {
+        if (!m || seen.has(m)) return false;
+        seen.add(m);
+        return true;
+    });
+    const result = {
+        months: months,
+        lastMonth: months.length ? months[months.length - 1] : (startMonth || ''),
+        startMonth: startMonth,
+        requestedPackage: Number(pkg) || Number(pkgSelect && pkgSelect.value) || 1,
+        source: source,
+        isDebtOption: isDebtOption,
+        manual: !!(window.__miManualTuitionPackage || (pkgSelect && pkgSelect.getAttribute('data-manual-package') === 'true'))
+    };
+    window.__miLastPackageMonths = months.slice();
+    window.__miLastPackageCoverage = result;
+    return result;
+};
+
+window.debugMultiItemTuitionPackageCoverage = function(name) {
+    const studentName = String(name || (document.getElementById('mi_name') && document.getElementById('mi_name').value) || '').trim();
+    const p = (window.allProfiles && window.allProfiles[studentName]) || ((window.__store && window.__store.profiles) || {})[studentName] || {};
+    const pkgSelect = document.getElementById('mi_tuition_pkg');
+    const tuitionMonth = (document.getElementById('mi_tuition_month') && document.getElementById('mi_tuition_month').value) || '';
+    const pkg = Number(pkgSelect && pkgSelect.value) || 1;
+    const coverage = window.buildMultiItemTuitionPackageMonths(tuitionMonth, pkg, p, { pkgSelect: pkgSelect, reason: 'debug' });
+    const result = {
+        studentName: studentName,
+        tuitionMonth: tuitionMonth,
+        pkgValue: pkgSelect ? pkgSelect.value : '',
+        selectedText: pkgSelect && pkgSelect.options[pkgSelect.selectedIndex] ? pkgSelect.options[pkgSelect.selectedIndex].textContent : '',
+        dataMonths: pkgSelect ? (pkgSelect.getAttribute('data-months') || '') : '',
+        manualPackage: !!window.__miManualTuitionPackage,
+        packageMonths: coverage.months,
+        paidUntilAfterPay: coverage.lastMonth,
+        expectedExample_3_from_2026_06: window.buildMultiItemTuitionPackageMonths('2026-06', 3, {}, { reason: 'example' }).months
+    };
+    console.table(result);
+    return result;
+};
+
+// Phase 4K-5M — debugMultiItemSkippedMonth: kiểm tra trạng thái Thu Gộp + skipped months
+window.debugMultiItemSkippedMonth = function(name) {
+    var studentName = String(name || (document.getElementById('mi_name') && document.getElementById('mi_name').value) || '').trim();
+    var st = window.__store || {};
+    var p = (window.allProfiles && window.allProfiles[studentName]) ||
+        (st.profiles || {})[studentName] || {};
+
+    var selectedMonth =
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        st.selectedMonth ||
+        new Date().toISOString().slice(0, 7);
+
+    var chargeableMonths = typeof window.getChargeableTuitionMonths === 'function'
+        ? window.getChargeableTuitionMonths(p, selectedMonth, { reason: 'debug' })
+        : [];
+
+    var pkgSelect = document.getElementById('mi_tuition_pkg');
+
+    var result = {
+        studentName:        studentName,
+        selectedMonth:      selectedMonth,
+        paidUntil:          p.paidUntil || '',
+        skippedMonths:      p.skippedMonths || [],
+        chargeableMonths:   chargeableMonths,
+        miTuitionMonth:     (document.getElementById('mi_tuition_month') && document.getElementById('mi_tuition_month').value) || '',
+        miPkgValue:         pkgSelect ? pkgSelect.value : '',
+        miPkgDataMonths:    pkgSelect ? (pkgSelect.getAttribute('data-months') || '') : '',
+        tuitionActual:      (document.getElementById('mi_tuition_actual') && document.getElementById('mi_tuition_actual').value) || '',
+        tuitionDisplay:     (document.getElementById('mi_tuition_display') && document.getElementById('mi_tuition_display').value) || ''
+    };
+
+    console.table(result);
+    return result;
+};
+
+window.processMultiItem = async (action) => {
+    const name = document.getElementById('mi_name').value.trim();
+    if(!name) return alert('Vui lòng nhập tên võ sinh!');
+    // H8R2.1 R3 — MultiItem identity must already exist in the canonical RAM
+    // profile map. Never turn raw text input into a create-if-missing profile.
+    let profile = allProfiles[name];
+    if(!profile) return alert('Không tìm thấy hồ sơ võ sinh hợp lệ. Vui lòng chọn võ sinh từ danh sách.');
+    const branch = action === 'report' ? String(profile.branch || '').trim() : (profile.branch || document.getElementById('branch').value || 'CS1');
+    const tuitionMonth = document.getElementById('mi_tuition_month').value;
+    const pkg = Number(document.getElementById('mi_tuition_pkg').value) || 1;
+    const tuition = Number(document.getElementById('mi_tuition_actual').value) || 0;
+    const _miRejectInvalidAmount = value => window.exportReceipt(name,value,'Khoản thu',getLocalToday(),tuitionMonth,branch,'','PHIẾU BÁO HỌC PHÍ');
+    const hasExam = document.getElementById('mi_exam_toggle').checked;
+    const examTitle = hasExam ? (document.getElementById('mi_exam_title').value.trim() || 'Lệ phí thi') : '';
+    const examFee = hasExam ? (Number(document.getElementById('mi_exam_actual').value) || 0) : 0;
+    const hasOther = document.getElementById('mi_other_toggle').checked;
+    const otherDesc = hasOther ? (document.getElementById('mi_other_desc').value.trim() || 'Thu khác') : '';
+    const otherFee = hasOther ? (Number(document.getElementById('mi_other_actual').value) || 0) : 0;
+    const hasInv = document.getElementById('mi_inv_toggle').checked;
+    const invCat = hasInv ? (document.getElementById('mi_inv_category').value || 'Võ phục') : '';
+    const invSizeEl = invCat === 'Võ phục' ? document.getElementById('mi_inv_size_select') : document.getElementById('mi_inv_size_text');
+    const invSize = hasInv ? (invSizeEl ? invSizeEl.value.trim() : '') : '';
+    const invQty = hasInv ? (Number(document.getElementById('mi_inv_qty').value) || 1) : 0;
+    const invPrice = hasInv ? (Number(document.getElementById('mi_inv_price_actual').value) || 0) : 0;
+    const invTotal = hasInv ? (Number(document.getElementById('mi_inv_total_actual').value) || 0) : 0;
+    if(hasInv && !invSize) return alert('Vui lòng chọn hoặc nhập kích cỡ hàng Kho Đồ!');
+
+    // ── Thu thập các khoản nợ kho được tick ──────────────────────────────────
+    const invDebtChecks = [...document.querySelectorAll('.mi-inv-debt-check:checked')];
+    const invDebtIds = invDebtChecks.map(c => c.getAttribute('data-inv-id'));
+    const invDebtTotal = invDebtChecks.reduce((s, c) => s + (Number(c.getAttribute('data-amount')) || 0), 0);
+
+    // ── Kiểm tra trạng thái checkbox "Thu học phí" ───────────────────────────
+    // Nếu HLV bỏ tích "Thu học phí", toàn bộ validation và ghi sổ học phí sẽ bị bỏ qua.
+    // Điều này cho phép tạo phiếu chỉ với Lệ phí thi đai, Kho Đồ hoặc Khoản khác.
+    const tuitionEnabledEl = document.getElementById('mi_tuition_enabled');
+    const isTuitionEnabled = tuitionEnabledEl ? tuitionEnabledEl.checked : true;
+
+    // Chỉ validate học phí khi "Thu học phí" được bật
+    if(isTuitionEnabled && tuition <= 0) return action === 'report' ? _miRejectInvalidAmount(tuition) : alert('Vui lòng nhập số tiền học phí!');
+    if(isTuitionEnabled && !tuitionMonth) return alert('Vui lòng chọn tháng học phí!');
+
+    // Đảm bảo tổng tiền > 0 để có ít nhất một khoản thu hợp lệ
+    const total = (isTuitionEnabled ? tuition : 0) + examFee + otherFee + invTotal + invDebtTotal;
+    if(total <= 0) return action === 'report' ? _miRejectInvalidAmount(total) : alert('Vui lòng nhập ít nhất một khoản thu!');
+
+    // Tháng tham chiếu dùng cho các giao dịch không phải học phí (thi đai, kho đồ, khoản khác).
+    // Nếu học phí bị tắt và không có tuitionMonth, dùng tháng hiện tại làm fallback.
+    const refMonth = tuitionMonth || getLocalToday().substring(0, 7);
+
+    const _resolveMiTuitionMonths = targetProfile => {
+        if (!(isTuitionEnabled && tuitionMonth && tuition > 0)) return [];
+        const sel=document.getElementById('mi_tuition_pkg'), cov=typeof window.buildMultiItemTuitionPackageMonths==='function'?window.buildMultiItemTuitionPackageMonths(tuitionMonth,pkg,targetProfile||{},{pkgSelect:sel,reason:'processMultiItem'}):null;
+        if(cov&&Array.isArray(cov.months)) return cov.months.slice();
+        const months=[]; for(let i=0;i<pkg;i++){let m=tuitionMonth.split('-').map(Number),nm=m[1]+i,ny=m[0];while(nm>12){nm-=12;ny++;}months.push(ny+'-'+String(nm).padStart(2,'0'));} return months;
+    };
+    let packageMonths=_resolveMiTuitionMonths(profile), lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;
+
+    // ── Xây dựng danh sách chi tiết khoản thu cho phiếu (breakdown) ─────────
+    // Chỉ thêm dòng "Học phí" vào breakdown khi học phí được bật và có giá trị
+    const breakdown = [];
+    if(isTuitionEnabled && tuition > 0) {
+        breakdown.push({ label: 'Học phí ' + (typeof window.formatTuitionMonthList === 'function' ? window.formatTuitionMonthList(packageMonths) : window.formatMonthCompact(packageMonths.join(','))), amount: tuition });
+    }
+    if(hasExam && examFee > 0) breakdown.push({ label: examTitle, amount: examFee });
+    if(hasInv && invTotal > 0) breakdown.push({ label: invCat + ' ' + invSize + ' x' + invQty, amount: invTotal });
+    if(invDebtTotal > 0) {
+        invDebtChecks.forEach(c => {
+            const itemLabel = c.getAttribute('data-label') || 'Kho Đồ';
+            const itemAmt = Number(c.getAttribute('data-amount')) || 0;
+            if(itemAmt > 0) breakdown.push({ label: '📦 Nợ kho: ' + itemLabel, amount: itemAmt });
+        });
+    }
+    if(hasOther && otherFee > 0) breakdown.push({ label: otherDesc, amount: otherFee });
+
+    // ── Xây dựng nhãn danh mục kho (hiện tên danh mục thực thay vì chỉ "Kho Đồ") ──
+    const hasInvDebt = invDebtTotal > 0;
+    const _invLabelParts = [];
+    if(hasInv && invTotal > 0) _invLabelParts.push(invCat);
+    if(hasInvDebt) {
+        invDebtChecks.forEach(c => {
+            const raw = (c.getAttribute('data-label') || '').split(' Size ')[0].split(' ×')[0].trim() || 'Kho Đồ';
+            if(!_invLabelParts.includes(raw)) _invLabelParts.push(raw);
+        });
+    }
+    const _invLabel = _invLabelParts.join(' + ') || 'Kho Đồ';
+
+    // ── Xây dựng nhãn loại phiếu linh hoạt theo từng khoản được bật ─────────
+    // Không còn gắn cứng "Học phí" đứng đầu — nhãn được ghép từ các khoản thực tế.
+    const hasTuition = isTuitionEnabled && tuition > 0;
+    const _labelParts = [];
+    if(hasTuition) _labelParts.push('Học phí');
+    if(hasExam && examFee > 0) _labelParts.push(examTitle || 'Lệ phí thi');
+    if((hasInv && invTotal > 0) || hasInvDebt) _labelParts.push(_invLabel);
+    if(hasOther && otherFee > 0) _labelParts.push(otherDesc || 'Khoản khác');
+    const receiptTypeLabel = _labelParts.join(' + ') || 'Khoản thu';
+
+    // H8R2.1 R2 — paidUntil is monotonic. Reuse the same normalized YYYY-MM
+    // comparison semantics as TuitionCommandBoundary; never let a back-payment
+    // move the canonical paid boundary backwards.
+    let _previousPaidUntil = normalizeYYYYMM(profile.paidUntil || '');
+    let _candidatePaidUntil = hasTuition && packageMonths.length > 0 ? normalizeYYYYMM(lastMonth) : '';
+    let _resultPaidUntil = _candidatePaidUntil
+        ? (_candidatePaidUntil > (_previousPaidUntil || '') ? _candidatePaidUntil : (_previousPaidUntil || _candidatePaidUntil))
+        : _previousPaidUntil;
+
+    const _miAuditPayload = {
+        studentName: name,
+        branch: branch,
+        action: action,
+        receiptType: receiptTypeLabel,
+        total: total,
+        tuition: hasTuition ? tuition : 0,
+        packageMonths: packageMonths,
+        paidUntil: _resultPaidUntil,
+        previousPaidUntil: _previousPaidUntil,
+        candidatePaidUntil: _candidatePaidUntil,
+        resultPaidUntil: _resultPaidUntil,
+        examFee: hasExam ? examFee : 0,
+        inventoryTotal: invTotal,
+        inventoryDebtTotal: invDebtTotal,
+        otherFee: hasOther ? otherFee : 0
+    };
+
+    try {
+        if(action === 'pay') {
+            if(window.userRole === 'viewer') return alert('Tài khoản khách không thể ghi sổ!');
+            if (window.processMultiItem.__atomicInFlight) {
+                window.showToast?.('⏳ Giao dịch đang được xử lý, vui lòng không gửi lại.');
+                return;
+            }
+            try {
+                if (typeof window.guardFinancialWriteIntent !== 'function'
+                    || typeof window.isFinancialWriteAllowed !== 'function'
+                    || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('multiitem.pay', _miAuditPayload)) !== true) return;
+            } catch (_) { return; }
+            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'before', _miAuditPayload);
+            window.processMultiItem.__atomicInFlight = true;
+            const today = getLocalToday();
+            const _runMultiItemPrimary = async () => {
+                if(hasTuition){
+                    const latestProfiles=(window.__store&&window.__store.profiles)||window.allProfiles||allProfiles||{}, latestProfile=latestProfiles[name]||allProfiles[name]||profile, latestMonths=_resolveMiTuitionMonths(latestProfile); profile=latestProfile;
+                    if(latestMonths.length!==packageMonths.length||!latestMonths.every((m,i)=>m===packageMonths[i])){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-tuition-package';throw e;}
+                    const canonical=window.TuitionDebtCanonical; if(!canonical?.areTuitionMonthsSettled||!canonical?.reconcilePaidUntilFromMonthEvidence)throw new Error('Tuition canonical settlement helper chưa sẵn sàng.');
+                    const settlement=canonical.areTuitionMonthsSettled(latestProfile,latestMonths,{name}), settledCount=Array.isArray(settlement?.states)?settlement.states.filter(r=>r?.settled).length:0;
+                    if(settlement?.allSettled){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
+                    if(settledCount>0){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/partial-settlement-changed';throw e;}
+                    packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(latestProfile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
+                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(latestProfile,(Array.isArray(latestProfile.paidMonths)?latestProfile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
+                }
+
+            // H8R2 C3 — PREPARE → VALIDATE → ONE ATOMIC COMMIT.
+            // This remains inside the existing multi-item owner and reuses the
+            // existing InventoryService pure prepare primitive. No parallel writer.
+            if (typeof window.buildPaymentBundleTransaction !== 'function') {
+                throw new Error('Payment bundle authority chưa sẵn sàng. Chưa có dữ liệu nào được ghi.');
+            }
+            if (hasInv && invTotal > 0 && !(window.InventoryService && typeof window.InventoryService.prepareAddItemMutation === 'function')) {
+                throw new Error('Inventory canonical owner chưa sẵn sàng. Chưa có dữ liệu nào được ghi.');
+            }
+            if (invDebtIds.length > 0 && !(window.InventoryService && typeof window.InventoryService.prepareMarkPaidPatch === 'function')) {
+                throw new Error('Inventory debt canonical owner chưa sẵn sàng. Chưa có dữ liệu nào được ghi.');
+            }
+
+            // Pre-generate the canonical transaction id so inventory/debt links can
+            // participate in the same atomic Firestore batch.
+            const _bundleDocRef = doc(colRef);
+            let _preparedInventory = null;
+            let _invDocId = '';
+            if(hasInv && invTotal > 0) {
+                const _miIdentity = typeof window.resolveInventoryDebtIdentity === 'function' ? window.resolveInventoryDebtIdentity(name) : {};
+                const _miInvPayload = {
+                    category: invCat,
+                    size: invSize,
+                    type: 'Xuất bán',
+                    qty: invQty,
+                    desc: name,
+                    studentName: name,
+                    profileId: _miIdentity.profileId || '',
+                    memberId: _miIdentity.memberId || '',
+                    amount: invTotal,
+                    date: today,
+                    timestamp: Date.now() + 2,
+                    paymentBundleId: _bundleDocRef.id,
+                    paidTxId: _bundleDocRef.id
+                };
+                _preparedInventory = window.InventoryService.prepareAddItemMutation(_miInvPayload);
+                _invDocId = _preparedInventory.itemRef.id;
+            }
+
+            // Build components before any write.
+            const _profileForExam = profile;
+            const _currentBelt = _profileForExam.belt || '';
+            const _examTargetBelt = (window.BELT_NEXT && _currentBelt && window.BELT_NEXT[_currentBelt]) ? window.BELT_NEXT[_currentBelt] : '';
+            const _components = [];
+            if(hasTuition && tuition > 0) {
+                const _tuitionLabel = packageMonths.length
+                    ? 'Học phí ' + (typeof window.formatTuitionMonthList === 'function'
+                        ? window.formatTuitionMonthList(packageMonths)
+                        : (typeof window.formatMonthCompact === 'function' ? window.formatMonthCompact(packageMonths.join(',')) : packageMonths.join(', ')))
+                    : 'Học phí';
+                _components.push({ kind: 'tuition', type: 'Học phí', label: _tuitionLabel, amount: tuition, month: lastMonth, packageMonths: packageMonths });
+            }
+            if(hasExam && examFee > 0) {
+                _components.push({ kind: 'exam', type: 'Lệ phí thi', label: examTitle || 'Lệ phí thi', amount: examFee, examTitle: examTitle, currentBeltAtPayment: _currentBelt, examTargetBelt: _examTargetBelt });
+            }
+            if(hasInv && invTotal > 0) {
+                _components.push({ kind: 'inventory', type: 'Thu ' + invCat, label: invCat + ' ' + invSize + ' x' + invQty, amount: invTotal, category: invCat, size: invSize, qty: invQty, relatedInvId: _invDocId });
+            }
+            if(invDebtTotal > 0) {
+                Array.from(invDebtChecks).forEach(function(c) {
+                    const _itemAmt = Number(c.getAttribute && c.getAttribute('data-amount')) || 0;
+                    if(_itemAmt > 0) _components.push({ kind: 'inventoryDebt', type: 'Thu nợ kho', label: 'Nợ kho: ' + (c.getAttribute && c.getAttribute('data-label') || 'Đồ'), amount: _itemAmt });
+                });
+            }
+            if(hasOther && otherFee > 0) {
+                _components.push({ kind: 'other', type: 'Thu khác', label: otherDesc || 'Khoản khác', amount: otherFee });
+            }
+            if (_components.length === 0) {
+                throw new Error('Không có khoản thu hợp lệ. Chưa có dữ liệu nào được ghi.');
+            }
+
+            const _miDisplayName = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
+                ? window.ProfileCanonicalStore.resolveDisplayName(name, profile)
+                : String(profile.displayName || profile.name || profile.fullName || profile.studentName || name || '').trim();
+            const _bundleTx = window.buildPaymentBundleTransaction({
+                studentName: _miDisplayName,
+                profileName: _miDisplayName,
+                profileId: name,
+                branch: branch,
+                date: today,
+                refMonth: refMonth,
+                receiptType: typeof receiptTypeLabel !== 'undefined' ? receiptTypeLabel : '',
+                components: _components
+            });
+
+            // Count canonical writes BEFORE committing. A logical financial action
+            // must never be split into independent batches.
+            let _opCount = 1; // bundle transaction
+            if(hasTuition && packageMonths.length > 0) _opCount += 1;
+            if(_preparedInventory) {
+                _opCount += 1; // inventory item
+                if (_preparedInventory.summaryPatch && Object.keys(_preparedInventory.summaryPatch).length) _opCount += 1; // inventory_stats
+            }
+            _opCount += invDebtIds.length;
+            if (_opCount > 400) {
+                const _tooLarge = new Error('Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.');
+                _tooLarge.code = 'finance/atomic-plan-too-large';
+                throw _tooLarge;
+            }
+
+            const _batch = writeBatch(db);
+            if(hasTuition && packageMonths.length > 0) {
+                _batch.update(doc(db, 'clubs', currentClubId, 'profiles', name), {
+                    paidUntil: _resultPaidUntil,
+                    paidMonths: arrayUnion(...packageMonths)
+                });
+            }
+            if (_preparedInventory) {
+                _batch.set(_preparedInventory.itemRef, _preparedInventory.payload);
+                if (_preparedInventory.summaryPatch && Object.keys(_preparedInventory.summaryPatch).length) {
+                    _batch.set(_preparedInventory.statsRef, _preparedInventory.summaryPatch, { merge: true });
+                }
+            }
+            const _inventoryDebtPaidAt = Date.now();
+            const _inventoryDebtPaidPatch = invDebtIds.length > 0
+                ? window.InventoryService.prepareMarkPaidPatch({
+                    txId: _bundleDocRef.id,
+                    paymentBundleId: _bundleDocRef.id,
+                    paidDate: today,
+                    paidAt: _inventoryDebtPaidAt,
+                })
+                : null;
+            invDebtIds.forEach(function(id) {
+                _batch.update(doc(db, 'clubs', currentClubId, 'inventory', id), _inventoryDebtPaidPatch);
+            });
+            _batch.set(_bundleDocRef, _canonicalTxPayload(_bundleTx, 'payment-bundle-atomic'));
+            await _batch.commit();
+
+            // Runtime state updates happen only after canonical commit succeeds.
+            if (_preparedInventory && _preparedInventory.runtimeItem) {
+                window.mergeInventoryIntoRuntimeStore?.(_preparedInventory.runtimeItem, 'processMultiItem-atomic-inventory');
+            }
+            if (_preparedInventory || invDebtIds.length > 0) {
+                window.notifyInventoryMutation?.('processMultiItem-atomic', { writeThrough: true });
+            }
+            if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
+                window.mergeTransactionIntoRuntimeStore(Object.assign({ id: _bundleDocRef.id }, _bundleTx), 'processMultiItem-atomic-bundle');
+            }
+            if(hasTuition&&packageMonths.length>0){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[F1D1] Tuition local-state owner chưa sẵn sàng.');laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil:_resultPaidUntil,paidMonths:packageMonths,reason:'processMultiItem-atomic'});}
+            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'after', _miAuditPayload);
+            return { committed: true, txId: _bundleDocRef.id };
+            };
+            let _primaryResult;
+            if(hasTuition){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLane)throw new Error('[F1D1] Tuition profile lane chưa sẵn sàng.');_primaryResult=await laneOwner.runInProfileTuitionMutationLane({studentName:name,profileId:profile.profileId||profile.id||profile.memberId||name,reason:'processMultiItem.tuition'},_runMultiItemPrimary);}
+            else _primaryResult=await _runMultiItemPrimary();
+            if(_primaryResult?.alreadySettled){window.showToast?.('ℹ️ Khoản học phí này đã được thu. Không tạo giao dịch trùng.');return;}
+            window.showToast('✅ Đã ghi sổ thành công!');
+        }
+        const receiptTitle = action === 'report' ? 'PHIẾU BÁO HỌC PHÍ' : 'BIÊN LAI THU TIỀN';
+        // Truyền refMonth thay vì tuitionMonth để tránh lỗi khi học phí bị tắt.
+        const _miReceiptResult = await window.exportReceipt(name, total, receiptTypeLabel, getLocalToday(), refMonth, branch, examTitle, receiptTitle, breakdown, action === 'report' ? 'multiItemModal' : undefined);
+        if (action === 'report' && !_miReceiptResult?.ok) return _miReceiptResult;
+        document.getElementById('multiItemModal').style.display = 'none';
+        if (action === 'report') return _miReceiptResult;
+    } catch(err) {
+        if (action === 'pay' && typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'error', Object.assign({}, _miAuditPayload, { error: err && err.message || String(err) }));
+        console.error(err); alert('Lỗi: ' + err.message);
+    } finally {
+        if (action === 'pay') window.processMultiItem.__atomicInFlight = false;
+    }
+};
+
+// ─── Setup currency inputs for multi-item modal ───
+(function setupMiCurrencyAll() {
+    function setupMiCurrency(dispId, actId, callback, storeRaw) {
+        const d = document.getElementById(dispId); const a = document.getElementById(actId);
+        if(!d || !a) return;
+        d.addEventListener('input', e => {
+            let v = e.target.value.replace(/\D/g, '');
+            a.value = v;
+            if(storeRaw) a.setAttribute('data-raw', v);
+            e.target.value = v ? parseInt(v,10).toLocaleString('vi-VN') : '';
+            if(callback) callback();
+        });
+    }
+    setupMiCurrency('mi_tuition_display', 'mi_tuition_actual', updateMultiItemTotal, true);
+    setupMiCurrency('mi_exam_display', 'mi_exam_actual', updateMultiItemTotal, false);
+    setupMiCurrency('mi_other_display', 'mi_other_actual', updateMultiItemTotal, false);
+    setupMiCurrency('mi_inv_price_display', 'mi_inv_price_actual', window.calcMiInvTotal, false);
+
+
+    // ĐIỂM DANH — Phase 4K-6V canonical module ownership
+    // Full implementation moved to js/modules/attendance.js.
+    // app.js intentionally keeps no duplicate attendance core.
+
+    //  COACH ACCOUNT MANAGEMENT
+    window.openCoachAccountsModal = () => {
+        if (!['admin','owner','super_admin'].includes(window.userRole) || window.__verifiedAuthContextState?.ready !== true || window.__verifiedAuthContextState?.role !== window.userRole || window.__verifiedAuthContextState?.uid !== window.__store?.currentUser?.uid) return alert('Chỉ quản trị viên đã xác minh mới được quản lý tài khoản HLV!');
+        // Rebuild branch controls when this modal is actually opened (including
+        // mobile). This uses the existing UI owner, not a new rights writer.
+        window.CoachBranchRuntimeRepair?.renderCreateBranchChoices?.();
+        document.getElementById('coachAccountsModal').style.display = 'flex';
+        window.loadCoachAccounts();
+    };
+
+    window.loadCoachAccounts = (...args) => window.CoachBranchRuntimeRepair.loadCoachAccounts(...args);
+
+    window.createCoachAccount = (...args) => window.CoachBranchRuntimeRepair.createCoachAccount(...args);
+
+    window.resetCoachPassword = async (email) => {
+        if (!email) return alert('Không tìm thấy email của HLV!');
+        if (!confirm('Gửi email đặt lại mật khẩu đến:\n' + email + '\n\nHLV sẽ nhận được link trong hộp thư để tự đặt mật khẩu mới.')) return;
+        try {
+            await sendPasswordResetEmail(auth, email);
+            window.showToast('✅ Đã gửi email đặt lại mật khẩu đến: ' + email, 3500);
+        } catch(e) {
+            if (e.code === 'auth/user-not-found') alert('Không tìm thấy tài khoản Firebase với email: ' + email);
+            else alert('Lỗi gửi email đặt lại mật khẩu: ' + (e.message || e.code));
+        }
+    };
+
+    window.deleteCoachAccount = async (uid, email) => {
+        if (!confirm('Xóa tài khoản HLV: ' + email + '?\nHành động này không thể hoàn tác.')) return;
+        try {
+            // Bước 1: Xóa khỏi clubs/coaches (critical — luôn thực hiện bằng quyền admin)
+            await deleteDoc(doc(db, 'clubs', currentClubId, 'coaches', uid));
+            // Bước 2: Thử xóa users/{uid} (optional — có thể bị chặn bởi Firestore Rules)
+            try {
+                await deleteDoc(doc(db, 'users', uid));
+            } catch(_permErr) {
+                console.warn('Không thể xóa users/{uid}:', _permErr.code, '— không ảnh hưởng chức năng');
+            }
+            window.showToast('✅ Đã xóa tài khoản HLV: ' + email, 2500);
+            window.loadCoachAccounts();
+        } catch(e) {
+            alert('Lỗi xóa tài khoản: ' + e.message);
+        }
+    };
+
+    // TÍNH NĂNG: GHI CHÚ BUỔI ĐIỂM DANH (HLV ghi lý do nghỉ, nhận xét)
+    // Lưu vào: clubs/{clubId}/attendanceNotes/{date}_{coachId}
+
+    let _sessionNoteCache = Object.create(null); // { [club|uid|date]: data|null }; null = loaded missing
+    const _sessionNoteInFlight = new Map();
+    let _currentNoteDate  = '';
+    let _currentNoteIdentity = null;
+    let _sessionNoteLoadSeq = 0;   // Phase 4K-6V: prevent stale date response overwriting current note
+
+    const _sessionNoteDebug = (field) => {
+        const debug = window.__attendanceDebug;
+        if (!debug) return;
+        debug[field] = Number(debug[field] || 0) + 1;
+    };
+    const _applySessionNoteToCurrentView = (data, identity, requestSeq, attendanceContext) => {
+        const authGeneration = Number(window.__verifiedAuthContextState?.generation || 0);
+        const latestDaily = window.AttendanceModule?.getDailyState?.().latestIntent;
+        const dailyStillCurrent = !attendanceContext || (
+            latestDaily?.key === attendanceContext.key &&
+            Number(latestDaily?.generation || 0) === Number(attendanceContext.generation || 0)
+        );
+        if (
+            requestSeq !== _sessionNoteLoadSeq ||
+            currentClubId !== identity.clubId ||
+            authGeneration !== identity.authGeneration ||
+            _currentNoteDate !== identity.date ||
+            _currentNoteIdentity?.key !== identity.key ||
+            !dailyStillCurrent
+        ) return false;
+        const noteArea = document.getElementById('session_note_text');
+        const noteBadge = document.getElementById('session_note_badge');
+        if (!noteArea) return false;
+        noteArea.value = data?.note || '';
+        if (noteBadge) {
+            if (data) { noteBadge.textContent = '✏️ Đã có ghi chú'; noteBadge.style.display = 'inline-block'; }
+            else noteBadge.style.display = 'none';
+        }
+        return true;
+    };
+
+    // Tải ghi chú của ngày hiện tại khi HLV chọn ngày
+    window.loadSessionNote = async (date, options = {}) => {
+        if (!date || !currentClubId) return;
+        const requestClubId = currentClubId;
+        const auth_ = getAuth(app);
+        const uid = auth_.currentUser ? auth_.currentUser.uid : '';
+        const authGeneration = Number(window.__verifiedAuthContextState?.generation || 0);
+        const key = [requestClubId, uid, date].join('|');
+        if (_currentNoteIdentity?.key !== key) _sessionNoteLoadSeq++;
+        const requestSeq = _sessionNoteLoadSeq;
+        const identity = Object.freeze({ key, clubId: requestClubId, uid, date, authGeneration });
+        _currentNoteDate = date;
+        _currentNoteIdentity = identity;
+        const docId = date + (uid ? '_' + uid : '');
+        if (!document.getElementById('session_note_text')) return;
+        if (Object.prototype.hasOwnProperty.call(_sessionNoteCache, key)) {
+            _sessionNoteDebug('sessionNoteCacheHits');
+            _applySessionNoteToCurrentView(_sessionNoteCache[key], identity, requestSeq, options.attendanceContext);
+            return _sessionNoteCache[key];
+        }
+        if (_sessionNoteInFlight.has(key)) {
+            _sessionNoteDebug('sessionNoteCoalesced');
+            const data = await _sessionNoteInFlight.get(key);
+            _applySessionNoteToCurrentView(data, identity, requestSeq, options.attendanceContext);
+            return data;
+        }
+        const promise = (async () => {
+            _sessionNoteDebug('sessionNoteLoads');
+            const noteDoc = await getDoc(doc(db, 'clubs', requestClubId, 'attendanceNotes', docId));
+            if (typeof window.recordFirestoreReadAttribution === 'function') {
+                window.recordFirestoreReadAttribution('attendance.sessionNote', 1, { initial: true, reason: 'attendance-daily-accepted', date });
+            }
+            const data = noteDoc.exists() ? noteDoc.data() : null;
+            _sessionNoteCache[key] = data;
+            return data;
+        })().finally(() => {
+            if (_sessionNoteInFlight.get(key) === promise) _sessionNoteInFlight.delete(key);
+        });
+        _sessionNoteInFlight.set(key, promise);
+        try {
+            const data = await promise;
+            _applySessionNoteToCurrentView(data, identity, requestSeq, options.attendanceContext);
+            return data;
+        } catch(e) {
+            if (requestSeq !== _sessionNoteLoadSeq || currentClubId !== requestClubId || _currentNoteIdentity?.key !== key) return;
+            _applySessionNoteToCurrentView(
+                Object.prototype.hasOwnProperty.call(_sessionNoteCache, key) ? _sessionNoteCache[key] : null,
+                identity,
+                requestSeq,
+                options.attendanceContext
+            );
+        }
+    };
+
+    // Lưu ghi chú buổi tập vào Firestore
+    window.saveSessionNote = async () => {
+        const noteArea = document.getElementById('session_note_text');
+        if (!noteArea || !currentClubId || !_currentNoteDate) return;
+        const note = noteArea.value.trim();
+        const auth_ = getAuth(app);
+        const uid = auth_.currentUser ? auth_.currentUser.uid : '';
+        const docId = _currentNoteDate + (uid ? '_' + uid : '');
+
+        const saveBtn = document.getElementById('btn_save_session_note');
+        // [SỬA] Đổi nhãn nút thành "Gửi báo cáo" theo yêu cầu
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Đang gửi...'; }
+
+        try {
+            if (!note) {
+                // Xóa ghi chú nếu rỗng
+                await deleteDoc(doc(db, 'clubs', currentClubId, 'attendanceNotes', docId));
+                // Đồng thời xóa thông báo admin tương ứng (không còn cần hiện nữa)
+                try { await deleteDoc(doc(db, 'clubs', currentClubId, 'adminNotifications', docId)); }
+                catch(_projectionError) { _recordSecondaryConsistencyFailure('attendance-note-notification-projection-failed', _projectionError, { domain: 'attendance', noteId: docId, operation: 'delete-notification', canonicalSessionNotePreserved: true }); }
+                if (_currentNoteIdentity?.key) _sessionNoteCache[_currentNoteIdentity.key] = null;
+                const noteBadge = document.getElementById('session_note_badge');
+                if (noteBadge) noteBadge.style.display = 'none';
+                window.showToast('🗑️ Đã xóa báo cáo buổi tập', 2000);
+            } else {
+                const payload = {
+                    date:        _currentNoteDate,
+                    note:        note,
+                    coachId:     uid,
+                    coachName:   '',
+                    branch:      _canonicalBranch(window.coachBranch || '', ''),
+                    updatedAt:   new Date().toISOString(),
+                    clubId:      currentClubId
+                };
+                // Thêm tên HLV và cơ sở từ coaches collection
+                try {
+                    const coachDoc = await getDoc(doc(db, 'clubs', currentClubId, 'coaches', uid));
+                    if (coachDoc.exists()) {
+                        payload.coachName = coachDoc.data().displayName || '';
+                        payload.branch    = payload.branch || _canonicalBranch(coachDoc.data().branch || '', '');
+                    }
+                } catch(_) {}
+
+                await setDoc(doc(db, 'clubs', currentClubId, 'attendanceNotes', docId), payload);
+                if (_currentNoteIdentity?.key) _sessionNoteCache[_currentNoteIdentity.key] = payload;
+                const noteBadge = document.getElementById('session_note_badge');
+                if (noteBadge) { noteBadge.textContent = '✏️ Đã có ghi chú'; noteBadge.style.display = 'inline-block'; }
+                window.showToast('✅ Đã gửi báo cáo buổi tập!', 2500);
+
+                // ── Ghi thông báo cho Admin ──────────────────────────────────
+                // Tạo/cập nhật document trong adminNotifications để admin thấy ngay
+                try {
+                    await setDoc(doc(db, 'clubs', currentClubId, 'adminNotifications', docId), {
+                        type:        'session_note',
+                        date:        _currentNoteDate,
+                        coachId:     uid,
+                        coachName:   payload.coachName || '',
+                        branch:      payload.branch || '',
+                        notePreview: note.substring(0, 160),
+                        createdAt:   new Date().toISOString(),
+                        readAt:      null
+                    });
+                } catch (_ne) { _recordSecondaryConsistencyFailure('attendance-note-notification-projection-failed', _ne, { domain: 'attendance', noteId: docId, operation: 'set-notification', canonicalSessionNotePreserved: true }); }
+            }
+        } catch(e) {
+            window.showToast('⚠️ Lỗi lưu ghi chú: ' + (e.message || ''), 3000);
+        } finally {
+            // [SỬA] Khôi phục nhãn nút sau khi gửi xong
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '📤 Gửi báo cáo'; }
+        }
+    };
+
+    // Xem tất cả ghi chú HLV (Admin dùng) — tải danh sách ghi chú theo tháng
+    window.loadAllSessionNotes = async (month) => {
+        if (!month || !currentClubId) return;
+        const wrapEl = document.getElementById('all_session_notes_wrap');
+        const listEl = document.getElementById('all_session_notes_list');
+        if (!listEl) return;
+        // Chỉ Admin/Super Admin mới thấy panel này
+        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') {
+            if (wrapEl) wrapEl.style.display = 'none';
+            return;
+        }
+        if (wrapEl) wrapEl.style.display = 'block';
+        listEl.innerHTML = '<p style="color:#94a3b8;font-size:0.82rem;text-align:center;padding:12px;">⏳ Đang tải ghi chú...</p>';
+        try {
+            // [SỬA] Chỉ hiện báo cáo 7 ngày gần nhất (hôm nay + 6 ngày trước).
+            // Tính ngày bắt đầu = hôm nay trừ 6 ngày.
+            const todayStr = getLocalToday();
+            const _d7 = new Date(todayStr + 'T00:00:00');
+            _d7.setDate(_d7.getDate() - 6);
+            const _d7Str = _d7.toISOString().split('T')[0];
+            // Lấy khoảng giao giữa 7 ngày gần nhất và tháng đang xem
+            const monthStart = month + '-01';
+            const monthEnd   = month + '-31';
+            const start = _d7Str > monthStart ? _d7Str : monthStart;
+            const end   = todayStr < monthEnd  ? todayStr : monthEnd;
+
+            const q = query(
+                collection(db, 'clubs', currentClubId, 'attendanceNotes'),
+                where('date', '>=', start), where('date', '<=', end),
+                orderBy('date', 'desc'),   // [SỬA] Ngày mới nhất (hôm nay) lên đầu
+                limit(100) // [3.3E] 7 days × ~14 notes/day max
+            );
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                listEl.innerHTML = '<p style="color:#94a3b8;font-size:0.82rem;text-align:center;padding:16px;">Không có báo cáo buổi tập nào trong 7 ngày gần đây</p>';
+                return;
+            }
+
+            // Gom nhóm theo ngày
+            const byDate = {};
+            snap.forEach(d => {
+                const data = d.data();
+                const dt = data.date || '';
+                if (!byDate[dt]) byDate[dt] = [];
+                byDate[dt].push(data);
+            });
+
+            let html = '';
+            // [SỬA] Sắp xếp ngày giảm dần — hôm nay lên đầu
+            Object.keys(byDate).sort((a, b) => b.localeCompare(a)).forEach(dt => {
+                const isToday = (dt === todayStr);
+                // [SỬA] Trong mỗi ngày, sắp xếp báo cáo theo cơ sở (CS1, CS2...)
+                const entries = byDate[dt].slice().sort((a, b) => {
+                    const ba = a.branch || 'ZZ';
+                    const bb = b.branch || 'ZZ';
+                    return ba.localeCompare(bb);
+                });
+
+                // Nhãn ngày — hôm nay được đánh dấu nổi bật
+                const dateLabel = isToday
+                    ? `📅 HÔM NAY — ${formatDate(dt)}`
+                    : `📅 ${formatDate(dt)}`;
+                const dateLabelStyle = isToday
+                    ? 'font-size:0.72rem;font-weight:900;color:#0033A0;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;padding:4px 8px;border-radius:7px;background:#e0e7ff;display:inline-block;'
+                    : 'font-size:0.72rem;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;padding-bottom:3px;border-bottom:1.5px solid #e2e8f0;display:block;';
+
+                html += `<div style="margin-bottom:12px;">
+                    <div style="${dateLabelStyle}">${dateLabel}</div>`;
+
+                entries.forEach(data => {
+                    const branchDisplay = data.branch
+                        ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(data.branch) : data.branch)
+                        : '';
+                    const branchTag = branchDisplay
+                        ? `<span style="font-size:0.65rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 7px;font-weight:700;">${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(branchDisplay)}</span>`
+                        : '';
+                    // Nền card hôm nay nổi bật hơn ngày cũ
+                    const cardBg = isToday ? '#fffbeb' : '#fff';
+                    const cardBorder = isToday ? '1px solid #fde68a' : '1px solid #e2e8f0';
+                    html += `<div style="background:${cardBg};border:${cardBorder};border-radius:10px;padding:10px 13px;margin-bottom:5px;">
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
+                            <span style="font-size:0.78rem;font-weight:800;color:#334155;">👨‍🏫 ${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(data.coachName || 'HLV')}</span>
+                            ${branchTag}
+                        </div>
+                        <div style="font-size:0.83rem;color:#334155;line-height:1.6;white-space:pre-wrap;">${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(data.note || '')}</div>
+                    </div>`;
+                });
+                html += '</div>';
+            });
+            listEl.innerHTML = html;
+        } catch(e) {
+            listEl.innerHTML = `<p style="color:#dc2626;font-size:0.82rem;text-align:center;padding:12px;">Lỗi tải ghi chú: ${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(e.message || '')}</p>`;
+        }
+    };
+
+    // ADMIN NOTIFICATION SYSTEM — Thông báo báo cáo tình hình tập luyện
+    // Khi HLV lưu ghi chú buổi tập → ghi adminNotifications → Admin thấy ngay
+
+    window._pendingNotifIds   = [];
+    window._notifUnsubscribe  = null;
+
+    // Render HTML nội dung từng thông báo (dùng chung giữa snapshot & check)
+    const _buildNotifItemHtml = (data) => {
+        const branchDisplay = data.branch
+            ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(data.branch) : data.branch)
+            : '';
+        const branchTag = branchDisplay
+            ? `<span style="font-size:0.63rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 8px;font-weight:700;">${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(branchDisplay)}</span>`
+            : '';
+        const dateDisplay = data.date ? data.date.split('-').reverse().join('/') : '';
+        return `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:9px 11px;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+                <strong style="font-size:0.8rem;color:#92400e;">👨‍🏫 ${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(data.coachName || 'Huấn luyện viên')}</strong>
+                ${branchTag}
+                <span style="font-size:0.72rem;color:#b45309;margin-left:2px;">• Ngày ${dateDisplay}</span>
+            </div>
+            <div style="font-size:0.78rem;color:#78350f;line-height:1.55;white-space:pre-wrap;">${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(data.notePreview || '')}</div>
+        </div>`;
+    };
+
+    // Hiển thị/cập nhật banner với dữ liệu từ snapshot hoặc getDocs
+    const _renderNotifBanner = (docs) => {
+        const bannerEl = document.getElementById('admin_notif_banner');
+        const listEl   = document.getElementById('admin_notif_list');
+        if (!bannerEl || !listEl) return;
+        if (!docs || docs.length === 0) {
+            bannerEl.style.display = 'none';
+            window._pendingNotifIds = [];
+            return;
+        }
+        window._pendingNotifIds = [];
+        let html = '';
+        docs.forEach(({ id, data }) => {
+            window._pendingNotifIds.push(id);
+            html += _buildNotifItemHtml(data);
+        });
+        listEl.innerHTML = html;
+        bannerEl.style.display = 'block';
+    };
+
+    // Phase 4K-6V5U6A — notification read authority convergence.
+    // onSnapshot is canonical. This one-shot GET is fallback-only and single-flight.
+    let _notifFallbackPromise = null;
+    let _notifFallbackUsedKey = '';
+
+    window.checkAdminNotifications = async (options = {}) => {
+        if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return false;
+        if (options.fallback !== true) return false;
+        // Scope the once-only fallback to the verified auth generation. This keeps
+        // duplicate setup calls in the same login single-flight while allowing a clean
+        // logout/login of the same club to use one fallback again if its new listener fails.
+        const _notifAuthGeneration = Number(window.__verifiedAuthContextState?.generation || 0);
+        const _notifAuthUid = String(auth?.currentUser?.uid || '');
+        const fallbackKey = `${_notifAuthUid}:${String(currentClubId)}:${_notifAuthGeneration}`;
+        if (_notifFallbackUsedKey === fallbackKey) return _notifFallbackPromise || false;
+        if (_notifFallbackPromise) return _notifFallbackPromise;
+        _notifFallbackUsedKey = fallbackKey;
+        _notifFallbackPromise = (async () => {
+            try {
+                const q = query(
+                    collection(db, 'clubs', currentClubId, 'adminNotifications'),
+                    where('readAt', '==', null),
+                    orderBy('createdAt', 'desc'),
+                    limit(50)
+                );
+                const snap = await getDocs(q);
+                if (typeof window.recordFirestoreReadAttribution === 'function') {
+                    window.recordFirestoreReadAttribution('notifications.initialQuery', snap.size || 0, {
+                        initial: true,
+                        reason: options.reason || 'listener-fallback-unread-limit-50'
+                    });
+                }
+                const docs = [];
+                snap.forEach(d => docs.push({ id: d.id, data: d.data() }));
+                _renderNotifBanner(docs);
+                return true;
+            } catch (_e) {
+                return false;
+            } finally {
+                _notifFallbackPromise = null;
+            }
+        })();
+        return _notifFallbackPromise;
+    };
+
+    const _runNotifFallbackOnce = (reason) => {
+        if (typeof window.checkAdminNotifications !== 'function') return Promise.resolve(false);
+        return Promise.resolve(window.checkAdminNotifications({ fallback: true, reason }));
+    };
+
+    // Lắng nghe real-time: initial snapshot + realtime updates are the canonical source.
+    window.setupNotifListener = () => {
+        if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return false;
+        const _notifKey = 'global:notif:' + currentClubId;
+        // Remove old listener before re-init so logout/login or tenant switch cannot leave an orphan.
+        if (window.removeListener) window.removeListener(_notifKey, 'notif-reinit');
+        if (window._notifUnsubscribe) { try { window._notifUnsubscribe(); } catch(_) {} window._notifUnsubscribe = null; }
+        let _notifInitialSnapshotSeen = false;
+        const _recordNotifSnapshot = (snap) => {
+            if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                window.recordFirestoreSnapshotAttribution('notifications.unreadListener', snap, {
+                    initial: !_notifInitialSnapshotSeen,
+                    reason: 'unread-realtime'
+                });
+            }
+            _notifInitialSnapshotSeen = true;
+        };
+        const _onNotifSnapshot = (snap) => {
+            _recordNotifSnapshot(snap);
+            if (window.markListenerSnapshot) window.markListenerSnapshot(_notifKey);
+            const docs = [];
+            snap.forEach(d => docs.push({ id: d.id, data: d.data() }));
+            _renderNotifBanner(docs);
+        };
+        const _onNotifError = (_err) => {
+            // Firestore listener error is terminal. Only a pre-first-snapshot failure may
+            // use the one-shot fallback; a healthy listener never pays the extra GET.
+            if (!_notifInitialSnapshotSeen) _runNotifFallbackOnce('listener-error-before-first-snapshot');
+        };
+        try {
+            const q = query(
+                collection(db, 'clubs', currentClubId, 'adminNotifications'),
+                where('readAt', '==', null),
+                orderBy('createdAt', 'desc')
+            );
+            if (window.safeRegisterSnapshot) {
+                const registered = window.safeRegisterSnapshot(_notifKey, () => {
+                    const _unsub = onSnapshot(q, _onNotifSnapshot, _onNotifError);
+                    window._notifUnsubscribe = _unsub;
+                    return _unsub;
+                }, { owner: 'notif', scope: 'global', clubId: currentClubId, reason: 'setup-notif-listener' });
+                if (registered === false) {
+                    // Because this function removes its own key above, false here means the
+                    // listener factory/registration failed rather than a normal duplicate.
+                    _runNotifFallbackOnce('listener-registration-failed');
+                }
+                return registered;
+            }
+            window._notifUnsubscribe = onSnapshot(q, _onNotifSnapshot, _onNotifError);
+            if (window.registerListener) window.registerListener(_notifKey, window._notifUnsubscribe, { owner: 'notif', scope: 'global', reason: 'setup-notif-listener' });
+            return true;
+        } catch (_e) {
+            _runNotifFallbackOnce('listener-create-exception');
+            return false;
+        }
+    };
+
+    // Admin bấm "Đã xem" → đánh dấu tất cả là đã đọc trong Firestore
+    window.dismissAdminNotifications = async () => {
+        const bannerEl = document.getElementById('admin_notif_banner');
+        if (bannerEl) bannerEl.style.display = 'none';   // ẩn ngay — UX nhanh
+        const ids = (window._pendingNotifIds || []).slice();
+        window._pendingNotifIds = [];
+        if (!ids.length || !currentClubId) return;
+        try {
+            const batch = writeBatch(db);
+            const now   = new Date().toISOString();
+            ids.forEach(id => {
+                batch.update(doc(db, 'clubs', currentClubId, 'adminNotifications', id), { readAt: now });
+            });
+            await batch.commit();
+        } catch (_e) { /* không cần báo lỗi — chỉ là đánh dấu đã đọc */ }
+    };
+
+    // ── MIGRATE: Tạo users/{uid} cho tài khoản HLV cũ không có users doc ──────
+    window.migrateCoachAccounts = (...args) => window.CoachBranchRuntimeRepair.migrateCoachAccounts(...args);
+
+    // Phase 4K-6V: session-note loading is called explicitly by attendance.js after daily render.
+
+
+
+    // Phase 4K-5Q: isSuperAdminRole — single source of truth for SuperAdmin check
+    window.isSuperAdminRole = function() {
+        const role =
+            window.userRole ||
+            (window.__store && window.__store.userRole) ||
+            '';
+        return role === 'super_admin' || role === 'superadmin';
+    };
+
+    // Phase 4K-5Q: debugMobileSuperAdminGate — debug helper
+
+    // Phase 4K-6S: mobile menu fallbacks moved to js/legacy/legacyUiFallbacks.js.
+
+
+    // Phase 4K-6T: read-only diagnostics, pilot/onboarding gates, and
+    // SuperAdmin audit tooling moved to js/diagnostics/*.js. The runtime
+    // recovery kernel below intentionally remains in app.js.
+
+    // Phase 4.0B-4D: DATA HYDRATION DIAGNOSTICS GLOBALS
+    // Chỉ đọc — KHÔNG ghi Firestore, KHÔNG log PII.
+
+    /**
+     * printDataHydrationStatus() — Tóm tắt số lượng doc đã load vào store.
+     * Không log tên/SĐT. Chỉ log count/status.
+     */
+
+    /**
+     * printTabDataStatus() — Cho biết từng tab có đủ dữ liệu để render không.
+     * Không log tên/SĐT. Chỉ log count/flag.
+     */
+
+    /**
+     * printFirestorePathStatus() — Phase 4.0B-4E: kiểm tra cả primary + legacy path.
+     * Chỉ limit(1) — không log data, không ghi Firestore.
+     */
+
+    // Phase 4.0B-4E: DATA SOURCE DECISION + RUNTIME RECOVERY
+    // Chỉ đọc — KHÔNG ghi Firestore, KHÔNG migration, KHÔNG log PII.
+
+    window.__firestoreDataSourceMetrics = window.__firestoreDataSourceMetrics || {
+        activeDataSource: null,
+        fallbackUsed:     false,
+        fallbackReason:   '',
+        source:           '',
+        reason:           '',
+        checkedAt:        0
+    };
+
+    /**
+     * resolveActiveDataSource(options) — V5U6E diagnostic compatibility API.
+     * Mặc định trả canonical runtime state từ RAM (zero read). Chỉ khi gọi rõ
+     * { probe:true, includeLegacy:true } mới chạy các limit(1) diagnostic probes.
+     */
+    window.resolveActiveDataSource = async function resolveActiveDataSource(options) {
+        const opts = options && typeof options === 'object' ? options : {};
+        const _db     = db;
+        const _clubId = window.__store && (window.__store.clubId || window.__store.currentClubId) || window.currentClubId || '';
+        const _storeSource = String(window.__store?.activeDataSource || '');
+        const _verified = window.__verifiedAuthContextState;
+        const _canonicalReady = !!(
+            _verified && _verified.ready === true &&
+            String(_verified.clubId || '') === String(_clubId || '')
+        );
+        const _runtimeSource = _storeSource === 'legacy-root'
+            ? 'legacy-root'
+            : (_canonicalReady || _storeSource === 'primary' ? 'primary' : 'unknown');
+        const _coachRuntime = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true ||
+            String(window.userRole || '').toLowerCase() === 'coach';
+        if (_coachRuntime && opts.probe === true) {
+            window.RoleReadBoundary?.canMount?.('runtime-recovery.probe', { reason: 'explicit-source-diagnostic' });
+        }
+
+        // Normal callers receive the already-verified runtime truth from RAM.
+        // Firestore probes are diagnostic-only and Coach never executes them.
+        if (opts.probe !== true || _coachRuntime) {
+            const reason = _coachRuntime && opts.probe === true
+                ? 'Coach attendance-only: diagnostic source probes are blocked'
+                : 'Canonical runtime state from verified tenant bootstrap (zero probe)';
+            const result = {
+                clubId: _clubId,
+                source: _runtimeSource,
+                primary: { profilesHasDocs: null, transactionsHasDocs: null, inventoryHasDocs: null },
+                legacy:  { profilesHasDocs: null, transactionsHasDocs: null, inventoryHasDocs: null },
+                reason: reason,
+                safeToRender: _runtimeSource === 'primary' || _runtimeSource === 'legacy-root',
+                probed: false,
+                probeBlockedForCoach: _coachRuntime && opts.probe === true,
+            };
+            window.__firestoreDataSourceMetrics.source = _runtimeSource;
+            window.__firestoreDataSourceMetrics.reason = reason;
+            window.__firestoreDataSourceMetrics.checkedAt = Date.now();
+            return result;
+        }
+
+        if (!_db || !_clubId) {
+            const result = {
+                clubId: _clubId,
+                source: 'unknown',
+                primary: { profilesHasDocs: null, transactionsHasDocs: null, inventoryHasDocs: null },
+                legacy:  { profilesHasDocs: null, transactionsHasDocs: null, inventoryHasDocs: null },
+                reason:  'db hoặc clubId chưa sẵn sàng',
+                safeToRender: false,
+                probed: false
+            };
+            console.warn('[resolveActiveDataSource]', result.reason);
+            return result;
+        }
+
+        async function _hasDoc(path) {
+            try {
+                const parts = path.split('/');
+                const ref   = collection(_db, ...parts);
+                const snap  = await getDocs(query(ref, limit(1)));
+                return snap.size > 0;
+            } catch(e) {
+                if (e && e.code === 'permission-denied') return 'permission-denied';
+                return false;
+            }
+        }
+
+        const includeLegacy = opts.includeLegacy === true;
+        const [primaryProbe, legacyProbe] = await Promise.all([
+            Promise.all([
+                _hasDoc('clubs/' + _clubId + '/profiles'),
+                _hasDoc('clubs/' + _clubId + '/transactions'),
+                _hasDoc('clubs/' + _clubId + '/inventory')
+            ]),
+            includeLegacy ? Promise.all([
+                _hasDoc('tst_profiles'),
+                _hasDoc('tst_transactions'),
+                _hasDoc('tst_inventory')
+            ]) : Promise.resolve([null, null, null])
+        ]);
+        const [pProf, pTx, pInv] = primaryProbe;
+        const [lProf, lTx, lInv] = legacyProbe;
+
+        const primary = { profilesHasDocs: pProf, transactionsHasDocs: pTx, inventoryHasDocs: pInv };
+        const legacy  = { profilesHasDocs: lProf, transactionsHasDocs: lTx, inventoryHasDocs: lInv };
+
+        const permDenied   = [pProf, pTx, pInv].some(v => v === 'permission-denied');
+        const primaryHas   = pProf === true || pTx === true || pInv === true;
+        const legacyHas    = lProf === true || lTx === true || lInv === true;
+
+        let source, reason, safeToRender;
+        if (permDenied) {
+            source = 'permission-error';
+            reason = 'Firestore Rules denied read — kiểm tra firestore.rules (KHÔNG mở public)';
+            safeToRender = false;
+        } else if (primaryHas) {
+            source = 'primary';
+            reason = 'Primary path clubs/' + _clubId + ' có dữ liệu';
+            safeToRender = true;
+        } else if (legacyHas) {
+            source = 'legacy-root';
+            reason = 'Primary path rỗng — legacy root collections có dữ liệu. Gọi window.activateLegacyRootFallback() để bật.';
+            safeToRender = true;
+        } else {
+            source = 'empty';
+            reason = 'Cả primary lẫn legacy đều rỗng — kiểm tra clubId hoặc nhập dữ liệu';
+            safeToRender = false;
+        }
+
+        window.__firestoreDataSourceMetrics.source    = source;
+        window.__firestoreDataSourceMetrics.reason    = reason;
+        window.__firestoreDataSourceMetrics.checkedAt = Date.now();
+
+        if (source === 'primary') {
+            window.__store && (window.__store.activeDataSource = 'primary');
+            window.__firestoreDataSourceMetrics.activeDataSource = 'primary';
+            window.__firestoreDataSourceMetrics.fallbackUsed     = false;
+        }
+
+        const result = { clubId: _clubId, source, primary, legacy, reason, safeToRender, probed: true, includeLegacy };
+
+        console.group('[resolveActiveDataSource] source=' + source);
+        console.table({ clubId: _clubId, source, safeToRender, reason });
+        console.table(primary);
+        console.table(legacy);
+        console.groupEnd();
+
+        if (source === 'legacy-root') {
+            console.warn('[resolveActiveDataSource] 🔶 Legacy-root có dữ liệu. Gọi: await window.activateLegacyRootFallback()');
+        } else if (source === 'empty') {
+            console.warn('[resolveActiveDataSource] ❌ Không tìm thấy dữ liệu. clubId:', _clubId);
+        } else if (source === 'permission-error') {
+            console.error('[resolveActiveDataSource] ❌ Permission denied — không mở Firestore Rules public');
+        }
+
+        return result;
+    };
+
+    // ── Phase 4.0B-4F — Phase 4: bumpRuntimeDataVersion helper ───────────────
+    function bumpRuntimeDataVersion(reason) {
+        if (!window.__store) return;
+        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+        window.__store._lastDataVersionReason = reason || '';
+    }
+
+    /* API details: docs/APP_API_NOTES.md. */
+    window.activateLegacyRootFallback = async function activateLegacyRootFallback(reason) {
+        const _db = db;
+        if (!_db) {
+            console.warn('[LegacyFallback] db chưa sẵn sàng — login trước.');
+            return false;
+        }
+
+        reason = reason || 'manual';
+        console.warn('[LegacyFallback] 🔶 Bật legacy-root read-only fallback. reason=' + reason);
+        console.warn('[LegacyFallback] Đây là chế độ tạm trước khi migration chính thức. Không ghi Firestore.');
+
+        // Recovery reads are capped and therefore never financial authority.
+        _resetTransactionCoverage('explicit-legacy-root-recovery', {
+            clubId: (window.__store && (window.__store.clubId || window.__store.currentClubId)) || '',
+            readMode: 'legacy-root-recovery',
+        });
+
+        if (window.__store) window.__store.activeDataSource = 'legacy-root';
+        window.__firestoreDataSourceMetrics.activeDataSource = 'legacy-root';
+        window.__firestoreDataSourceMetrics.fallbackUsed     = true;
+        window.__firestoreDataSourceMetrics.fallbackReason   = 'primary-empty-legacy-root-available';
+
+        async function _readLegacy(colName) {
+            try {
+                const ref  = collection(_db, colName);
+                const _legacyLim = ((window.__scaleConfig || {}).legacyFallbackLimit) || 1200; // [4J-8] bumped from 500 → 1200 for 1000-student clubs
+                const snap = await getDocs(query(ref, limit(_legacyLim)));
+                return snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+            } catch(e) {
+                console.warn('[LegacyFallback] Không đọc được ' + colName + ':', e && e.message ? e.message.slice(0, 80) : '');
+                return null;
+            }
+        }
+
+        const [legProfiles, legTx, legInv] = await Promise.all([
+            _readLegacy('tst_profiles'),
+            _readLegacy('tst_transactions'),
+            _readLegacy('tst_inventory')
+        ]);
+
+        // ── Phase 3: Sync profiles → window.__store + closure + studentProfileStore
+        if (legProfiles && legProfiles.length > 0) {
+            const profileMap = {};
+            legProfiles.forEach(function(doc) {
+                const key = String(doc.name || doc.id || '').trim();
+                if (key) profileMap[key] = doc;
+            });
+
+            // Phase 4.0B-4F: Sync vào closure (app.js IIFE scope) — phase 4E thiếu phần này
+            allProfiles = profileMap;
+
+            // Sync vào window.__store
+            if (window.__store) window.__store.profiles = profileMap;
+
+            // Sync vào studentProfileStore nếu có
+            if (typeof window.syncProfilesToStudentStore === 'function') {
+                window.syncProfilesToStudentStore(profileMap, 'legacy-root-fallback');
+            }
+
+            // Không log tên/SĐT/CCCD — chỉ log count
+            console.info('[LegacyFallback] Profiles synced (count):', Object.keys(profileMap).length);
+        }
+
+        // ── Phase 3: Sync transactions → window.__store + closure
+        if (legTx !== null) {
+            // Phase 4.0B-4F: Sync vào closure
+            allTransactions = Array.isArray(legTx) ? legTx : [];
+            // Sync vào window.__store
+            if (window.__store) window.__store.transactions = allTransactions;
+            console.info('[LegacyFallback] Transactions synced (count):', allTransactions.length);
+        }
+
+        // ── Phase 3: Sync inventory → window.__store + closure + inventoryStore
+        if (legInv !== null) {
+            // Phase 4.0B-4F: Sync vào closure
+            allInventory = Array.isArray(legInv) ? legInv : [];
+            // Sync vào window.__store
+            if (window.__store) window.__store.inventory = allInventory;
+            // Sync vào inventoryStore nếu có
+            if (window.__inventoryStore && typeof window.__inventoryStore.setAllInventory === 'function') {
+                window.__inventoryStore.setAllInventory(allInventory, 'legacy-root-fallback');
+            }
+            console.info('[LegacyFallback] Inventory synced (count):', allInventory.length);
+        }
+
+        // ── Phase 4: Bump dataVersion + invalidate + render
+        bumpRuntimeDataVersion('legacy-root-fallback');
+
+        if (window.invalidateStudents)   window.invalidateStudents('legacy-root-fallback');
+        if (window.invalidateFinance)    window.invalidateFinance('legacy-root-fallback');
+        if (window.invalidateInventory)  window.invalidateInventory('legacy-root-fallback');
+        if (window.invalidateDashboard)  window.invalidateDashboard('legacy-root-fallback');
+        if (window.invalidateCurrentTab) window.invalidateCurrentTab('legacy-root-fallback');
+
+        // scheduleRender → renderApp fallback (tối đa 1 lần)
+        if (typeof window.scheduleRender === 'function') {
+            window.scheduleRender('legacy-root-fallback');
+        } else {
+            setTimeout(function() {
+                try { if (typeof window.renderApp === 'function') window.renderApp(); } catch(_e) {}
+            }, 100);
+        }
+
+        const _profMapCount = legProfiles ? Object.keys(
+            (function() { const m = {}; (legProfiles||[]).forEach(function(d){ const k=String(d.name||d.id||'').trim(); if(k)m[k]=1; }); return m; })()
+        ).length : 0;
+
+        const result = {
+            activeDataSource:  'legacy-root',
+            profilesCount:     _profMapCount,
+            transactionsCount: legTx  ? (Array.isArray(legTx)  ? legTx.length  : 0) : 0,
+            inventoryCount:    legInv ? (Array.isArray(legInv) ? legInv.length : 0) : 0,
+            fallbackReason:    'primary-empty-legacy-root-available',
+            calledBy:          reason
+        };
+        console.info('[LegacyFallback] ✅ Legacy fallback activated:', result);
+        return result;
+    }
+
+    /**
+     * printPilotTabReadiness() — Phase 4.0B-4E Phase 6.
+     * Cho biết trạng thái sẵn sàng từng tab cho pilot launch. Không log PII.
+     */
+
+    // End Phase 4.0B-4D/4E Diagnostics + Recovery Globals
+
+    // Phase 4.0B-4F — RUNTIME RECOVERY + PILOT LAUNCH STATUS
+
+    /**
+     * runRuntimeDataRecovery() — V5U6E explicit manual recovery only.
+     * Không tham gia login/bootstrap. Caller phải truyền { probe:true } và chỉ
+     * activate fallback khi truyền thêm { activateLegacy:true }.
+     */
+    window.runRuntimeDataRecovery = async function runRuntimeDataRecovery(reason, options) {
+        if (reason && typeof reason === 'object') {
+            options = reason;
+            reason = 'manual-diagnostic';
+        }
+        reason = reason || 'manual-diagnostic';
+        const opts = options && typeof options === 'object' ? options : {};
+        const state = window.__runtimeRecoveryState;
+
+        if (opts.probe !== true) {
+            state.reason = 'explicit-probe-required';
+            return { ok: false, skipped: true, reason: 'explicit-probe-required' };
+        }
+
+        if (state.running) {
+            console.debug('[RuntimeRecovery] Đang chạy — bỏ qua. reason=' + reason);
+            return;
+        }
+        if (state.completed) {
+            console.debug('[RuntimeRecovery] Đã hoàn thành rồi — bỏ qua. reason=' + reason);
+            return;
+        }
+
+        state.running   = true;
+        state.checked   = true;
+        state.checkedAt = Date.now();
+
+        try {
+            const src = await window.resolveActiveDataSource?.({
+                probe: true,
+                includeLegacy: opts.includeLegacy === true,
+            });
+
+            state.activeDataSource = src ? (src.source || 'unknown') : 'unknown';
+            state.reason           = src ? (src.reason || '')        : '';
+
+            if (src && src.source === 'legacy-root' && opts.activateLegacy === true) {
+                await window.activateLegacyRootFallback?.('manual-runtime-recovery');
+                state.recoveryUsed = true;
+                console.info('[RuntimeRecovery] ✅ Legacy fallback activated by explicit diagnostic request.');
+            } else if (src && src.source === 'legacy-root') {
+                console.warn('[RuntimeRecovery] Legacy source detected; activation remains explicit/manual.');
+            } else if (src && src.source === 'primary') {
+                console.info('[RuntimeRecovery] ✅ Primary data source — không cần fallback.');
+            } else {
+                console.warn('[RuntimeRecovery] source=' + state.activeDataSource + ' reason=' + state.reason);
+            }
+
+            state.completed   = true;
+            state.completedAt = Date.now();
+
+        } catch (err) {
+            state.error = (err && err.message) ? err.message.slice(0, 200) : String(err).slice(0, 200);
+            console.warn('[RuntimeRecovery] failed:', state.error);
+        } finally {
+            state.running = false;
+        }
+    };
+
+    /**
+     * printPilotLaunchStatus() — Phase 4.0B-4F Phase 6.
+     * Tổng hợp trạng thái sẵn sàng toàn hệ thống. Không log PII.
+     */
+
+    /**
+     * printTenClubPilotReadiness() — Phase 4.0B-4G.
+     * Tổng hợp toàn bộ điều kiện sẵn sàng cho 10-CLB pilot.
+     * Không log PII.
+     */
+
+    // ── End Phase 4.0B-4G ─────────────────────────────────────────────────────
+
+    // PHASE 4.0B-4H — Browser Runtime Verification + 1-Club Pilot Launch Gate
+
+    /* API details: docs/APP_API_NOTES.md. */
+
+    /* API details: docs/APP_API_NOTES.md. */
+
+    // ── End Phase 4.0B-4H ─────────────────────────────────────────────────────
+
+    // PHASE 4.0B-4I — Automated Onboarding Checklist for New Clubs
+
+    /* API details: docs/APP_API_NOTES.md. */
+
+    /* API details: docs/APP_API_NOTES.md. */
+
+    /* API details: docs/APP_API_NOTES.md. */
+
+    // ── End Phase 4.0B-4I ─────────────────────────────────────────────────────
+
+    // PHASE 4.0B-4J — SuperAdmin Multi-Club Audit Dashboard
+
+    /**
+     * probeClubDataReadOnly(clubId, options) — Phase 4.0B-4J.
+     * Kiểm tra sơ bộ trạng thái dữ liệu của một CLB qua Firestore.
+     * Read-only. Dùng limit(1). Không log doc data. Không log PII.
+     */
+
+
+    /* API details: docs/APP_API_NOTES.md. */
+
+    /**
+     * printSuperAdminAudit(options) — Phase 4.0B-4J.
+     * Hiển thị bảng audit các CLB bằng console.table. Không log PII.
+     *
+     * Cách dùng:
+     *   await window.printSuperAdminAudit({ limit: 10 })
+     */
+
+    /* API details: docs/APP_API_NOTES.md. */
+
+// Phase 4K-5C — CANONICAL EXAM PAYMENT LEDGER (Phase 1)
+window.buildCanonicalExamPaymentLedger = function(options) {
+    options = options || {};
+    const st = window.__store || {};
+    const txs =
+        Array.isArray(options.transactions) ? options.transactions :
+        Array.isArray(st.allTransactions) ? st.allTransactions :
+        Array.isArray(window.allTransactions) ? window.allTransactions :
+        Array.isArray(st.transactions) ? st.transactions :
+        [];
+    const profiles = st.profiles || window.allProfiles || {};
+    const month =
+        options.month ||
+        (document.getElementById('filterMonth') ? document.getElementById('filterMonth').value : '') ||
+        st.selectedMonth ||
+        '';
+
+    const ledger = new Map();
+    const duplicates = [];
+
+    txs.forEach(function(t) {
+        if (!t) return;
+
+        var isExamTx =
+            t.type === 'Lệ phí thi' ||
+            t.type === 'Học phí + Lệ phí thi' ||
+            t.type === 'Thu gộp' ||
+            t.type === 'Thu nhập học' ||
+            t.paymentKind === 'bundle';
+
+        if (!isExamTx) return;
+        if (t.examPaidCancelled === true) return;
+
+        var matchMonth =
+            !month ||
+            t.txMonth === month ||
+            (t.date && String(t.date).startsWith(month)) ||
+            (Array.isArray(t.packageMonths) && t.packageMonths.includes(month));
+
+        if (!matchMonth) return;
+
+        var examAmount = 0;
+        if (t.type === 'Lệ phí thi') {
+            examAmount = Number(t.amount || 0);
+        } else if (t.type === 'Học phí + Lệ phí thi') {
+            examAmount = Number(t.examAmount || 0);
+        } else if (Array.isArray(t.components)) {
+            t.components.forEach(function(c) {
+                if (c && (c.kind === 'exam' || c.type === 'Lệ phí thi')) {
+                    examAmount += Number(c.amount || 0);
+                }
+            });
+        }
+        if (examAmount <= 0) return;
+
+        var rawName = String(t.profileId || t.studentId || '').trim() || (
+            typeof window.extractExamStudentName === 'function'
+                ? window.extractExamStudentName(t)
+                : String(t.studentName || t.profileName || t.description || '').trim()
+        );
+
+        var name = typeof window.getCanonicalStudentName === 'function'
+            ? window.getCanonicalStudentName(rawName, profiles)
+            : rawName.replace(/\s*\($/, '').trim();
+
+        if (!name) return;
+
+        var profile = profiles[name] || {};
+        var existing = ledger.get(name);
+
+        var record = {
+            studentName: name,
+            rawName: rawName,
+            txId: t.id || t.txId || '',
+            id: t.id || t.txId || '',
+            txType: t.type,
+            amount: examAmount,
+            timestamp: Number(t.timestamp || 0),
+            date: t.date || '',
+            txMonth: t.txMonth || '',
+            profileFound: !!profiles[name],
+            profile: profile,
+            targetBelt: typeof window.getExamTargetBeltFromTx === 'function'
+                ? window.getExamTargetBeltFromTx(t, profile)
+                : (t.examTargetBelt || ''),
+            branch: t.branch || profile.branch || 'CS1',
+            sourceTx: t
+        };
+
+        if (existing) {
+            duplicates.push({
+                studentName: name,
+                keptTxId: existing.txId,
+                duplicateTxId: record.txId,
+                keptAmount: existing.amount,
+                duplicateAmount: record.amount,
+                reason: 'same-student-exam-payment'
+            });
+            if (record.timestamp >= existing.timestamp) {
+                ledger.set(name, record);
+            }
+        } else {
+            ledger.set(name, record);
+        }
+    });
+
+    var records = Array.from(ledger.values());
+    var totalAmount = records.reduce(function(s, r) { return s + Number(r.amount || 0); }, 0);
+
+    return {
+        month: month,
+        count: records.length,
+        totalAmount: totalAmount,
+        records: records,
+        byName: Object.fromEntries(records.map(function(r) { return [r.studentName, r]; })),
+        duplicates: duplicates
+    };
+};
+
+// Phase 4K-5R — Helpers: isNewlyUpgradedExamStudent, isExamStudentPaidCanonical, debugExamAutoSelectPaid
+
+window.isNewlyUpgradedExamStudent = function(name, profile, selectedMonth) {
+    var p = profile || {};
+    var month = String(selectedMonth || '').slice(0, 7);
+    return !!(p.upgradedAt && String(p.upgradedAt).slice(0, 7) >= month && p.upgradedFrom);
+};
+
+window.isExamStudentPaidCanonical = function(studentName, options) {
+    options = options || {};
+    var selMonth = options.month ||
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        ((window.__store || {}).selectedMonth) || '';
+    var profiles = (window.__store && window.__store.profiles) || allProfiles || {};
+    var ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+        ? window.buildCanonicalExamPaymentLedger({ month: selMonth })
+        : null;
+    if (!ledger || !Array.isArray(ledger.records)) return false;
+    var normalize = typeof window.normalizeVNForSearch === 'function'
+        ? window.normalizeVNForSearch
+        : function(s) {
+            return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+          };
+    var raw = String(studentName || '').trim();
+    var canonical = typeof window.getCanonicalStudentName === 'function'
+        ? window.getCanonicalStudentName(raw, profiles) : raw;
+    var norm = normalize(canonical || raw);
+    return ledger.records.some(function(r) {
+        var rn = String(r.studentName || r.rawName || '').trim();
+        var rcan = typeof window.getCanonicalStudentName === 'function'
+            ? window.getCanonicalStudentName(rn, profiles) : rn;
+        return r.studentName === raw || r.studentName === canonical ||
+               normalize(rn) === norm || normalize(rcan) === norm;
+    });
+};
+
+window.debugExamAutoSelectPaid = function(studentName) {
+    studentName = studentName || '';
+    var st = window.__store || {};
+    var selMonth = (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        st.selectedMonth || '';
+    var ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+        ? window.buildCanonicalExamPaymentLedger({ month: selMonth }) : null;
+    var profiles = st.profiles || allProfiles || {};
+    var q = String(studentName || '').trim();
+    var normalize = typeof window.normalizeVNForSearch === 'function'
+        ? window.normalizeVNForSearch
+        : function(s) {
+            return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+          };
+    var rows = Array.from(document.querySelectorAll('.exam-check')).map(function(cb) {
+        var name = String(cb.value || '').trim();
+        var p = profiles[name] || {};
+        var canonicalName = typeof window.getCanonicalStudentName === 'function'
+            ? window.getCanonicalStudentName(name, profiles) : name;
+        var ledgerRecord = ledger && Array.isArray(ledger.records)
+            ? ledger.records.find(function(r) {
+                var rn = String(r.studentName || r.rawName || '').trim();
+                var rcan = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rn, profiles) : rn;
+                return rn === name || rcan === canonicalName ||
+                       normalize(rn) === normalize(canonicalName) ||
+                       normalize(rcan) === normalize(canonicalName);
+              }) : null;
+        var isNewlyUpgraded = typeof window.isNewlyUpgradedExamStudent === 'function'
+            ? window.isNewlyUpgradedExamStudent(name, p, selMonth) : false;
+        return {
+            checkboxName: name, canonicalName: canonicalName, checked: cb.checked,
+            inLedger: !!ledgerRecord, isNewlyUpgraded: isNewlyUpgraded,
+            shouldAutoCheck: !!ledgerRecord && !isNewlyUpgraded,
+            ledgerTxId: ledgerRecord ? ledgerRecord.txId : '',
+            ledgerAmount: ledgerRecord ? ledgerRecord.amount : 0,
+            ledgerType: ledgerRecord ? ledgerRecord.txType : '',
+            branch: ledgerRecord ? ledgerRecord.branch : '',
+            upgradedAt: p.upgradedAt || '', upgradedFrom: p.upgradedFrom || ''
+        };
+    }).filter(function(r) {
+        return !q || normalize(r.checkboxName).includes(normalize(q)) || normalize(r.canonicalName).includes(normalize(q));
+    });
+    var result = {
+        month: selMonth,
+        ledgerCount: ledger ? ledger.count : 0,
+        visibleCheckboxes: document.querySelectorAll('.exam-check').length,
+        checkedCount: rows.filter(function(r) { return r.checked; }).length,
+        shouldAutoCheckButNotChecked: rows.filter(function(r) { return r.shouldAutoCheck && !r.checked; }),
+        paidButSkippedBecauseNewlyUpgraded: rows.filter(function(r) { return r.inLedger && r.isNewlyUpgraded; }),
+        rows: rows
+    };
+    console.table(rows);
+    console.log('[debugExamAutoSelectPaid]', result);
+    return result;
+};
+
+// Phase 4K-5P — buildCanonicalExamBranchLedger
+window.buildCanonicalExamBranchLedger = function(options) {
+    options = options || {};
+    const st = window.__store || {};
+    const cfg = st.clubConfig || window.clubConfig || {};
+    const bCount = Number(cfg.branchCount || 1);
+
+    const ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+        ? window.buildCanonicalExamPaymentLedger(options)
+        : null;
+
+    const branchMap = {};
+    for (var i = 1; i <= bCount; i++) {
+        branchMap['CS' + i] = {
+            branch: 'CS' + i,
+            registeredCount: 0,
+            totalAmount: 0,
+            feeMap: {},
+            names: [],
+            records: []
+        };
+    }
+
+    if (!ledger || !Array.isArray(ledger.records)) {
+        return {
+            month: options.month || '',
+            totalRegistered: 0,
+            totalAmount: 0,
+            branchMap: branchMap,
+            records: [],
+            duplicates: []
+        };
+    }
+
+    ledger.records.forEach(function(r) {
+        var rawBranch =
+            r.branch ||
+            (r.profile && r.profile.branch) ||
+            (r.sourceTx && r.sourceTx.branch) ||
+            'CS1';
+
+        var branch = typeof window.normalizeBranchCodeForStats === 'function'
+            ? window.normalizeBranchCodeForStats(rawBranch, bCount)
+            : rawBranch;
+
+        if (!branchMap[branch]) {
+            branchMap[branch] = {
+                branch: branch,
+                registeredCount: 0,
+                totalAmount: 0,
+                feeMap: {},
+                names: [],
+                records: []
+            };
+        }
+
+        var amount = Number(r.amount || 0);
+        var feeKey = Math.round(amount);
+
+        branchMap[branch].registeredCount += 1;
+        branchMap[branch].totalAmount += amount;
+        branchMap[branch].names.push(r.studentName);
+        branchMap[branch].records.push(r);
+
+        if (feeKey > 0) {
+            branchMap[branch].feeMap[feeKey] = (branchMap[branch].feeMap[feeKey] || 0) + 1;
+        }
+    });
+
+    return {
+        month: ledger.month,
+        totalRegistered: ledger.count,
+        totalAmount: ledger.totalAmount,
+        branchMap: branchMap,
+        records: ledger.records,
+        duplicates: ledger.duplicates || []
+    };
+};
+
+// Phase 5: debugExamCanonicalLedger
+window.debugExamCanonicalLedger = function() {
+    var ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+        ? window.buildCanonicalExamPaymentLedger()
+        : null;
+
+    if (!ledger) {
+        console.warn('[debugExamCanonicalLedger] buildCanonicalExamPaymentLedger missing');
+        return null;
+    }
+
+    console.table({
+        month: ledger.month,
+        count: ledger.count,
+        totalAmount: ledger.totalAmount,
+        duplicateCount: ledger.duplicates.length
+    });
+
+    console.table(ledger.records.map(function(r) {
+        return {
+            studentName: r.studentName,
+            amount: r.amount,
+            txId: r.txId,
+            type: r.txType,
+            profileFound: r.profileFound,
+            targetBelt: r.targetBelt
+        };
+    }));
+
+    if (ledger.duplicates.length) {
+        console.warn('[debugExamCanonicalLedger] duplicates:', ledger.duplicates);
+    }
+    return ledger;
+};
+
+    // ── Phase 4K-5A: computeExamRegistrationStats ────────────────────────────
+    /* API details: docs/APP_API_NOTES.md. */
+    // Phase 4K-5C: Dùng canonical ledger — count + amount luôn nhất quán
+    window.computeExamRegistrationStats = function computeExamRegistrationStats() {
+        try {
+            // Phase 4K-5C: prefer canonical ledger
+            var ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+                ? window.buildCanonicalExamPaymentLedger()
+                : null;
+            if (ledger) {
+                return {
+                    registeredCount: ledger.count,
+                    paidNames: ledger.records.map(function(r) { return r.studentName; }),
+                    totalAmount: ledger.totalAmount,
+                    duplicates: ledger.duplicates
+                };
+            }
+            // Phase 4K-5J-2: fallback dùng extractExamStudentName + getCanonicalStudentName
+            var _paidNamesSet = {};
+            var _txList = (window.__store && Array.isArray(window.__store.transactions))
+                ? window.__store.transactions : (allTransactions || []);
+            var _profiles = (window.__store && window.__store.profiles) || allProfiles || {};
+            _txList.forEach(function(t) {
+                if (!t) return;
+                if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+                if (t.examPaidCancelled === true) return;
+                var rawN = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : String(t.studentName || t.profileName || t.description || '').trim();
+                var canN = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawN, _profiles)
+                    : rawN;
+                if (canN) _paidNamesSet[canN] = true;
+            });
+            var _paidNames = Object.keys(_paidNamesSet);
+            return { registeredCount: _paidNames.length, paidNames: _paidNames, totalAmount: 0, duplicates: [] };
+        } catch (e) {
+            console.warn('[computeExamRegistrationStats] error:', e);
+            return { registeredCount: 0, paidNames: [], totalAmount: 0 };
+        }
+    };
+
+    // ── Phase 4K-5A: debugExamRegistrationCount ──────────────────────────────
+    window.debugExamRegistrationCount = function debugExamRegistrationCount() {
+        const stats = window.computeExamRegistrationStats();
+        const regEl = document.getElementById('exam_registered_count_tab');
+        const result = {
+            registeredCount: stats.registeredCount,
+            paidNames: stats.paidNames.slice(0, 10),
+            domElementExists: !!regEl,
+            domElementText: regEl ? regEl.textContent : '(missing)',
+        };
+        console.table(result);
+        return result;
+    };
+
+    // ── Phase 4K-5P: debugExamBranchRegistrationMismatch ─────────────────────
+    window.debugExamBranchRegistrationMismatch = function() {
+        const st = window.__store || {};
+        const stats = typeof window.computeExamRegistrationStats === 'function'
+            ? window.computeExamRegistrationStats()
+            : null;
+
+        const branchLedger = typeof window.buildCanonicalExamBranchLedger === 'function'
+            ? window.buildCanonicalExamBranchLedger({
+                month:
+                    (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+                    st.selectedMonth ||
+                    ''
+            })
+            : null;
+
+        const bStats = st._lastBStats || {};
+        const rows = Object.entries(bStats).map(function(_entry) {
+            const branch = _entry[0];
+            const bd = _entry[1];
+            const mapCount = Object.values(bd.examFeeMap || {})
+                .reduce(function(s, n) { return s + Number(n || 0); }, 0);
+
+            return {
+                branch: branch,
+                dashboardExamRegisteredCount: Number(bd.examRegisteredCount || 0),
+                dashboardExamFeeMapCount: mapCount,
+                canonicalBranchCount: (branchLedger && branchLedger.branchMap && branchLedger.branchMap[branch])
+                    ? branchLedger.branchMap[branch].registeredCount : 0,
+                canonicalBranchAmount: (branchLedger && branchLedger.branchMap && branchLedger.branchMap[branch])
+                    ? branchLedger.branchMap[branch].totalAmount : 0,
+                names: (branchLedger && branchLedger.branchMap && branchLedger.branchMap[branch])
+                    ? (branchLedger.branchMap[branch].names || []).join(', ') : ''
+            };
+        });
+
+        const totalDashboard = rows.reduce(function(s, r) {
+            return s + Number(r.dashboardExamRegisteredCount || 0);
+        }, 0);
+
+        const result = {
+            selectedMonth:
+                (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+                st.selectedMonth ||
+                '',
+            examTabRegisteredCount: stats ? (stats.registeredCount || 0) : 0,
+            canonicalTotalRegistered: branchLedger ? (branchLedger.totalRegistered || 0) : 0,
+            dashboardBranchTotalRegistered: totalDashboard,
+            match:
+                Number(stats ? stats.registeredCount : 0) === Number(branchLedger ? branchLedger.totalRegistered : 0) &&
+                Number(branchLedger ? branchLedger.totalRegistered : 0) === Number(totalDashboard),
+            rows: rows,
+            duplicates: branchLedger ? (branchLedger.duplicates || []) : []
+        };
+
+        console.table(rows);
+        console.log('[debugExamBranchRegistrationMismatch]', result);
+        return result;
+    };
+
+    // ── End Phase 4.0B-4J ─────────────────────────────────────────────────────
+
+})();

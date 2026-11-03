@@ -1,0 +1,38 @@
+{
+  "profile": "P_MOVE",
+  "rows": [
+    {
+      "period": "2026-02/03",
+      "historicalBranch": "CS1"
+    },
+    {
+      "period": "2026-05/06",
+      "historicalBranch": "CS2"
+    }
+  ],
+  "cases": [
+    {
+      "viewer": "Admin Daily normal",
+      "scope": "NO_EXPLICIT_SCOPE",
+      "CS1": true,
+      "CS2": true,
+      "result": "PASS"
+    },
+    {
+      "viewer": "Admin Monthly explicit CS2",
+      "scope": "EXPLICIT_BRANCH_SCOPE CS2",
+      "CS1": false,
+      "CS2": true,
+      "result": "PASS"
+    },
+    {
+      "viewer": "Coach assigned CS2",
+      "scope": "ROLE_FORCED_SCOPE CS2 + CURRENT_AUTHORITY_ONLY",
+      "CS1": false,
+      "CS2": true,
+      "legacy": false,
+      "result": "PASS"
+    }
+  ],
+  "invariant": "Historical row branch is preserved; no rewrite to current profile branch."
+}

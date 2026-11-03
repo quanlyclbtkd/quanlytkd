@@ -1,0 +1,9 @@
+{
+  "fixture": "M1 persisted in canonicalTransactionReadMonths",
+  "beforeReadMode": "canonical",
+  "afterReadMode": "canonical",
+  "historicalPolicyWrites": 0,
+  "settingsPolicyWrites": 0,
+  "listenerRestartFromOverlap": 0,
+  "result": "PASS"
+}

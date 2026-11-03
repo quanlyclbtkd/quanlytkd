@@ -72,12 +72,12 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender, isFinanceSemanticSourceFresh } from "./computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
-import { invalidateStudentsRender, isStudentsSemanticSourceFresh }  from "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+import { invalidateStudentsRender, isStudentsSemanticSourceFresh }  from "./computation/studentsRenderer.js?v=a9r18-bstats-r1-1-20261031";
 import { invalidateInventoryRender } from "./computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import {
     invalidateDashboardCache,
     markDashboardCacheDirty,
-} from './computation/dashboardRenderer.js';
+} from './computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031';
 
 // [3.5E] List-level computation refresh — đảm bảo island không đọc HTML cũ
 import {
@@ -87,7 +87,7 @@ import {
     requestListsComputation,
     refreshDashboardComputation,
     getComputationDomainForList,
-} from "./listComputationRefresh.js?v=qr-v11r6-a9r18-usability-perf-r2-rcache-20261028";
+} from "./listComputationRefresh.js?v=a9r18-bstats-r1-1-20261031";
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

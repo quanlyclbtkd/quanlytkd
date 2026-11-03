@@ -1,0 +1,40 @@
+{
+  "BSTATS_SHARED_MUTATION_ACCUMULATION_RED": {
+    "first": {
+      "a": 1,
+      "d": 1
+    },
+    "second": {
+      "a": 2,
+      "d": 2
+    },
+    "red": true
+  },
+  "BSTATS_FINANCE_REFRESH_STUDENTS_CACHE_HIT_ZERO_RED": {
+    "first": {
+      "a": 1,
+      "d": 1
+    },
+    "afterFinanceRefreshCacheHit": {
+      "a": 0,
+      "d": 0
+    },
+    "red": true
+  },
+  "BSTATS_LEGACY_BRANCH_IDENTITY_RED": {
+    "cs1": {
+      "a": 0,
+      "d": 0
+    },
+    "rawMặcĐịnhPresent": false,
+    "red": true
+  },
+  "BSTATS_BRANCH_DEBT_AUTHORITY_MISMATCH_RED": {
+    "freshTotal": 1,
+    "verifiedBranch": 1,
+    "transientTotal": 1,
+    "transientFinanceBranch": 0,
+    "updating": true,
+    "red": true
+  }
+}

@@ -1,0 +1,256 @@
+--- a/js/ui/render/computation/studentsRenderer.js
++++ b/js/ui/render/computation/studentsRenderer.js
+@@ -186,6 +186,9 @@
+     lastVerifiedDebtSummary: null,
+     lastVerifiedDebtSummaryContextKey: '',
+     lastVerifiedDebtSummaryAuthorityKey: '',
++    lastVerifiedBranchDebtStats: null,
++    lastVerifiedBranchDebtStatsContextKey: '',
++    lastVerifiedBranchDebtStatsAuthorityKey: '',
+     paramsKey:   null,
+     sourceKey:   null,   // R2R5 semantic source vector
+     dataVersion: -1,     // diagnostic-only legacy snapshot
+@@ -359,6 +362,12 @@
+         && _cache.lastVerifiedDebtSummaryAuthorityKey === _debtAuthorityKey(status);
+ }
+ 
++function _canReuseVerifiedBranchDebtStats(status) {
++    return _cache.lastVerifiedBranchDebtStats !== null
++        && _cache.lastVerifiedBranchDebtStatsContextKey === _debtPresentationContextKey()
++        && _cache.lastVerifiedBranchDebtStatsAuthorityKey === _debtAuthorityKey(status);
++}
++
+ function _branchCountForStats() {
+     const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
+     return Math.max(1, Number(cfg.branchCount || 1));
+@@ -380,6 +389,33 @@
+     return out;
+ }
+ 
++function _copyBranchMemberStats(input, options = {}) {
++    if (!input || typeof input !== 'object') return null;
++    const debtOverride = options.debtOverride || null;
++    const debtPending = options.debtPending === true;
++    const debtUpdating = options.debtUpdating === true;
++    const out = {};
++    Object.entries(input).forEach(([branch, value]) => {
++        const current = value || {};
++        const debtValue = debtOverride && Object.prototype.hasOwnProperty.call(debtOverride, branch)
++            ? debtOverride[branch]
++            : current.debt;
++        out[branch] = {
++            active: Number(current.active || 0),
++            debt: debtPending ? null : Number(debtValue || 0),
++            debtPending,
++            debtUpdating,
++        };
++    });
++    if (debtOverride) {
++        Object.entries(debtOverride).forEach(([branch, debt]) => {
++            if (out[branch]) return;
++            out[branch] = { active: 0, debt: debtPending ? null : Number(debt || 0), debtPending, debtUpdating };
++        });
++    }
++    return out;
++}
++
+ function _currentStudentsSourceKey() {
+     const st = window.__store || {};
+     const profileVersion = Number(window.studentProfileStore?.version ?? st._profileDataVersion ?? 0);
+@@ -918,6 +954,11 @@
+         _cache.lastVerifiedDebtSummary = { debtCount, totalDebtEst };
+         _cache.lastVerifiedDebtSummaryContextKey = _cache.summaryDebtContextKey;
+         _cache.lastVerifiedDebtSummaryAuthorityKey = _debtAuthorityKey(_verifiedCoverage);
++        _cache.lastVerifiedBranchDebtStats = Object.fromEntries(
++            Object.entries(branchMemberStats).map(([branch, value]) => [branch, Number(value?.debt || 0)])
++        );
++        _cache.lastVerifiedBranchDebtStatsContextKey = _cache.summaryDebtContextKey;
++        _cache.lastVerifiedBranchDebtStatsAuthorityKey = _debtAuthorityKey(_verifiedCoverage);
+         if (buildDebt) {
+             _cache.lastVerifiedDebtRows = debtRows;
+             _cache.lastVerifiedDebtRowsContextKey = _cache.summaryDebtContextKey;
+@@ -1010,20 +1051,52 @@
+         || (!!month && _cache.summaryMonth !== month)
+         || (!!_cache.summaryDebtContextKey && _cache.summaryDebtContextKey !== currentContextKey);
+     const state = _coveragePresentationState(coverage);
+-    if (state === 'TRANSIENT_LOCAL_WRITE' && !baseContextMismatch && _canReuseVerifiedDebtSummary(coverage)) {
++    const currentBranchStats = !baseContextMismatch ? (_cache.summary?.branchMemberStats || null) : null;
++
++    if (state === 'TRANSIENT_LOCAL_WRITE' && !baseContextMismatch
++        && _canReuseVerifiedDebtSummary(coverage) && _canReuseVerifiedBranchDebtStats(coverage)) {
+         return {
+             ...(_cache.summary || {}),
+             debtCount: Number(_cache.lastVerifiedDebtSummary?.debtCount || 0),
+             totalDebtEst: Number(_cache.lastVerifiedDebtSummary?.totalDebtEst || 0),
++            branchMemberStats: _copyBranchMemberStats(currentBranchStats, {
++                debtOverride: _cache.lastVerifiedBranchDebtStats,
++                debtPending: false,
++                debtUpdating: true,
++            }),
++            branchDebtPending: false,
++            branchDebtUpdating: true,
+             debtSummaryPending: false,
+             debtSummaryUpdating: true,
+             debtSummaryFresh: false,
+         };
+     }
++
+     const debtSummaryPending = !coverage || state !== 'FRESH' || coverage.sameClub !== true || baseContextMismatch;
+-    if (debtSummaryPending) return { ...(_cache.summary || {}), debtCount: null,
+-        totalDebtEst: null, debtSummaryPending: true, debtSummaryUpdating: false, debtSummaryFresh: false };
+-    return _cache.summary ? { ..._cache.summary, debtSummaryPending: false, debtSummaryUpdating: false, debtSummaryFresh: true } : null;
++    if (debtSummaryPending) {
++        return {
++            ...(_cache.summary || {}),
++            debtCount: null,
++            totalDebtEst: null,
++            branchMemberStats: _copyBranchMemberStats(currentBranchStats, { debtPending: true, debtUpdating: false }),
++            branchDebtPending: true,
++            branchDebtUpdating: false,
++            debtSummaryPending: true,
++            debtSummaryUpdating: false,
++            debtSummaryFresh: false,
++        };
++    }
++
++    if (!_cache.summary) return null;
++    return {
++        ..._cache.summary,
++        branchMemberStats: _copyBranchMemberStats(currentBranchStats, { debtPending: false, debtUpdating: false }),
++        branchDebtPending: false,
++        branchDebtUpdating: false,
++        debtSummaryPending: false,
++        debtSummaryUpdating: false,
++        debtSummaryFresh: true,
++    };
+ }
+ 
+ /**
+--- a/public/js/ui/render/computation/studentsRenderer.js
++++ b/public/js/ui/render/computation/studentsRenderer.js
+@@ -186,6 +186,9 @@
+     lastVerifiedDebtSummary: null,
+     lastVerifiedDebtSummaryContextKey: '',
+     lastVerifiedDebtSummaryAuthorityKey: '',
++    lastVerifiedBranchDebtStats: null,
++    lastVerifiedBranchDebtStatsContextKey: '',
++    lastVerifiedBranchDebtStatsAuthorityKey: '',
+     paramsKey:   null,
+     sourceKey:   null,   // R2R5 semantic source vector
+     dataVersion: -1,     // diagnostic-only legacy snapshot
+@@ -359,6 +362,12 @@
+         && _cache.lastVerifiedDebtSummaryAuthorityKey === _debtAuthorityKey(status);
+ }
+ 
++function _canReuseVerifiedBranchDebtStats(status) {
++    return _cache.lastVerifiedBranchDebtStats !== null
++        && _cache.lastVerifiedBranchDebtStatsContextKey === _debtPresentationContextKey()
++        && _cache.lastVerifiedBranchDebtStatsAuthorityKey === _debtAuthorityKey(status);
++}
++
+ function _branchCountForStats() {
+     const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
+     return Math.max(1, Number(cfg.branchCount || 1));
+@@ -380,6 +389,33 @@
+     return out;
+ }
+ 
++function _copyBranchMemberStats(input, options = {}) {
++    if (!input || typeof input !== 'object') return null;
++    const debtOverride = options.debtOverride || null;
++    const debtPending = options.debtPending === true;
++    const debtUpdating = options.debtUpdating === true;
++    const out = {};
++    Object.entries(input).forEach(([branch, value]) => {
++        const current = value || {};
++        const debtValue = debtOverride && Object.prototype.hasOwnProperty.call(debtOverride, branch)
++            ? debtOverride[branch]
++            : current.debt;
++        out[branch] = {
++            active: Number(current.active || 0),
++            debt: debtPending ? null : Number(debtValue || 0),
++            debtPending,
++            debtUpdating,
++        };
++    });
++    if (debtOverride) {
++        Object.entries(debtOverride).forEach(([branch, debt]) => {
++            if (out[branch]) return;
++            out[branch] = { active: 0, debt: debtPending ? null : Number(debt || 0), debtPending, debtUpdating };
++        });
++    }
++    return out;
++}
++
+ function _currentStudentsSourceKey() {
+     const st = window.__store || {};
+     const profileVersion = Number(window.studentProfileStore?.version ?? st._profileDataVersion ?? 0);
+@@ -918,6 +954,11 @@
+         _cache.lastVerifiedDebtSummary = { debtCount, totalDebtEst };
+         _cache.lastVerifiedDebtSummaryContextKey = _cache.summaryDebtContextKey;
+         _cache.lastVerifiedDebtSummaryAuthorityKey = _debtAuthorityKey(_verifiedCoverage);
++        _cache.lastVerifiedBranchDebtStats = Object.fromEntries(
++            Object.entries(branchMemberStats).map(([branch, value]) => [branch, Number(value?.debt || 0)])
++        );
++        _cache.lastVerifiedBranchDebtStatsContextKey = _cache.summaryDebtContextKey;
++        _cache.lastVerifiedBranchDebtStatsAuthorityKey = _debtAuthorityKey(_verifiedCoverage);
+         if (buildDebt) {
+             _cache.lastVerifiedDebtRows = debtRows;
+             _cache.lastVerifiedDebtRowsContextKey = _cache.summaryDebtContextKey;
+@@ -1010,20 +1051,52 @@
+         || (!!month && _cache.summaryMonth !== month)
+         || (!!_cache.summaryDebtContextKey && _cache.summaryDebtContextKey !== currentContextKey);
+     const state = _coveragePresentationState(coverage);
+-    if (state === 'TRANSIENT_LOCAL_WRITE' && !baseContextMismatch && _canReuseVerifiedDebtSummary(coverage)) {
++    const currentBranchStats = !baseContextMismatch ? (_cache.summary?.branchMemberStats || null) : null;
++
++    if (state === 'TRANSIENT_LOCAL_WRITE' && !baseContextMismatch
++        && _canReuseVerifiedDebtSummary(coverage) && _canReuseVerifiedBranchDebtStats(coverage)) {
+         return {
+             ...(_cache.summary || {}),
+             debtCount: Number(_cache.lastVerifiedDebtSummary?.debtCount || 0),
+             totalDebtEst: Number(_cache.lastVerifiedDebtSummary?.totalDebtEst || 0),
++            branchMemberStats: _copyBranchMemberStats(currentBranchStats, {
++                debtOverride: _cache.lastVerifiedBranchDebtStats,
++                debtPending: false,
++                debtUpdating: true,
++            }),
++            branchDebtPending: false,
++            branchDebtUpdating: true,
+             debtSummaryPending: false,
+             debtSummaryUpdating: true,
+             debtSummaryFresh: false,
+         };
+     }
++
+     const debtSummaryPending = !coverage || state !== 'FRESH' || coverage.sameClub !== true || baseContextMismatch;
+-    if (debtSummaryPending) return { ...(_cache.summary || {}), debtCount: null,
+-        totalDebtEst: null, debtSummaryPending: true, debtSummaryUpdating: false, debtSummaryFresh: false };
+-    return _cache.summary ? { ..._cache.summary, debtSummaryPending: false, debtSummaryUpdating: false, debtSummaryFresh: true } : null;
++    if (debtSummaryPending) {
++        return {
++            ...(_cache.summary || {}),
++            debtCount: null,
++            totalDebtEst: null,
++            branchMemberStats: _copyBranchMemberStats(currentBranchStats, { debtPending: true, debtUpdating: false }),
++            branchDebtPending: true,
++            branchDebtUpdating: false,
++            debtSummaryPending: true,
++            debtSummaryUpdating: false,
++            debtSummaryFresh: false,
++        };
++    }
++
++    if (!_cache.summary) return null;
++    return {
++        ..._cache.summary,
++        branchMemberStats: _copyBranchMemberStats(currentBranchStats, { debtPending: false, debtUpdating: false }),
++        branchDebtPending: false,
++        branchDebtUpdating: false,
++        debtSummaryPending: false,
++        debtSummaryUpdating: false,
++        debtSummaryFresh: true,
++    };
+ }
+ 
+ /**

@@ -1,0 +1,19 @@
+{
+  "deepFreezeFinanceInput": "PASS",
+  "studentsMiss": "PASS without mutation exception",
+  "studentsHit": "PASS without mutation exception",
+  "search": "PASS without Finance mutation",
+  "loadMore": "PASS without Finance mutation/recompute dependency",
+  "dashboardComposition": "PASS",
+  "nestedFinanceFieldsUnchanged": [
+    "tuitionMap",
+    "examFeeMap",
+    "examRegisteredNames",
+    "custom/unknown finance fields"
+  ],
+  "identity": {
+    "finalBStatsNotFinanceInput": true,
+    "finalBStatsNotStudentBranchMemberStats": true,
+    "nestedFinanceObjectsNotAliased": true
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "count": 30,
+  "files": [
+    {
+      "file": "app.js",
+      "kind": "modified",
+      "before_bytes": 702900,
+      "after_bytes": 703994,
+      "after_sha256": "5bb96e3c2beeca629f595108ce7ca948869e7a7317f5fed505a5a8c10b79401d"
+    },
+    {
+      "file": "index.html",
+      "kind": "modified",
+      "before_bytes": 236558,
+      "after_bytes": 236544,
+      "after_sha256": "97327ece3a00cea9b455b1e79094babbe191f039f9869fa571bdaf7b1eebde75"
+    },
+    {
+      "file": "js/core/tuitionCommandBoundary.js",
+      "kind": "modified",
+      "before_bytes": 28386,
+      "after_bytes": 34918,
+      "after_sha256": "eb40a2f522c6979b1c4b209146c7282c12819eea43446fb749d06ab02c708a40"
+    },
+    {
+      "file": "js/main.js",
+      "kind": "modified",
+      "before_bytes": 306347,
+      "after_bytes": 306279,
+      "after_sha256": "7cea5116e0f8c871a68bf2878a3654307df4a6a245344cd36f6e20120665ce90"
+    },
+    {
+      "file": "js/modules/finance.js",
+      "kind": "modified",
+      "before_bytes": 71076,
+      "after_bytes": 71966,
+      "after_sha256": "7bce6d3bd16b6d81bbd4098d2403313797a4ba322064102340178417996ac298"
+    },
+    {
+      "file": "js/modules/students.js",
+      "kind": "modified",
+      "before_bytes": 194924,
+      "after_bytes": 194890,
+      "after_sha256": "3793d4607c9e14a8e2228f7b6c109fa7f7f84de7b8c8c5590562f055915b863a"
+    },
+    {
+      "file": "js/services/finance.service.js",
+      "kind": "modified",
+      "before_bytes": 29777,
+      "after_bytes": 41387,
+      "after_sha256": "7831309a926641b9d9d87873c489e6b88db972420bacf8602f00fac906f98149"
+    },
+    {
+      "file": "package.json",
+      "kind": "modified",
+      "before_bytes": 43660,
+      "after_bytes": 43900,
+      "after_sha256": "7f84367639ef7073eb8f622f6522725512cfa45c04022adb1bdbde2caafa2d26"
+    },
+    {
+      "file": "public/app.js",
+      "kind": "modified",
+      "before_bytes": 702900,
+      "after_bytes": 703994,
+      "after_sha256": "5bb96e3c2beeca629f595108ce7ca948869e7a7317f5fed505a5a8c10b79401d"
+    },
+    {
+      "file": "public/index.html",
+      "kind": "modified",
+      "before_bytes": 236558,
+      "after_bytes": 236544,
+      "after_sha256": "97327ece3a00cea9b455b1e79094babbe191f039f9869fa571bdaf7b1eebde75"
+    },
+    {
+      "file": "public/js/core/tuitionCommandBoundary.js",
+      "kind": "modified",
+      "before_bytes": 28386,
+      "after_bytes": 34918,
+      "after_sha256": "eb40a2f522c6979b1c4b209146c7282c12819eea43446fb749d06ab02c708a40"
+    },
+    {
+      "file": "public/js/main.js",
+      "kind": "modified",
+      "before_bytes": 306347,
+      "after_bytes": 306279,
+      "after_sha256": "7cea5116e0f8c871a68bf2878a3654307df4a6a245344cd36f6e20120665ce90"
+    },
+    {
+      "file": "public/js/modules/finance.js",
+      "kind": "modified",
+      "before_bytes": 71076,
+      "after_bytes": 71966,
+      "after_sha256": "7bce6d3bd16b6d81bbd4098d2403313797a4ba322064102340178417996ac298"
+    },
+    {
+      "file": "public/js/modules/students.js",
+      "kind": "modified",
+      "before_bytes": 194924,
+      "after_bytes": 194890,
+      "after_sha256": "3793d4607c9e14a8e2228f7b6c109fa7f7f84de7b8c8c5590562f055915b863a"
+    },
+    {
+      "file": "public/js/services/finance.service.js",
+      "kind": "modified",
+      "before_bytes": 29777,
+      "after_bytes": 41387,
+      "after_sha256": "7831309a926641b9d9d87873c489e6b88db972420bacf8602f00fac906f98149"
+    },
+    {
+      "file": "tools/apply-fin-write-r1-1-lineage.mjs",
+      "kind": "added",
+      "before_bytes": null,
+      "after_bytes": 1480,
+      "after_sha256": "08251b422a48db1f258fc395805c354669ddd1ea500a8fa5947f1ca9994281b8"
+    },
+    {
+      "file": "tools/check-attendance-canonical-ownership.mjs",
+      "kind": "modified",
+      "before_bytes": 19438,
+      "after_bytes": 19589,
+      "after_sha256": "01f2dc0905583df055b2247295fc369adff15912ba54d1cb1a95d4df00552684"
+    },
+    {
+      "file": "tools/check-attendance-history-r1-1.mjs",
+      "kind": "modified",
+      "before_bytes": 10818,
+      "after_bytes": 10821,
+      "after_sha256": "5e6ac4cd038a7de1550e31260d541b60f886bad7d2b9a7c0296ff3d240a1091c"
+    },
+    {
+      "file": "tools/check-debt-service-bridge.mjs",
+      "kind": "modified",
+      "before_bytes": 6987,
+      "after_bytes": 7023,
+      "after_sha256": "44d1bf63167482ebffb9537f07675afe0c014df1498d159ee52a1c9d3d44d09f"
+    },
+    {
+      "file": "tools/check-fin-write-r1-1-app-guard.mjs",
+      "kind": "added",
+      "before_bytes": null,
+      "after_bytes": 2404,
+      "after_sha256": "2cd1c5ec99091ed8f359621a5057601e7047cf69b86261e51c54d9f1936efc9f"
+    },
+    {
+      "file": "tools/check-finance-write-cross-device-r1-1.mjs",
+      "kind": "added",
+      "before_bytes": null,
+      "after_bytes": 2667,
+      "after_sha256": "d7e00d2bb387190795bb82872295c1eceb1ee585594712c815a80e0f21fac64f"
+    },
+    {
+      "file": "tools/check-finance-write-evidence-r1-1.mjs",
+      "kind": "added",
+      "before_bytes": null,
+      "after_bytes": 15628,
+      "after_sha256": "84d707d1942cff733d41d74919ad6efe096daa09f09586214389dc4723f6c409"
+    },
+    {
+      "file": "tools/check-finance-write-writer-matrix-r1-1.mjs",
+      "kind": "added",
+      "before_bytes": null,
+      "after_bytes": 6355,
+      "after_sha256": "98987b14e2802009284fd38b3cd64437ebbbf4a3bb7b8a385beb935ff9e3e2ca"
+    },
+    {
+      "file": "tools/check-scale-readiness-write-safety.mjs",
+      "kind": "modified",
+      "before_bytes": 11910,
+      "after_bytes": 12115,
+      "after_sha256": "c1166dd3e9a8e878f93bf72a6f2a7e52d05313b4532c23874c7660a3e160e6b5"
+    },
+    {
+      "file": "tools/check-v5u2-tuition-command-behavior.mjs",
+      "kind": "modified",
+      "before_bytes": 8894,
+      "after_bytes": 10390,
+      "after_sha256": "99b8ecb3dd03beece34b7e0dddb23ccf9d11b0268b546c629298ff42b7c1b5bd"
+    },
+    {
+      "file": "tools/check-v5u2-tuition-command-cutover.mjs",
+      "kind": "modified",
+      "before_bytes": 10735,
+      "after_bytes": 10779,
+      "after_sha256": "149b0bd61241eb75d1171bf07200549026886dafe3f8ee632a1b45ceb184c278"
+    },
+    {
+      "file": "tools/check-v5u2e-attendance-excel-sdk-fix.mjs",
+      "kind": "modified",
+      "before_bytes": 8294,
+      "after_bytes": 8414,
+      "after_sha256": "a1957f9e6e8bca1aafa13b32a2df455500ff5b2c62197adda51d54a93f08a656"
+    },
+    {
+      "file": "tools/v11r2/manifests/FIN_WRITE_R1_1_APP_CORE_GUARD.json",
+      "kind": "added",
+      "before_bytes": null,
+      "after_bytes": 20063,
+      "after_sha256": "a213b8a21ed0750bdbd2648aef694bb4398c36c07208716ecc6caa1058a17242"
+    },
+    {
+      "file": "tools/v11r2/manifests/V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1.json",
+      "kind": "added",
+      "before_bytes": null,
+      "after_bytes": 24349,
+      "after_sha256": "02307b8272a516f412efef4085cbb5bf86d462c4de194e865e08ab36a9402cea"
+    },
+    {
+      "file": "tools/v11r2/source-identity.mjs",
+      "kind": "modified",
+      "before_bytes": 43514,
+      "after_bytes": 45810,
+      "after_sha256": "4f0370329a2c930a0532b7a6edd104ba45ddf7032bb3f1af8069be63b0474eb9"
+    }
+  ]
+}

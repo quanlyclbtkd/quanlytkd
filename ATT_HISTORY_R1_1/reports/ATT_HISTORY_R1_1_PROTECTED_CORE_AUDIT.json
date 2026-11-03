@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "hashes": {
+    "app.js": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+    "firestore.rules": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+    "firestore.indexes.json": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+    "js/data/attendanceJournal.js": "0f493addd96591dce9776148b43c7625cdcf6abcd7962f1cccceb70f237646ee",
+    "js/core/attendanceContract.js": "b96b04eccda4738b190b5cbb3e1d05664d422dff17b84a64cfd66bccbbc68239",
+    "js/listeners/attendance.listeners.js": "f9fc2834a0f34ab2c59f8a714b3de89e961e5c2d8fdca6e127d3f769dfa5b3d6",
+    "js/core/tuitionDebtCanonical.js": "3755b877d8e0be7cc72aa986eca3b3e723d493717fa6631de4fe1d367327e92e",
+    "js/modules/exam.js": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed"
+  },
+  "allMatchBaseline": true,
+  "financeDebtR6Changed": false,
+  "inventoryChanged": false,
+  "dashboardChanged": false,
+  "profilesChanged": false,
+  "examR2R5_2BChanged": false,
+  "qrChanged": false
+}

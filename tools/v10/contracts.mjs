@@ -71,7 +71,7 @@ export async function examContract(change=x=>x){
   const expr=expression(change(read('js/modules/finance.js')),'window.quickCollectExam =');
   const writes=[],prompts=[];const key="Nguyễn 'A' & <B>",display='Nguyễn Văn Mới';
   const sandbox={window:{__store:{},BELT_NEXT:{},getClubExamFee:()=>345000,buildCanonicalExamPaymentLedger:()=>({byName:{}}),mergeTransactionIntoRuntimeStore(){},showToast(){},ProfileCanonicalStore:{resolveDisplayName:()=>display}},document:{getElementById:id=>({value:id==='filterMonth'?'2026-10':'250000'})},
-    _profiles:()=>({[key]:{branch:'CS1',displayName:display}}),_clubId:()=> 'A',_vMonth:()=>true,_positiveAmount:x=>x>0?x:null,_guardAllowed:()=>true,getLocalToday:()=> '2026-10-20',prompt:(text,fee)=>{prompts.push(fee);return String(fee)},FinanceService:{addTransaction:async tx=>writes.push(tx)},console};
+    _profiles:()=>({[key]:{branch:'CS1',displayName:display}}),_clubId:()=> 'A',_finCtx:()=>({clubId:'A',uid:'admin-A',generation:1,sessionEpoch:1,authGeneration:1}),_finCtxCurrent:()=>true,_vMonth:()=>true,_positiveAmount:x=>x>0?x:null,_guardAllowed:()=>true,getLocalToday:()=> '2026-10-20',prompt:(text,fee)=>{prompts.push(fee);return String(fee)},FinanceService:{addTransaction:async tx=>writes.push(tx)},console};
   vm.createContext(sandbox);sandbox.window.quickCollectExam=vm.runInContext(expr,sandbox);
   assert.equal(await sandbox.window.quickCollectExam(key,'CS1'),true);assert.equal(prompts[0],345000);assert.equal(writes[0].amount,345000);
   assert.equal(writes[0].profileId,key);assert.equal(writes[0].studentName,display);assert.equal(writes[0].profileName,display);

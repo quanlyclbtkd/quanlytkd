@@ -1,0 +1,27 @@
+{
+  "status": "RED_REPRODUCED",
+  "fixture": {
+    "profile": "P_MOVE",
+    "history": [
+      "2026-02 CS1",
+      "2026-03 CS1",
+      "2026-05 CS2",
+      "2026-06 CS2"
+    ],
+    "currentProfileBranch": "CS2",
+    "att_branch": "CS2"
+  },
+  "userPath": "Open Attendance → select CS2 → click P_MOVE name",
+  "baselineBehavior": {
+    "requestedHistoryBranch": "CS2 inherited from att_branch DOM",
+    "CS1RowsVisible": false,
+    "CS2RowsVisible": true
+  },
+  "rootCause": "showAttMemberHistory used att_branch/att_month_branch as fallback when overrideBranch was not explicitly provided.",
+  "candidateBehavior": {
+    "normalAdminBranchScope": "NO_EXPLICIT_SCOPE",
+    "CS1RowsVisible": true,
+    "CS2RowsVisible": true
+  },
+  "patch": "ATT_HISTORY_R1_1_MEMBER_SCOPE.patch"
+}

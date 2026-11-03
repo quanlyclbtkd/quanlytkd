@@ -1,0 +1,18 @@
+{
+  "classification": "GREEN",
+  "legacy": {
+    "required_sources": [
+      "txMonth",
+      "date",
+      "packageMonths"
+    ],
+    "gate": "LEGACY_MODE_ALL_REQUIRED_SOURCES_COMPLETE",
+    "result": "PASS"
+  },
+  "canonical": {
+    "required_source": "accountingMonths array-contains month",
+    "gate": "CANONICAL_MODE_ACCOUNTINGMONTH_COMPLETE",
+    "result": "PASS"
+  },
+  "mode_disagreement": "BLOCKED"
+}

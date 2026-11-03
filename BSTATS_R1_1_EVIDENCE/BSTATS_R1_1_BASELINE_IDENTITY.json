@@ -1,0 +1,86 @@
+{
+  "classification": "BASELINE_IDENTITY_MATCH",
+  "input": "A9R18_FINANCE_CANONICAL_POLICY_R1_2_FULL_SOURCE_TEST_CANDIDATE(2).zip",
+  "zip": {
+    "expected": "968fa0cdc71747d53ee894834920b89359e5ed6543d8c80e25e790a3a20b39df",
+    "actual": "968fa0cdc71747d53ee894834920b89359e5ed6543d8c80e25e790a3a20b39df",
+    "match": true
+  },
+  "runtime": {
+    "expected": "8f421d3a61d229a2052cf1ce1cd6532f665bcf458c0a1809b89a6e09f4603c22",
+    "actual": "8f421d3a61d229a2052cf1ce1cd6532f665bcf458c0a1809b89a6e09f4603c22",
+    "match": true
+  },
+  "files": {
+    "app.js": {
+      "expected": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+      "actual": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+      "match": true
+    },
+    "js/main.js": {
+      "expected": "fa6e456e8187ff3dd73cd5b37af067a5cb9ee89d34ac0378956ac469221da802",
+      "actual": "fa6e456e8187ff3dd73cd5b37af067a5cb9ee89d34ac0378956ac469221da802",
+      "match": true
+    },
+    "index.html": {
+      "expected": "616f3b743854258d51b6263f164580667bdbafb95c37ed04e2bcea815d30aa59",
+      "actual": "616f3b743854258d51b6263f164580667bdbafb95c37ed04e2bcea815d30aa59",
+      "match": true
+    },
+    "firestore.rules": {
+      "expected": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "actual": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "match": true
+    },
+    "firestore.indexes.json": {
+      "expected": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+      "actual": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+      "match": true
+    },
+    "js/core/transactionCanonicalBoundary.js": {
+      "expected": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
+      "actual": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
+      "match": true
+    },
+    "js/ui/render/computation/studentsRenderer.js": {
+      "expected": "186cfdcb58e6e4add095642d7079706c92188eb3e6bb2ad022c81508a703f34c",
+      "actual": "186cfdcb58e6e4add095642d7079706c92188eb3e6bb2ad022c81508a703f34c",
+      "match": true
+    },
+    "js/ui/render/computation/financeRenderer.js": {
+      "expected": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
+      "actual": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
+      "match": true
+    },
+    "js/ui/render/computation/dashboardRenderer.js": {
+      "expected": "a9f6c7dcadeb03c008515801c31ce49416c2bef6b0d2e7a431024e8b78d9848c",
+      "actual": "a9f6c7dcadeb03c008515801c31ce49416c2bef6b0d2e7a431024e8b78d9848c",
+      "match": true
+    },
+    "js/ui/render.js": {
+      "expected": "71c25d3a5de067831cea37a743cf82872f4cd442b066c3f2c76ca813dcd3e558",
+      "actual": "71c25d3a5de067831cea37a743cf82872f4cd442b066c3f2c76ca813dcd3e558",
+      "match": true
+    },
+    "js/ui/render/listComputationRefresh.js": {
+      "expected": "373c98a8d98f88c3e8028b34c9b94c46ba8b3f5f16acca41914d3c03d21d8466",
+      "actual": "373c98a8d98f88c3e8028b34c9b94c46ba8b3f5f16acca41914d3c03d21d8466",
+      "match": true
+    },
+    "js/modules/dashboard.js": {
+      "expected": "704552ead6ff421d384c0d444f6f3bbfe29111c90da0fcdd48222e32ad4ba99f",
+      "actual": "704552ead6ff421d384c0d444f6f3bbfe29111c90da0fcdd48222e32ad4ba99f",
+      "match": true
+    }
+  },
+  "baselineRegression": {
+    "npmRunCheck": {
+      "exit": 0,
+      "log": "logs/baseline_check.log"
+    },
+    "npmRunCheckAll": {
+      "exit": 0,
+      "log": "logs/baseline_check_all.log"
+    }
+  }
+}

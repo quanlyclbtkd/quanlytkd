@@ -1,0 +1,40 @@
+{
+  "gate": "check:finance-students-bstats-ownership-r1",
+  "gateResult": "40 PASS / 0 FAIL",
+  "states": [
+    {
+      "state": "FRESH",
+      "financeStudentsCacheCombinations": 4,
+      "active": "current profile-derived",
+      "debt": "current server-verified",
+      "branchDebtPending": false,
+      "branchDebtUpdating": false,
+      "result": "PASS"
+    },
+    {
+      "state": "TRANSIENT_LOCAL_WRITE",
+      "financeStudentsCacheCombinations": 4,
+      "active": "current cached/profile-derived",
+      "debt": "last server-verified snapshot with matching context+authority",
+      "branchDebtPending": false,
+      "branchDebtUpdating": true,
+      "result": "PASS"
+    },
+    {
+      "state": "NOT_READY",
+      "financeStudentsCacheCombinations": 4,
+      "active": "current profile context when valid",
+      "debt": null,
+      "branchDebtPending": true,
+      "branchDebtUpdating": false,
+      "result": "PASS"
+    }
+  ],
+  "isolation": {
+    "authorityKeyMismatch": "debt=null/pending; prior verified branch debt not reused",
+    "contextMismatch": "branchMemberStats unavailable for mismatched context; prior verified branch debt not reused",
+    "clubSwitch": "no cross-club verified branch debt reuse",
+    "monthSwitch": "no prior-month verified branch debt reuse"
+  },
+  "noFalseZero": true
+}

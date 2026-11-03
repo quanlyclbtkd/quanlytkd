@@ -1,0 +1,32 @@
+{
+  "normalRuntime": {
+    "reachable": true,
+    "path": [
+      "financeRenderer.computeAndCacheFinance/getFinanceSummary",
+      "render.js or listComputationRefresh",
+      "studentsRenderer.computeAndCacheStudents/getStudentsSummary",
+      "dashboardRenderer.compose/cache",
+      "window.__store._lastBStats",
+      "dashboard.renderBranchStats"
+    ],
+    "postPatchSharedMutation": false
+  },
+  "refreshDashboardBranchStatsFullMonth": {
+    "classification": "DIAGNOSTIC_ONLY",
+    "normalRuntimeCallerFound": false,
+    "runtimeReferences": [
+      "js/modules/dashboard.js:2001 definition",
+      "js/modules/dashboard.js:2241 diagnostic/module export"
+    ],
+    "nonRuntimeReferences": [
+      "tools/check-dashboard-exam-registration-branch.mjs"
+    ],
+    "patchedBusinessLogic": false
+  },
+  "legacyAppJs": {
+    "classification": "LEGACY_FALLBACK",
+    "normalModularDelegation": "window.renderApp() → window._moduleRenderApp() after initRender()",
+    "businessBytesChanged": false,
+    "patchApplied": false
+  }
+}

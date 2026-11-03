@@ -1,0 +1,22 @@
+{
+  "phase": "A9R18-ATTENDANCE-HISTORY-R1.1",
+  "status": "PASS",
+  "inputZipSha256": "191bc21b6b290d70bab6afb4d80c21e6dce6c948ac8283b91472de04868ed06d",
+  "baselineRuntimeSha256": "88eeecac4d5f9510ec4ae59507e781bc9e790bc2d23aa5e12b0a4b2fdff53684",
+  "appJs": {
+    "bytes": 702900,
+    "sha256": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+    "expectedSha256": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+    "match": true
+  },
+  "rulesSha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSha256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "identityMatch": true,
+  "baselineRegression": {
+    "npmRunCheck": "PASS/exit 0",
+    "npmRunCheckAll": "PASS/exit 0",
+    "attendanceHistoryR1": "PASS 45/45"
+  },
+  "productionDeployment": false,
+  "migration": false
+}

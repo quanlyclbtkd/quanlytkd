@@ -1,0 +1,14 @@
+{
+  "baselineZipSha256": "968fa0cdc71747d53ee894834920b89359e5ed6543d8c80e25e790a3a20b39df",
+  "classification": "BSTATS_BRANCH_DEBT_AUTHORITY_MISMATCH_RED",
+  "observed": {
+    "freshTotal": 1,
+    "verifiedBranch": 1,
+    "transientTotal": 1,
+    "transientFinanceBranch": 0,
+    "updating": true,
+    "red": true
+  },
+  "closedByFinalGate": true,
+  "finalGate": "check:finance-students-bstats-ownership-r1"
+}

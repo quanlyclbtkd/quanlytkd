@@ -1,0 +1,106 @@
+--- a/index.html
++++ b/index.html
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=att-history-r1-1-20261031"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+--- a/public/index.html
++++ b/public/index.html
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=att-history-r1-1-20261031"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+--- a/js/main.js
++++ b/js/main.js
+@@ -112,7 +112,7 @@
+ import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
+ import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
+ import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
+-import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=att-history-r1-1-20261031";
+ import { store, resetStore, installSemanticSourceEpochBridge } from './store.js';
+ import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ import { showToast, registerToastGlobal }      from './ui/toast.js';
+@@ -366,7 +366,7 @@
+ import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Compatibility marker: from './modules/attendance.js'
+-import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { initAttendance }                             from "./modules/attendance.js?v=att-history-r1-1-20261031";
+ // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ import { initDashboard }                              from "./modules/dashboard.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029";
+--- a/public/js/main.js
++++ b/public/js/main.js
+@@ -112,7 +112,7 @@
+ import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
+ import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
+ import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
+-import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=att-history-r1-1-20261031";
+ import { store, resetStore, installSemanticSourceEpochBridge } from './store.js';
+ import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ import { showToast, registerToastGlobal }      from './ui/toast.js';
+@@ -366,7 +366,7 @@
+ import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Compatibility marker: from './modules/attendance.js'
+-import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { initAttendance }                             from "./modules/attendance.js?v=att-history-r1-1-20261031";
+ // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ import { initDashboard }                              from "./modules/dashboard.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029";
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -16,7 +16,7 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { AttendanceService, AttendanceHistoryReadOwner } from "../services/attendance.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { AttendanceService, AttendanceHistoryReadOwner } from "../services/attendance.service.js?v=att-history-r1-1-20261031";
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ import { escapeHtml } from '../utils/helpers.js';
+ import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -16,7 +16,7 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { AttendanceService, AttendanceHistoryReadOwner } from "../services/attendance.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { AttendanceService, AttendanceHistoryReadOwner } from "../services/attendance.service.js?v=att-history-r1-1-20261031";
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ import { escapeHtml } from '../utils/helpers.js';
+ import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+--- a/js/modules/reports/reportExportFacade.js
++++ b/js/modules/reports/reportExportFacade.js
+@@ -100,7 +100,7 @@
+ 
+ async function ensureAttendanceApi() {
+   if (!attendanceModulePromise) {
+-    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029")
++    attendanceModulePromise = import("./attendanceExcelReport.js?v=att-history-r1-1-20261031")
+       .catch((error) => {
+         attendanceModulePromise = null;
+         throw error;
+--- a/public/js/modules/reports/reportExportFacade.js
++++ b/public/js/modules/reports/reportExportFacade.js
+@@ -100,7 +100,7 @@
+ 
+ async function ensureAttendanceApi() {
+   if (!attendanceModulePromise) {
+-    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029")
++    attendanceModulePromise = import("./attendanceExcelReport.js?v=att-history-r1-1-20261031")
+       .catch((error) => {
+         attendanceModulePromise = null;
+         throw error;

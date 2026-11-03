@@ -1,0 +1,23 @@
+{
+  "classification": "GREEN",
+  "tests": [
+    {
+      "scenario": "Club A read -> switch Club B -> A resolves",
+      "gate": "EVIDENCE_CLUB_SWITCH_STALE",
+      "result": "PASS",
+      "writes": 0
+    },
+    {
+      "scenario": "read -> auth generation changes -> old result resolves",
+      "gate": "EVIDENCE_SESSION_STALE",
+      "result": "PASS",
+      "writes": 0
+    },
+    {
+      "scenario": "Exam decision stale mid-read",
+      "gate": "EXAM_CONTEXT_STALE_ZERO_WRITE",
+      "result": "PASS",
+      "writes": 0
+    }
+  ]
+}

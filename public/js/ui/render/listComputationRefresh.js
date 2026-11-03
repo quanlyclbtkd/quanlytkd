@@ -49,7 +49,7 @@ import {
     getStudentsSummary,
     getStudentsCacheMetrics,
     isStudentsSemanticSourceFresh,
-} from "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+} from "./computation/studentsRenderer.js?v=a9r18-bstats-r1-1-20261031";
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
@@ -58,8 +58,9 @@ import {
 import {
     invalidateDashboardCache,
     cacheDashboardData,
+    composeDashboardBranchStats,
     markDashboardCacheFresh,
-} from './computation/dashboardRenderer.js';
+} from './computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031';
 import { formatMonth } from "../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 
 // ── List key → computation domain mapping ─────────────────────────────────────
@@ -329,12 +330,8 @@ function _refreshFinance() {
 }
 
 function _refreshStudents() {
-    // bStats được finance renderer tính ra (branch active/debt counts).
-    // Trong loadMore scenario, finance data không thay đổi → lấy từ cache hiện có.
-    // Không recompute finance ở đây để tránh double computation.
-    const finSummary = getFinanceSummary() || {};
-    const bStats     = finSummary.bStats || {};
-
+    // Students refresh is independent from Finance branch objects. Member branch
+    // counts are derived into the existing Students cache and composed later.
     const pg       = (window.__store?.pagination?.students) || null;
     const pgActive = !!(pg?.enabled && Array.isArray(pg.currentItems) && pg.currentItems.length > 0);
     const bCount   = _getConfig().branchCount || 1;
@@ -346,7 +343,6 @@ function _refreshStudents() {
         search:         _getSearch(),
         isSingleBranch: bCount <= 1,
         isAdmin:        _getRole() === 'admin',
-        bStats,
         pgStudents:       pg,
         pgStudentsActive: pgActive,
         activePage: window._activePage || 1,
@@ -450,7 +446,7 @@ function _cacheAndApplyDashboardSummary(reason) {
         });
     }
 
-    const bStats = (fin && fin.bStats) || (window.__store && window.__store._lastBStats) || {};
+    const bStats = composeDashboardBranchStats((fin && fin.bStats) || {}, std || null);
     const bExamStats = (fin && fin.bExamStats) || (window.__store && window.__store._lastBExamStats) || {};
 
     // [Part 3 FIX] Guard uses `prev` (captured at TOP of this function, BEFORE any write).

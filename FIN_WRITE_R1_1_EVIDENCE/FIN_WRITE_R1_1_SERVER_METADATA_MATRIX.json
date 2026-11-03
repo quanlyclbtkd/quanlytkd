@@ -1,0 +1,27 @@
+{
+  "classification": "GREEN",
+  "tests": [
+    {
+      "gate": "ALL_PAGES_SERVER_CONFIRMED",
+      "result": "PASS",
+      "expected": "serverComplete=true only when every page trusted"
+    },
+    {
+      "gate": "CACHE_ONLY_EVIDENCE_BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "gate": "PENDING_WRITE_EVIDENCE_BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "gate": "MISSING_METADATA_EVIDENCE_BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "gate": "EARLIER_PAGE_CACHE_LATER_PAGE_SERVER_BLOCKED",
+      "result": "PASS",
+      "detail": "trusted final page cannot erase earlier cached page"
+    }
+  ]
+}

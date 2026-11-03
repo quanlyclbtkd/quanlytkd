@@ -1,0 +1,33 @@
+{
+  "status": "PAST_DAY_LEGACY_NO_SHIFT_REPRODUCED",
+  "fixture": {
+    "profile": "P_LEGACY_SHIFT",
+    "date": "2026-01-10",
+    "branch": "CS1",
+    "status": 1,
+    "shiftId": "missing",
+    "configuredShifts": [
+      "S1",
+      "S2"
+    ],
+    "selectedShift": "S1"
+  },
+  "baselineQuery": [
+    "date == 2026-01-10",
+    "historical branch scope",
+    "shiftId == S1"
+  ],
+  "baselineVisibleRows": 0,
+  "rootCause": "server-side selected-shift filter excluded a valid legacy row with missing/empty shiftId.",
+  "candidateQuery": [
+    "date == 2026-01-10",
+    "historical branch scope"
+  ],
+  "candidateQueryCount": 1,
+  "candidatePartition": "RAM: selected / other explicit / legacy unassigned evidence",
+  "autoAssignedShift": false,
+  "editable": false,
+  "casBase": false,
+  "writeGenerated": false,
+  "statusZeroEvidenceExcluded": true
+}

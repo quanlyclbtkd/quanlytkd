@@ -1,0 +1,15 @@
+{
+  "classification": "GREEN",
+  "key": [
+    "clubId",
+    "month",
+    "readMode",
+    "verifiedUid",
+    "authGeneration",
+    "sessionEpoch"
+  ],
+  "gate": "EVIDENCE_SINGLE_FLIGHT",
+  "result": "PASS",
+  "fixture": "two simultaneous same-context requests shared one 3-source legacy read",
+  "authority_cache_created": false
+}

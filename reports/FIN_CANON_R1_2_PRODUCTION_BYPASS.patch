@@ -1,0 +1,28 @@
+--- a/js/core/transactionCanonicalBoundary.js
++++ b/js/core/transactionCanonicalBoundary.js
+@@ -648,6 +648,11 @@
+     async function executeCanonicalCutover(monthInput, options) {
+         const opts = options && typeof options === 'object' ? options : {};
+         const month = normalizeMonth(monthInput || ((document.getElementById('filterMonth') || {}).value));
++        // FIN-CANON-R1.2: production bundle may audit/dry-run, but it may not mutate
++        // historical transaction documents or persist new canonical authority.
++        if (opts.dryRun === false) {
++            throw new Error('FINANCE_HISTORICAL_MUTATION_POLICY_BLOCKED');
++        }
+         if (global.__canonicalTxCutoverInFlight) throw new Error('[V3B/C] Một tiến trình tối ưu giao dịch đang chạy.');
+         const plan = buildBackfillPlan(month, opts);
+         if (!plan.ok) throw new Error('[V3B/C] Chưa thể chuyển đổi: ' + plan.blockedReasons.join(' '));
+--- a/public/js/core/transactionCanonicalBoundary.js
++++ b/public/js/core/transactionCanonicalBoundary.js
+@@ -648,6 +648,11 @@
+     async function executeCanonicalCutover(monthInput, options) {
+         const opts = options && typeof options === 'object' ? options : {};
+         const month = normalizeMonth(monthInput || ((document.getElementById('filterMonth') || {}).value));
++        // FIN-CANON-R1.2: production bundle may audit/dry-run, but it may not mutate
++        // historical transaction documents or persist new canonical authority.
++        if (opts.dryRun === false) {
++            throw new Error('FINANCE_HISTORICAL_MUTATION_POLICY_BLOCKED');
++        }
+         if (global.__canonicalTxCutoverInFlight) throw new Error('[V3B/C] Một tiến trình tối ưu giao dịch đang chạy.');
+         const plan = buildBackfillPlan(month, opts);
+         if (!plan.ok) throw new Error('[V3B/C] Chưa thể chuyển đổi: ' + plan.blockedReasons.join(' '));

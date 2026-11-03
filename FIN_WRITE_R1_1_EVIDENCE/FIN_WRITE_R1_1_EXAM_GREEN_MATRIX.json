@@ -1,0 +1,30 @@
+{
+  "classification": "GREEN",
+  "tests": [
+    {
+      "gate": "QUICKCOLLECT_EXISTING_SERVER_PAYMENT_ZERO_WRITE",
+      "result": "PASS",
+      "new_write": 0
+    },
+    {
+      "gate": "MIXED_EXISTING_SERVER_PAYMENT_ZERO_WRITE",
+      "result": "PASS",
+      "new_write": 0
+    },
+    {
+      "gate": "MULTIITEM_EXISTING_SERVER_PAYMENT_ZERO_WRITE",
+      "result": "PASS",
+      "new_write": 0
+    },
+    {
+      "gate": "EXAM_EVIDENCE_FAILURE_ZERO_WRITE_DECISION",
+      "result": "PASS",
+      "new_write": 0
+    },
+    {
+      "gate": "EXAM_CONTEXT_STALE_ZERO_WRITE",
+      "result": "PASS",
+      "new_write": 0
+    }
+  ]
+}

@@ -104,7 +104,7 @@ import { initSuperAdminServerRefresh }         from './core/superAdminServerRefr
 import { initProductionStabilityGate }         from './core/productionStabilityGate.js?v=production-authority-closure-20260814-v5u6e';
 import { initStudentSearchIndex }             from './core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 import { initListenerOwnershipBoundary }      from './core/listenerOwnershipBoundary.js';
-import { initFinancialActionAuditGuard }      from './core/financialActionAuditGuard.js';
+import { initFinancialActionAuditGuard }      from './core/financialActionAuditGuard.js?v=a9r18-fin-delete-context-tail-r1-2a1-20261102';
 import { initMobileStartupPerformance }       from './core/mobileStartupPerformance.js';
 import { initStaticCssBuildHealth }           from './core/staticCssBuildHealth.js';
 import { initGlobalOwnershipRegistry }       from './core/globalOwnershipRegistry.js';
@@ -112,22 +112,22 @@ import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoin
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
 import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
-import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=att-history-r1-1-20261031";
 import { store, resetStore, installSemanticSourceEpochBridge } from './store.js';
 import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
-import { initRender }                          from "./ui/render.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029";
+import { initRender }                          from "./ui/render.js?v=a9r18-bstats-r1-1-20261031";
 // V5U6D compatibility marker: ./ui/render.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from "./ui/render/renderFinance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
-import { initStudentIslands, registerStudentsLegacyGlobals }     from "./ui/render/renderStudents.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+import { initStudentIslands, registerStudentsLegacyGlobals }     from "./ui/render/renderStudents.js?v=a9r18-bstats-r1-1-20261031";
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from "./ui/render/renderInventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
-import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
+import { initDashboardIslands }                                   from './ui/render/renderDashboard.js?v=a9r18-bstats-r1-1-20261031';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from "./ui/render/renderInvalidation.js?v=qr-v11r6-a9r18-usability-perf-r2-rcache-20261028";
+import { registerInvalidationLegacyGlobals }                     from "./ui/render/renderInvalidation.js?v=a9r18-bstats-r1-1-20261031";
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -249,7 +249,7 @@ import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
 import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
 import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
-import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=a9r18-fin-nontuition-r1-2b-20261103";
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
 // Phase 4K-6F: Legacy App Kernel Audit + Diagnostics Extraction
@@ -351,7 +351,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+import { initStudents, initStudentPagination }        from "./modules/students.js?v=a9r18-admission-r1-2c-20261103";
 // V5U6G compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 // Compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
@@ -363,13 +363,13 @@ import {
     debugSearchPerformance,
 } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
 // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
-import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-fin-formtail-r1-2b1-20261103";
+import { initInventory }                              from "./modules/inventory.js?v=a9r18-fin-nontuition-r1-2b-20261103";
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+import { initAttendance }                             from "./modules/attendance.js?v=att-history-r1-1-20261031";
 // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
-import { initDashboard }                              from "./modules/dashboard.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029";
+import { initDashboard }                              from "./modules/dashboard.js?v=a9r18-bstats-r1-1-20261031";
 // V5U6C1 compatibility markers retained for lineage-only regression gates:
 // ./ui/render.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1
 // ./listeners/profiles.listeners.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1
@@ -2488,7 +2488,7 @@ function _loadLegacyApp() {
     if (window.__appLoaded) return Promise.resolve();
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = "app.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+        script.src = "app.js?v=a9r18-fin-nontuition-r1-2b-20261103";
         script.onload  = () => resolve();
         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
         document.head.appendChild(script);

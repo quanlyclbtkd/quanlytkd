@@ -1,0 +1,56 @@
+{
+  "status": "PASS_WITH_CORRECTNESS_READ_COST_DELTA",
+  "noNPlusOne": true,
+  "newReaderOwner": 0,
+  "newListenerOwner": 0,
+  "newWriterOwner": 0,
+  "operations": [
+    {
+      "operation": "Daily normal current-day",
+      "beforeQueries": 1,
+      "afterQueries": 1,
+      "shapeChange": "none; selected shift exact",
+      "documentDelta": "none attributable to R1.1"
+    },
+    {
+      "operation": "Past-day Admin historical reopen",
+      "beforeQueries": 1,
+      "afterQueries": 1,
+      "beforeShape": "date + historical branch + selected shift",
+      "afterShape": "date + historical branch; RAM partition by shift",
+      "fixtureDocsReturnedBefore": 0,
+      "fixtureDocsReturnedAfter": 2,
+      "reason": "recover selected-shift plus valid legacy no-shift evidence; other explicit shifts may be returned then partitioned"
+    },
+    {
+      "operation": "Member quarter",
+      "beforeQueries": 1,
+      "afterQueries": 1,
+      "shapeChange": "service query owner unchanged; normal Daily UI no longer narrows by current att_branch",
+      "productionDocumentDelta": "not measured"
+    },
+    {
+      "operation": "Member all-time",
+      "before": "1 query/page",
+      "after": "1 query/page",
+      "parallelLegacyQuery": false
+    },
+    {
+      "operation": "Monthly",
+      "queryCount": "unchanged from R1",
+      "R1_1Change": false
+    },
+    {
+      "operation": "Excel",
+      "queryCount": "no independent Firestore read; consumes canonical monthly result",
+      "R1_1Change": false
+    },
+    {
+      "operation": "Branch report",
+      "queryCount": "unchanged from R1",
+      "R1_1Change": false
+    }
+  ],
+  "billingClaim": false,
+  "note": "Static/query-fixture evidence only; production document volume/billable reads were not measured."
+}

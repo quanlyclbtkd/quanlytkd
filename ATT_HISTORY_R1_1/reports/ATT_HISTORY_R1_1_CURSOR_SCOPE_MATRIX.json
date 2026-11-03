@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "scopeDimensions": [
+    "clubId",
+    "uid/session context",
+    "profileId",
+    "branch scope",
+    "authority scope",
+    "page size"
+  ],
+  "cases": [
+    {
+      "from": "P1/all branches/RECORDED",
+      "to": "P1/CS2/RECORDED",
+      "reuseAllowed": false
+    },
+    {
+      "from": "P1/all branches/RECORDED",
+      "to": "P1/all branches/CURRENT_AUTHORITY_ONLY",
+      "reuseAllowed": false
+    },
+    {
+      "from": "P1",
+      "to": "P2",
+      "reuseAllowed": false
+    },
+    {
+      "case": "page N + page N+1",
+      "duplicateBoundaryRow": false,
+      "missingBoundaryRow": false,
+      "order": "deterministic descending existing contract"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "attendanceCommitRegionSha256": "03ec06d3ede9406c8773e8cae0727cedfc5207143a325e30b9a63aafa9d76596",
+  "regionByteIdenticalBaselineCandidate": true,
+  "journalByteIdentical": true,
+  "attendanceListenerByteIdentical": true,
+  "CASChanged": false,
+  "journalChanged": false,
+  "offlineQueueBusinessChange": false,
+  "newWritePath": false
+}

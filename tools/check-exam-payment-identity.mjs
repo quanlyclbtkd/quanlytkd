@@ -133,8 +133,9 @@ check(
     (function() {
         const idx = financeJs.indexOf('window.quickCollectExam = async');
         if (idx === -1) return false;
-        const block = financeJs.slice(idx, idx + 3000);
-        return block.includes('examTargetBelt');
+        const end = financeJs.indexOf('window.processCombo', idx);
+        const block = financeJs.slice(idx, end > idx ? end : idx + 8000);
+        return /\bexamTargetBelt\b/.test(block);
     })(),
     'Canonical finance handler phải lưu examTargetBelt'
 );
@@ -195,7 +196,7 @@ check(
 
 // ── 15. H8R2.1A: quickCollectExam must bind profile from existing local canonical map ──
 const _quickExamStart = financeJs.indexOf('window.quickCollectExam = async');
-const _quickExamEnd = _quickExamStart >= 0 ? financeJs.indexOf('// 8. processCombo', _quickExamStart) : -1;
+const _quickExamEnd = _quickExamStart >= 0 ? financeJs.indexOf('window.processCombo = async', _quickExamStart) : -1;
 const _quickExamBlock = (_quickExamStart >= 0 && _quickExamEnd > _quickExamStart)
     ? financeJs.slice(_quickExamStart, _quickExamEnd)
     : '';
@@ -240,7 +241,9 @@ try {
         _vMonth(v) { return /^\d{4}-(0[1-9]|1[0-2])$/.test(v); },
         _positiveAmount(v) { return Number.isFinite(v) && v > 0 ? v : null; },
         _guardAllowed(action) { return action === 'exam.collect'; },
-        FinanceService: { async addTransaction(payload) {
+        _finCtx() { return { clubId: store.clubId, uid: 'u', generation: 1, sessionEpoch: 1, authGeneration: 1 }; },
+        _finCtxCurrent(ctx) { return ctx?.clubId === store.clubId; },
+        FinanceService: { async requireExamUnpaidForWrite(){ return { status: 'VERIFIED_UNPAID' }; }, async addTransaction(payload) {
             _dynamicQuickExamAddCount++; _dynamicQuickExamPayload = payload;
             store.transactions.push({ id: 'tx-exam-1', ...payload }); return 'tx-exam-1';
         } },

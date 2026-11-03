@@ -1,0 +1,130 @@
+{
+  "runtimeChangedCount": 10,
+  "runtimeChangedFiles": [
+    "index.html",
+    "js/main.js",
+    "js/modules/attendance.js",
+    "js/services/attendance.service.js",
+    "js/modules/reports/reportExportFacade.js",
+    "public/index.html",
+    "public/js/main.js",
+    "public/js/modules/attendance.js",
+    "public/js/services/attendance.service.js",
+    "public/js/modules/reports/reportExportFacade.js"
+  ],
+  "toolingOrTestChangedFiles": [
+    "package.json",
+    "tools/check-attendance-history-r1-1.mjs",
+    "tools/v11r2/source-identity.mjs",
+    "tools/v11r2/runtime-profile.mjs",
+    "tools/v11r2/manifests/V11R6_A9R18_ATTENDANCE_HISTORY_R1_1.json"
+  ],
+  "changes": [
+    {
+      "file": "index.html",
+      "category": "runtime",
+      "baselineSha256": "ba013203291868561a7c425755ea937e9d5982edd360e2460c48f61ce2d8d0b2",
+      "candidateSha256": "a067cc330aefc22eff79ca670b59d05a2bae20b74ee5379632a8b0fac416e838",
+      "new": false
+    },
+    {
+      "file": "js/main.js",
+      "category": "runtime",
+      "baselineSha256": "19041d0b8bf7b9abc1f038ffe7502db386569520cd76a527a531eb917d207e95",
+      "candidateSha256": "fa6e456e8187ff3dd73cd5b37af067a5cb9ee89d34ac0378956ac469221da802",
+      "new": false
+    },
+    {
+      "file": "js/modules/attendance.js",
+      "category": "runtime",
+      "baselineSha256": "97697c880fd9b6b7657f66713165219d3157d4791816685fea7d5b66d1d7236f",
+      "candidateSha256": "fe39a6da8a7a21db571bfc7e2fee604b63e850cce1c8a75c7f14615cf427d7d9",
+      "new": false
+    },
+    {
+      "file": "js/services/attendance.service.js",
+      "category": "runtime",
+      "baselineSha256": "3bd37c9fecbf97ac17b3c6065bb5720f3d0c5e02efebb37acea05c87b0ce56a4",
+      "candidateSha256": "ed5b7d4fb5a0be3c1ea416ac01648a3d2b5033db324022441a1af4735b2c9aa6",
+      "new": false
+    },
+    {
+      "file": "js/modules/reports/reportExportFacade.js",
+      "category": "runtime",
+      "baselineSha256": "cbc2d6c630420fdc4bccd6ce7f2a3f42a4f634df5f23e388a808e3d6b52fb76d",
+      "candidateSha256": "ae42947277d7e587214f2803366b8b0c55a26254f60f4945d2b7c7492cbb841b",
+      "new": false
+    },
+    {
+      "file": "public/index.html",
+      "category": "runtime",
+      "baselineSha256": "ba013203291868561a7c425755ea937e9d5982edd360e2460c48f61ce2d8d0b2",
+      "candidateSha256": "a067cc330aefc22eff79ca670b59d05a2bae20b74ee5379632a8b0fac416e838",
+      "new": false
+    },
+    {
+      "file": "public/js/main.js",
+      "category": "runtime",
+      "baselineSha256": "19041d0b8bf7b9abc1f038ffe7502db386569520cd76a527a531eb917d207e95",
+      "candidateSha256": "fa6e456e8187ff3dd73cd5b37af067a5cb9ee89d34ac0378956ac469221da802",
+      "new": false
+    },
+    {
+      "file": "public/js/modules/attendance.js",
+      "category": "runtime",
+      "baselineSha256": "97697c880fd9b6b7657f66713165219d3157d4791816685fea7d5b66d1d7236f",
+      "candidateSha256": "fe39a6da8a7a21db571bfc7e2fee604b63e850cce1c8a75c7f14615cf427d7d9",
+      "new": false
+    },
+    {
+      "file": "public/js/services/attendance.service.js",
+      "category": "runtime",
+      "baselineSha256": "3bd37c9fecbf97ac17b3c6065bb5720f3d0c5e02efebb37acea05c87b0ce56a4",
+      "candidateSha256": "ed5b7d4fb5a0be3c1ea416ac01648a3d2b5033db324022441a1af4735b2c9aa6",
+      "new": false
+    },
+    {
+      "file": "public/js/modules/reports/reportExportFacade.js",
+      "category": "runtime",
+      "baselineSha256": "cbc2d6c630420fdc4bccd6ce7f2a3f42a4f634df5f23e388a808e3d6b52fb76d",
+      "candidateSha256": "ae42947277d7e587214f2803366b8b0c55a26254f60f4945d2b7c7492cbb841b",
+      "new": false
+    },
+    {
+      "file": "package.json",
+      "category": "tooling/test/identity",
+      "baselineSha256": "d729edea1f589e0a7b8e41483515859d7734dcaf7f645da581386c3582118057",
+      "candidateSha256": "1ed2cca7ba57719fac42492317f13de0d1ec0bbcb8cddb6b352163b08fc94dc7",
+      "new": false
+    },
+    {
+      "file": "tools/check-attendance-history-r1-1.mjs",
+      "category": "tooling/test/identity",
+      "baselineSha256": null,
+      "candidateSha256": "662b4d8484229e1121ecb35d6c9a728783b4af26a114f2aee11218eeabe56ab6",
+      "new": true
+    },
+    {
+      "file": "tools/v11r2/source-identity.mjs",
+      "category": "tooling/test/identity",
+      "baselineSha256": "a5e4c48bc187169b3e965c58ae57d957d2cd8f1caac0faf035e076a10172181b",
+      "candidateSha256": "04524f1f3d404f40892a37883764cfaac54541bf4194f196f4b2025a5f712d61",
+      "new": false
+    },
+    {
+      "file": "tools/v11r2/runtime-profile.mjs",
+      "category": "tooling/test/identity",
+      "baselineSha256": "bb5b8fd49b11141cdd54ffaae59dee297c0880f4ff3e43200fd2f8f347621add",
+      "candidateSha256": "ded73208b65107648b7076a3fc05dbd097d0abb4a010e1b5d3a1db8df066cc50",
+      "new": false
+    },
+    {
+      "file": "tools/v11r2/manifests/V11R6_A9R18_ATTENDANCE_HISTORY_R1_1.json",
+      "category": "tooling/test/identity",
+      "baselineSha256": null,
+      "candidateSha256": "89e5a1d6b3ac90735ec9d78d8ea713a4855202795a2d4588eb18ddd01ee7b1fd",
+      "new": true
+    }
+  ],
+  "unexpectedRuntimeScope": false
+}

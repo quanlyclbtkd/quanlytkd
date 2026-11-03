@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { composeDashboardBranchStats } from '../js/ui/render/computation/dashboardRenderer.js';
 const src=fs.readFileSync('js/ui/render/listComputationRefresh.js','utf8');
 const start=src.indexOf('function _cacheAndApplyDashboardSummary(reason)');
 if(start<0) throw new Error('target function not found');
@@ -18,6 +19,7 @@ const _getSelBranch=globalThis.__tz._getSelBranch;
 const _getSearch=globalThis.__tz._getSearch;
 const formatMonth=globalThis.__tz.formatMonth;
 const cacheDashboardData=globalThis.__tz.cacheDashboardData;
+const composeDashboardBranchStats=globalThis.__tz.composeDashboardBranchStats;
 const isFinanceSemanticSourceFresh=globalThis.__tz.isFinanceSemanticSourceFresh;
 const isStudentsSemanticSourceFresh=globalThis.__tz.isStudentsSemanticSourceFresh;
 ${fnSrc}
@@ -45,6 +47,7 @@ function runCase(name,{club='club-A',month='2026-10',branch='all',search='',over
     _getSearch:()=>state.search,
     formatMonth:(m)=>m,
     cacheDashboardData:(v)=>{state.cached=v;},
+    composeDashboardBranchStats,
     isFinanceSemanticSourceFresh:()=>state.finFresh,
     isStudentsSemanticSourceFresh:()=>state.stdFresh,
   };

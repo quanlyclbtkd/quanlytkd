@@ -1,0 +1,15 @@
+{
+  "before": {
+    "bounded_transaction_RAM": "normal realtime owner",
+    "negative_absence": "incorrectly consumed by some write paths",
+    "complete_evidence_owner": null
+  },
+  "after": {
+    "bounded_transaction_RAM": "normal realtime/startup owner unchanged",
+    "FinanceService.getCompleteMonthEvidence": "lazy write-triggered complete negative-evidence owner",
+    "single_flight": "module-local, context-scoped",
+    "new_persistent_cache_authority": false,
+    "cache_lineage_token": "a9r18-fin-write-r1-1-20261101",
+    "runtime_sha256": "bc30abc33c7f738136584eedf110b94a4e5c55bb0ce2c9c19bd2be2b1c2a0c64"
+  }
+}

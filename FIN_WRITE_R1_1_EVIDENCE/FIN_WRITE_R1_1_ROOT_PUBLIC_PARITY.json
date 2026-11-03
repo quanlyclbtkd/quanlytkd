@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "files": [
+    {
+      "file": "app.js",
+      "root_sha256": "5bb96e3c2beeca629f595108ce7ca948869e7a7317f5fed505a5a8c10b79401d",
+      "public_sha256": "5bb96e3c2beeca629f595108ce7ca948869e7a7317f5fed505a5a8c10b79401d",
+      "byte_identical": true
+    },
+    {
+      "file": "index.html",
+      "root_sha256": "97327ece3a00cea9b455b1e79094babbe191f039f9869fa571bdaf7b1eebde75",
+      "public_sha256": "97327ece3a00cea9b455b1e79094babbe191f039f9869fa571bdaf7b1eebde75",
+      "byte_identical": true
+    },
+    {
+      "file": "js/main.js",
+      "root_sha256": "7cea5116e0f8c871a68bf2878a3654307df4a6a245344cd36f6e20120665ce90",
+      "public_sha256": "7cea5116e0f8c871a68bf2878a3654307df4a6a245344cd36f6e20120665ce90",
+      "byte_identical": true
+    },
+    {
+      "file": "js/modules/students.js",
+      "root_sha256": "3793d4607c9e14a8e2228f7b6c109fa7f7f84de7b8c8c5590562f055915b863a",
+      "public_sha256": "3793d4607c9e14a8e2228f7b6c109fa7f7f84de7b8c8c5590562f055915b863a",
+      "byte_identical": true
+    },
+    {
+      "file": "js/modules/finance.js",
+      "root_sha256": "7bce6d3bd16b6d81bbd4098d2403313797a4ba322064102340178417996ac298",
+      "public_sha256": "7bce6d3bd16b6d81bbd4098d2403313797a4ba322064102340178417996ac298",
+      "byte_identical": true
+    },
+    {
+      "file": "js/core/tuitionCommandBoundary.js",
+      "root_sha256": "eb40a2f522c6979b1c4b209146c7282c12819eea43446fb749d06ab02c708a40",
+      "public_sha256": "eb40a2f522c6979b1c4b209146c7282c12819eea43446fb749d06ab02c708a40",
+      "byte_identical": true
+    },
+    {
+      "file": "js/services/finance.service.js",
+      "root_sha256": "7831309a926641b9d9d87873c489e6b88db972420bacf8602f00fac906f98149",
+      "public_sha256": "7831309a926641b9d9d87873c489e6b88db972420bacf8602f00fac906f98149",
+      "byte_identical": true
+    }
+  ]
+}

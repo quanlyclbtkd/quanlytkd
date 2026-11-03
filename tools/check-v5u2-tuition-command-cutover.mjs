@@ -20,12 +20,14 @@ const v5u6cPatch = '4K-6V5U6C1-dashboard-mutation-aware-cache-freshness-20260812
 const searchBuild = 'student-given-name-priority-20260811-v5u3';
 const h8r2Build = 'qr-v11r5-ack-20261021';
 const identity=verifyRuntimeProfile(process.cwd()).identity;
-// R3 does not change the tuition/finance owner identity. Read the exact pinned
-// dependency tokens instead of assuming every module uses the top-level tag.
-const r3URLs=JSON.parse(read(identity.manifest)).canonicalModuleURLs||null;
+// Read the ACTIVE dependency tokens from the authenticated runtime sources.
+// Newer multi-lineage candidates intentionally do not require canonicalModuleURLs
+// in the manifest; source identity already authenticates main/boundary bytes.
 const canonicalCacheBuild=identity.id==='V11R6_A9R16A_R2_SEQUENTIAL'?identity.buildTag:h8r2Build;
-const boundaryCacheBuild=r3URLs?new URL(r3URLs['js/core/tuitionCommandBoundary.js'],'https://qa/').searchParams.get('v'):canonicalCacheBuild;
-const financeCacheBuild=r3URLs?new URL(r3URLs['js/services/finance.service.js'],'https://qa/').searchParams.get('v'):canonicalCacheBuild;
+const _mainTokenSource=read('js/main.js');
+const _boundaryTokenSource=read('js/core/tuitionCommandBoundary.js');
+const boundaryCacheBuild=/tuitionCommandBoundary\.js\?v=([^"']+)/.exec(_mainTokenSource)?.[1]||canonicalCacheBuild;
+const financeCacheBuild=/finance\.service\.js\?v=([^"']+)/.exec(_boundaryTokenSource)?.[1]||canonicalCacheBuild;
 const boundary = read('js/core/tuitionCommandBoundary.js');
 const boundaryPublic = read('public/js/core/tuitionCommandBoundary.js');
 const finance = read('js/modules/finance.js');
@@ -46,22 +48,22 @@ check('V5U-2 app/index/main markers active', (app.includes(patch) || app.include
 check('V5U-2 public app/index/main markers active', (appPublic.includes(patch) || appPublic.includes(compatiblePatch) || appPublic.includes(v5u5Patch)) && (mainPublic.includes(patch) || mainPublic.includes(compatiblePatch) || mainPublic.includes(v5u5Patch) || mainPublic.includes(v5u6cPatch)) && (indexPublic.includes(`app.js?v=${build}`) || indexPublic.includes(`app.js?v=${compatibleBuild}`) || indexPublic.includes(`app.js?v=${v5u5Build}`)) && (indexPublic.includes(`./js/main.js?v=${searchBuild}`) || indexPublic.includes(`./js/main.js?v=${build}`) || indexPublic.includes(`./js/main.js?v=${compatibleBuild}`) || indexPublic.includes(`./js/main.js?v=${v5u5Build}`) || indexPublic.includes(`./js/main.js?v=${v5u6cBuild}`)));
 check('main imports and initializes tuition boundary before finance UI adapter', (main.includes(`./core/tuitionCommandBoundary.js?v=${build}`) || main.includes(`./core/tuitionCommandBoundary.js?v=${boundaryCacheBuild}`)) && main.indexOf('initTuitionCommandBoundary();') < main.indexOf('initFinance();'));
 check('tuition boundary owns quickPay and tuition delete only', boundary.includes('async collectTuition') && boundary.includes('async deleteTuitionTransaction') && !boundary.includes('processCombo') && !boundary.includes('processMultiItem') && !boundary.includes('markInvPaid'));
-check('tuition boundary delegates through existing FinanceService', (boundary.includes("../services/finance.service.js?v=" + build) || boundary.includes("../services/finance.service.js?v=" + financeCacheBuild)) && boundary.includes('_service().commitAtomicWritePlan') && boundary.includes('_service().deleteTransaction'));
+check('tuition boundary delegates through existing FinanceService', (boundary.includes("../services/finance.service.js?v=" + build) || boundary.includes("../services/finance.service.js?v=" + financeCacheBuild)) && (boundary.includes('_service().commitAtomicWritePlan') || boundary.includes('service.commitAtomicWritePlan')) && (boundary.includes('_service().deleteTransaction') || boundary.includes('service.deleteTransaction')));
 check('tuition boundary has no Firestore direct writer/import', !/\b(addDoc|setDoc|updateDoc|deleteDoc|writeBatch|runTransaction)\s*\(/.test(boundary));
 check('tuition boundary preserves existing transaction schema fields', ['type: \'Học phí\'','description: name','txMonth: lastMonth','packageMonths: paidMonths','timestamp: Date.now()'].every(x => boundary.includes(x)));
 check('tuition boundary centralizes local commit and invalidation', boundary.includes('_commitProfilePayment') && boundary.includes('_removeLocalTransaction') && boundary.includes('_invalidateTuition') && ['tx.txList','students.debtList','students.activeList','dashboard.summary'].every(x => boundary.includes(x)));
 check('tuition boundary has identical-action single-flight', boundary.includes('inFlight.get(key)') && boundary.includes('duplicatePrevented++') && boundary.includes('inFlight.set(key, promise)'));
-check('tuition boundary prevents transaction/profile partial write atomically', boundary.includes('_service().commitAtomicWritePlan') && !boundary.includes('profileError.partialWrite = true') && !boundary.includes('v5u2-tuition-partial-write'));
-check('tuition delete reuses existing reconcile helper without duplicate invalidation', boundary.includes('reconcileStudentTuitionAfterDeletedTransaction') && boundary.includes('skipInvalidate: true') && main.includes('options.skipInvalidate !== true'));
-check('tuition delete reports post-delete reconcile failure as partial state', boundary.includes('transactionDeleted = true') && boundary.includes('v5u2-delete-tuition-partial-reconcile') && finance.includes('không bấm Xóa lại'));
+check('tuition boundary prevents transaction/profile partial write atomically', (boundary.includes('_service().commitAtomicWritePlan') || boundary.includes('service.commitAtomicWritePlan')) && !boundary.includes('profileError.partialWrite = true') && !boundary.includes('v5u2-tuition-partial-write'));
+check('tuition delete uses server-complete evidence and canonical single profile writer', !boundary.includes('reconcileStudentTuitionAfterDeletedTransaction') && boundary.includes('getCompleteMonthEvidence') && boundary.includes('updateProfileAfterTxDelete'));
+check('tuition delete reports post-delete evidence-unverified state without lowering profile', boundary.includes('profileReconcileVerified = false') && boundary.includes('v5u2-delete-tuition-unverified-reconcile') && finance.includes('Không cần xóa lại giao dịch'));
 
-const quickPayBlock = finance.slice(finance.indexOf('window.quickPay = async'), finance.indexOf('// 6. openQuickPayModal'));
+const quickPayBlock = finance.slice(finance.indexOf('window.quickPay = async'), finance.indexOf('window.openQuickPayModal'));
 check('finance quickPay is UI-only adapter into tuition boundary', quickPayBlock.includes('TuitionCommandBoundary.collectTuition') && !/\bFinanceService\.(?:addTransaction|updateStudentPayment)\s*\(/.test(quickPayBlock));
 check('finance delete routes tuition-only transaction into tuition boundary', finance.includes('TuitionCommandBoundary.deleteTuitionTransaction') && finance.includes('const isTuitionOnly'));
-check('non-tuition/inventory delete remains on existing domain owners', finance.includes('await FinanceService.deleteTransaction(txId)') && finance.includes('window.InventoryService.deleteItem(invId') && !finance.includes('InventoryRollbackService'));
+check('non-tuition/inventory delete remains on existing domain owners', /await FinanceService\.deleteTransaction\(txId(?:,\{expectedContext:[^}]+\})?\)/.test(finance) && finance.includes('window.InventoryService.deleteItem(invId') && !finance.includes('InventoryRollbackService'));
 check('family pay and multi-item keep existing writers while reusing only TuitionCommandBoundary coordination',
   finance.includes("reason:'family-pay-student-'") &&
-  finance.includes('await FinanceService.commitAtomicWritePlan({transactions,profileUpdates})') &&
+  /FinanceService\.commitAtomicWritePlan\(\{(?:expectedContext,)?transactions,profileUpdates\}\)/.test(finance) &&
   finance.includes("reason:'finance.processCombo'") &&
   !finance.includes('TuitionCommandBoundary.collectTuition({studentName:n1') &&
   app.includes("'payment-bundle-atomic'") &&

@@ -1,0 +1,18 @@
+import path from 'node:path'; import {pathToFileURL} from 'node:url';
+const ROOT=process.env.ROOT||process.cwd(); const ev={reset:[],toast:[],modal:[]};
+function mkEl(id, value=''){return {id,value,checked:false,style:{display:'flex'},dataset:{},options:[],textContent:'',innerHTML:'',reset(){ev.reset.push([window.__store.clubId,id])},addEventListener(){},focus(){}}}
+const E=new Map(); function put(id,v=''){const e=mkEl(id,v);E.set(id,e);return e}
+const form=put('inventoryForm'); put('inv_category','Võ phục'); put('inv_size','1'); put('inv_size_text',''); put('inv_type','Nhập kho'); put('inv_qty','1'); put('inv_desc','NCC'); put('inv_totalActual','100'); put('inv_date','2026-11-03'); put('inv_priceActual','100'); put('inv_unpaid').checked=false;
+const edit=put('editInvModal'); put('ei_txId','tx1');put('ei_invId','inv1');put('ei_category','Võ phục');put('ei_size','1');put('ei_size_text','');put('ei_type','Xuất bán');put('ei_qty','1');put('ei_date','2026-11-03');put('ei_desc','X');put('ei_amountActual','100');
+global.document={getElementById:id=>E.get(id)||null,querySelector:()=>null,querySelectorAll:()=>[],createElement:id=>mkEl(id)}; global.alert=()=>{}; global.confirm=()=>true;
+function ctx(){const a=window.__verifiedAuthContextState;return Object.freeze({clubId:window.__store.clubId,uid:a.uid,generation:a.generation,sessionEpoch:a.sessionEpoch,authGeneration:a.authGeneration})} function current(c){const a=window.__verifiedAuthContextState;return c&&a.ready&&c.clubId===window.__store.clubId&&c.generation===a.generation}
+function setClub(c,g){window.__store.clubId=c;window.currentClubId=c;window.__verifiedAuthContextState={ready:true,uid:'u',generation:g,sessionEpoch:1,authGeneration:1};}
+global.window={__store:{db:{},clubId:'A'},location:{hostname:'prod'},userRole:'admin',__editingInventoryOriginal:{id:'inv1',type:'Xuất bán',amount:100,category:'Võ phục',size:'1',qty:1},__editingInventoryTransactionOriginal:{id:'tx1',relatedInvId:'inv1'},guardFinancialWriteIntent:(a,p)=>({ok:true}),isFinancialWriteAllowed:x=>x?.ok,showToast:m=>ev.toast.push([window.__store.clubId,m]),FinanceService:{captureFinancialWriteContext:ctx,isFinancialWriteContextCurrent:current,prepareTransactionMutation:()=>null},_fb_init:{},resolveInventoryDebtIdentity:()=>null};setClub('A',1);
+const mod=await import(pathToFileURL(path.join(ROOT,'js/modules/inventory.js')).href+`?tails-${Date.now()}`);mod.initInventory();
+// Override service after init via window bridge - handler imported binding still uses same object and methods are mutable.
+window.InventoryService.commitPreparedAddItem=async()=>{setClub('B',2);return {invId:'i1',txId:''}}; window.InventoryService.prepareAddItemMutation=()=>({itemRef:{id:'i1'},statsRef:{},payload:{},summaryPatch:{},runtimeItem:{id:'i1'}});
+await form.onsubmit({preventDefault(){},target:form}); const createB=ev.reset.some(x=>x[0]==='B')||ev.toast.some(x=>x[0]==='B'&&/Đã cập nhật Kho/.test(x[1]));
+// Reset to A for edit probe
+setClub('A',3); ev.toast=[]; window.__editingInventoryOriginal={id:'inv1',type:'Xuất bán',amount:100,category:'Võ phục',size:'1',qty:1}; window.__editingInventoryTransactionOriginal={id:'tx1',relatedInvId:'inv1'};window.InventoryService.updateItem=async()=>{setClub('B',4);return {id:'inv1'}};
+await window.saveEditInv(); const editB=(edit.style.display==='none' && window.__store.clubId==='B')||ev.toast.some(x=>x[0]==='B'&&/Đã sửa/.test(x[1]));
+console.log(JSON.stringify({createB,editB,ev},null,2)); console.log(createB?'RED':'PASS','B2_CREATE_TAIL'); console.log(editB?'RED':'PASS','B2_EDIT_TAIL'); process.exitCode=(createB||editB)?1:0;

@@ -1,0 +1,78 @@
+--- a/js/core/transactionCanonicalBoundary.js
++++ b/js/core/transactionCanonicalBoundary.js
+@@ -215,9 +215,8 @@
+             updatedAt: Date.now(),
+         };
+         metrics.transactionOverlap[String(month || '')] = report;
+-        if (report.safeForBackfill && typeof scheduleAutomaticCutover === 'function') {
+-            scheduleAutomaticCutover(month, 'legacy-snapshots-ready');
+-        }
++        // FIN-CANON-R1.2: overlap/parity is diagnostic evidence only.
++        // Production runtime must never turn safe overlap into historical mutation or persisted authority.
+         return report;
+     }
+ 
+@@ -393,6 +392,11 @@
+         const ctx = getContext();
+         const key = ctx.clubId + ':' + month;
+         clearAutoTimer(key);
++        // FIN-CANON-R1.2 policy: automatic historical migration/persisted promotion is disabled.
++        // Keep this bridge for compatibility/diagnostics, but block before any timer retry,
++        // Finance listener transition, historical write, local authority change, or settings write.
++        return { ok: false, blocked: true, reason: 'automatic-historical-mutation-policy', month: month, trigger: String(trigger || '') };
++        /* istanbul ignore next -- retained unreachable compatibility body for rollback archaeology */
+         const blocked = automaticCutoverBlockedReason(month);
+         if (blocked) {
+             const transient = blocked === 'financial-action-in-flight' || blocked === 'offline' || blocked === 'context-not-ready';
+@@ -438,7 +442,12 @@
+     function scheduleAutomaticCutover(monthInput, trigger) {
+         const month = normalizeMonth(monthInput);
+         const ctx = getContext();
++        // FIN-CANON-R1.2: no mutation-capable automatic timer in production.
++        // Overlap/parity diagnostics remain available through recordTransactionOverlap/runParityAudit.
+         if (!month || !ctx.clubId) return false;
++        global.__canonicalTxAutoState = { version: '4K-6V3BC1', clubId: ctx.clubId, month: month, status: 'policy-blocked', trigger: String(trigger || ''), blockedAt: Date.now() };
++        return false;
++        /* istanbul ignore next -- retained unreachable compatibility body for rollback archaeology */
+         if (getReadMode(ctx.clubId, month) === 'canonical') return false;
+         const key = ctx.clubId + ':' + month;
+         if (_autoTimers.has(key) || global.__canonicalTxCutoverInFlight) return false;
+--- a/public/js/core/transactionCanonicalBoundary.js
++++ b/public/js/core/transactionCanonicalBoundary.js
+@@ -215,9 +215,8 @@
+             updatedAt: Date.now(),
+         };
+         metrics.transactionOverlap[String(month || '')] = report;
+-        if (report.safeForBackfill && typeof scheduleAutomaticCutover === 'function') {
+-            scheduleAutomaticCutover(month, 'legacy-snapshots-ready');
+-        }
++        // FIN-CANON-R1.2: overlap/parity is diagnostic evidence only.
++        // Production runtime must never turn safe overlap into historical mutation or persisted authority.
+         return report;
+     }
+ 
+@@ -393,6 +392,11 @@
+         const ctx = getContext();
+         const key = ctx.clubId + ':' + month;
+         clearAutoTimer(key);
++        // FIN-CANON-R1.2 policy: automatic historical migration/persisted promotion is disabled.
++        // Keep this bridge for compatibility/diagnostics, but block before any timer retry,
++        // Finance listener transition, historical write, local authority change, or settings write.
++        return { ok: false, blocked: true, reason: 'automatic-historical-mutation-policy', month: month, trigger: String(trigger || '') };
++        /* istanbul ignore next -- retained unreachable compatibility body for rollback archaeology */
+         const blocked = automaticCutoverBlockedReason(month);
+         if (blocked) {
+             const transient = blocked === 'financial-action-in-flight' || blocked === 'offline' || blocked === 'context-not-ready';
+@@ -438,7 +442,12 @@
+     function scheduleAutomaticCutover(monthInput, trigger) {
+         const month = normalizeMonth(monthInput);
+         const ctx = getContext();
++        // FIN-CANON-R1.2: no mutation-capable automatic timer in production.
++        // Overlap/parity diagnostics remain available through recordTransactionOverlap/runParityAudit.
+         if (!month || !ctx.clubId) return false;
++        global.__canonicalTxAutoState = { version: '4K-6V3BC1', clubId: ctx.clubId, month: month, status: 'policy-blocked', trigger: String(trigger || ''), blockedAt: Date.now() };
++        return false;
++        /* istanbul ignore next -- retained unreachable compatibility body for rollback archaeology */
+         if (getReadMode(ctx.clubId, month) === 'canonical') return false;
+         const key = ctx.clubId + ':' + month;
+         if (_autoTimers.has(key) || global.__canonicalTxCutoverInFlight) return false;

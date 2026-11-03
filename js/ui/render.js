@@ -35,7 +35,7 @@ import {
     renderExamBranchFees,
     updateSummaryNumbers,
     getDashboardCanonicalStatsSnapshot,
-} from "../modules/dashboard.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029";
+} from "../modules/dashboard.js?v=a9r18-bstats-r1-1-20261031";
 
 import { store } from '../store.js';
 import {
@@ -60,7 +60,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from "./render/computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+} from "./render/computation/studentsRenderer.js?v=a9r18-bstats-r1-1-20261031";
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
@@ -69,7 +69,7 @@ import {
 } from "./render/computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 
 // Phase 3.5B: Dashboard computation cache
-import { cacheDashboardData } from './render/computation/dashboardRenderer.js';
+import { cacheDashboardData, composeDashboardBranchStats } from './render/computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031';
 
 // ── Phase 3.4: Island key map ── maps tabId → island keys owned by that tab ──
 // Phase 3.5B: dashboard islands mở rộng thêm summary + examBranchFees
@@ -339,25 +339,25 @@ function renderApp() {
     const exp_exam_total = _finSummary.expExamTotal  || 0;
     const exp_uniform    = _finSummary.expUniform    || 0;
     const txCountRender  = _finSummary.txCount       || 0;
-    const _bStats        = _finSummary.bStats        || {};
+    const _financeBStats = _finSummary.bStats        || {};
     const _bExamStats    = _finSummary.bExamStats    || {};
 
     // ── Phase 3.5A: Students computation (isolated renderer) ────────────────
-    // _bStats passed by reference: studentsRenderer adds .active / .debt counts.
-    // After this call _bStats is fully populated for renderBranchStats().
+    // Students owns member-derived branch counts; Finance cache is not passed/mutated.
     const _pgStudents = (window.__store && window.__store.pagination && window.__store.pagination.students) || null;
     const _pgStudentsActive = _pgStudents && _pgStudents.enabled &&
         Array.isArray(_pgStudents.currentItems) && _pgStudents.currentItems.length > 0;
 
     computeAndCacheStudents(allProfiles, {
         curTabId: _curTabId, selMonth, selBranch, search, isSingleBranch,
-        isAdmin: _isAdmin, bStats: _bStats,
+        isAdmin: _isAdmin,
         pgStudents: _pgStudents, pgStudentsActive: _pgStudentsActive,
         activePage: window._activePage || 1,
         debtPage:   window._debtPage   || 1,
         quitPage:   window._quitPage   || 1,
     });
     const _stdSummary     = getStudentsSummary() || {};
+    const _bStats         = composeDashboardBranchStats(_financeBStats, _stdSummary);
     const activeCount     = _stdSummary.activeCount   || 0;
     const debtSummaryPending = _stdSummary.debtSummaryPending !== false;
     const debtCountRender = debtSummaryPending ? null : (_stdSummary.debtCount || 0);

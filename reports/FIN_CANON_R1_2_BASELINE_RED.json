@@ -1,0 +1,26 @@
+{
+  "status": "RED_REPRODUCED",
+  "startFromProductionCaller": "recordTransactionOverlap",
+  "safeOverlap": true,
+  "baseline": {
+    "mutationCapableTimerScheduled": true,
+    "historicalTransactionPatchAttempts": 2,
+    "batchCommits": 1,
+    "canonicalSettingsPromotionAttempts": 1,
+    "financeDetach": 1,
+    "financeAttach": 1,
+    "readModeAfter": "canonical",
+    "autoStatusLocalStorageKeys": [
+      "tkd:canonical-tx-auto:v1:club1:2026-10"
+    ]
+  },
+  "candidate": {
+    "historicalTransactionPatchAttempts": 0,
+    "batchCommits": 0,
+    "canonicalSettingsPromotionAttempts": 0,
+    "financeDetach": 0,
+    "financeAttach": 0,
+    "readModeAfter": "legacy"
+  },
+  "note": "Mocked VM/SDK harness; no production Firestore used."
+}

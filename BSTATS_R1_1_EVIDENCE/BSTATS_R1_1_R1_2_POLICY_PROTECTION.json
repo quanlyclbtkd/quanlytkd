@@ -1,0 +1,25 @@
+{
+  "classification": "FINANCE_NO_MIGRATION_POLICY_CLOSED",
+  "transactionCanonicalBoundary": {
+    "baseline": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
+    "final": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
+    "unchanged": true
+  },
+  "financeRenderer": {
+    "baseline": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
+    "final": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
+    "unchanged": true
+  },
+  "debtProfileReadBoundary": {
+    "baseline": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08",
+    "final": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08",
+    "unchanged": true
+  },
+  "policyGate": "PASS 26/26",
+  "automaticHistoricalMutation": "blocked",
+  "automaticCanonicalPersistedPromotion": "blocked",
+  "existingCanonicalMonths": "preserved",
+  "normalTransactionWriter": "preserved",
+  "explicitEmergencyRollback": "preserved",
+  "transactionLimit1200Changed": false
+}

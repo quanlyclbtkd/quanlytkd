@@ -1,0 +1,212 @@
+--- a/js/ui/render/computation/studentsRenderer.js
++++ b/js/ui/render/computation/studentsRenderer.js
+@@ -22,11 +22,10 @@
+  *   Every <tr> carries data-student-id / data-debt-id / data-quit-id
+  *   for future virtualization keying.
+  *
+- * Branch stats augmentation:
+- *   computeAndCacheStudents() receives the bStats object produced by
+- *   financeRenderer and adds active/debt counts to each branch entry.
+- *   render.js passes finSummary.bStats here; after this call bStats
+- *   is fully populated and can be passed to renderBranchStats().
++ * Branch member stats ownership (A9R18 R1.1):
++ *   computeAndCacheStudents() derives active/debt counts into its OWN cache.
++ *   Finance bStats is never accepted or mutated here. Dashboard composition
++ *   combines Finance financial fields with authority-aware Students counts.
+  *
+  * Load-more buttons:
+  *   Appended to the end of each section's cached HTML so islands render
+@@ -306,7 +305,6 @@
+  * @param {string}   params.search
+  * @param {boolean}  params.isSingleBranch
+  * @param {boolean}  params.isAdmin
+- * @param {Object}   params.bStats          — finance bStats to AUGMENT (active/debt)
+  * @param {Object|null} params.pgStudents
+  * @param {boolean}  params.pgStudentsActive
+  * @param {number}   params.activePage
+@@ -361,6 +359,27 @@
+         && _cache.lastVerifiedDebtSummaryAuthorityKey === _debtAuthorityKey(status);
+ }
+ 
++function _branchCountForStats() {
++    const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
++    return Math.max(1, Number(cfg.branchCount || 1));
++}
++
++function _normalizeBranchCodeForStats(rawBranch, branchCount) {
++    if (typeof window.normalizeBranchCodeForStats === 'function') {
++        return window.normalizeBranchCodeForStats(rawBranch, branchCount);
++    }
++    if (window.BranchIdentity && typeof window.BranchIdentity.normalize === 'function') {
++        return window.BranchIdentity.normalize(rawBranch, { fallback: 'CS1' }) || 'CS1';
++    }
++    return 'CS1';
++}
++
++function _newBranchMemberStats(branchCount) {
++    const out = {};
++    for (let i = 1; i <= branchCount; i++) out['CS' + i] = { active: 0, debt: 0 };
++    return out;
++}
++
+ function _currentStudentsSourceKey() {
+     const st = window.__store || {};
+     const profileVersion = Number(window.studentProfileStore?.version ?? st._profileDataVersion ?? 0);
+@@ -386,7 +405,6 @@
+         search          = '',
+         isSingleBranch  = true,
+         isAdmin         = false,
+-        bStats          = {},
+         pgStudents      = null,
+         pgStudentsActive = false,
+         activePage      = 1,
+@@ -442,6 +460,8 @@
+     let activeCount = 0, debtCount = 0;
+     let m_active_theo = 0, m_new = 0, m_quit = 0, m_skipped = 0;
+     let totalDebtEst  = 0;
++    const _branchCount = _branchCountForStats();
++    const branchMemberStats = _newBranchMemberStats(_branchCount);
+ 
+     // ── Decide which HTML sections to build (hidden-tab skip) ──
+     const buildActive = curTabId === 'active';
+@@ -561,6 +581,8 @@
+         const isQuit  = _pKind === 'quit';
+         const isActive = !isQuit;
+         const safeBranch  = p.branch || 'CS1';
++        const statsBranch = _normalizeBranchCodeForStats(safeBranch, _branchCount);
++        if (!branchMemberStats[statsBranch]) branchMemberStats[statsBranch] = { active: 0, debt: 0 };
+         const yrBadge     = _getYrBadge(name, p, nameNCount);
+         const beltHTML    = getBeltBadge(p.belt);
+         const branchTdHTML = isSingleBranch
+@@ -569,7 +591,7 @@
+ 
+         if (isActive) {
+             m_active_theo++;
+-            if (bStats[safeBranch]) bStats[safeBranch].active++;
++            branchMemberStats[statsBranch].active++;
+             activeCount++;
+ 
+             const paidBadge = p.paidUntil
+@@ -656,7 +678,7 @@
+                 const passDebtOverdueFilter = !_debtOverdueMin || unpaidMonthsCount >= _debtOverdueMin;
+                 if (debtPassFilter && passDebtOverdueFilter) {
+                     debtCount++;
+-                    if (bStats[safeBranch] !== undefined) bStats[safeBranch].debt++;
++                    branchMemberStats[statsBranch].debt++;
+                     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
+                     totalDebtEst += totalDebtAmount;
+                     _debtTotalCount++;
+@@ -885,6 +907,7 @@
+         debtLimit:         _debtLimit,
+         quitLimit:         _quitLimit,
+         pgStudentsActive,
++        branchMemberStats,
+     };
+     _cache.summaryClubId = String(window.__store?.clubId || window.__store?.currentClubId || '');
+     _cache.summaryMonth = String(selMonth || '');
+--- a/public/js/ui/render/computation/studentsRenderer.js
++++ b/public/js/ui/render/computation/studentsRenderer.js
+@@ -22,11 +22,10 @@
+  *   Every <tr> carries data-student-id / data-debt-id / data-quit-id
+  *   for future virtualization keying.
+  *
+- * Branch stats augmentation:
+- *   computeAndCacheStudents() receives the bStats object produced by
+- *   financeRenderer and adds active/debt counts to each branch entry.
+- *   render.js passes finSummary.bStats here; after this call bStats
+- *   is fully populated and can be passed to renderBranchStats().
++ * Branch member stats ownership (A9R18 R1.1):
++ *   computeAndCacheStudents() derives active/debt counts into its OWN cache.
++ *   Finance bStats is never accepted or mutated here. Dashboard composition
++ *   combines Finance financial fields with authority-aware Students counts.
+  *
+  * Load-more buttons:
+  *   Appended to the end of each section's cached HTML so islands render
+@@ -306,7 +305,6 @@
+  * @param {string}   params.search
+  * @param {boolean}  params.isSingleBranch
+  * @param {boolean}  params.isAdmin
+- * @param {Object}   params.bStats          — finance bStats to AUGMENT (active/debt)
+  * @param {Object|null} params.pgStudents
+  * @param {boolean}  params.pgStudentsActive
+  * @param {number}   params.activePage
+@@ -361,6 +359,27 @@
+         && _cache.lastVerifiedDebtSummaryAuthorityKey === _debtAuthorityKey(status);
+ }
+ 
++function _branchCountForStats() {
++    const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
++    return Math.max(1, Number(cfg.branchCount || 1));
++}
++
++function _normalizeBranchCodeForStats(rawBranch, branchCount) {
++    if (typeof window.normalizeBranchCodeForStats === 'function') {
++        return window.normalizeBranchCodeForStats(rawBranch, branchCount);
++    }
++    if (window.BranchIdentity && typeof window.BranchIdentity.normalize === 'function') {
++        return window.BranchIdentity.normalize(rawBranch, { fallback: 'CS1' }) || 'CS1';
++    }
++    return 'CS1';
++}
++
++function _newBranchMemberStats(branchCount) {
++    const out = {};
++    for (let i = 1; i <= branchCount; i++) out['CS' + i] = { active: 0, debt: 0 };
++    return out;
++}
++
+ function _currentStudentsSourceKey() {
+     const st = window.__store || {};
+     const profileVersion = Number(window.studentProfileStore?.version ?? st._profileDataVersion ?? 0);
+@@ -386,7 +405,6 @@
+         search          = '',
+         isSingleBranch  = true,
+         isAdmin         = false,
+-        bStats          = {},
+         pgStudents      = null,
+         pgStudentsActive = false,
+         activePage      = 1,
+@@ -442,6 +460,8 @@
+     let activeCount = 0, debtCount = 0;
+     let m_active_theo = 0, m_new = 0, m_quit = 0, m_skipped = 0;
+     let totalDebtEst  = 0;
++    const _branchCount = _branchCountForStats();
++    const branchMemberStats = _newBranchMemberStats(_branchCount);
+ 
+     // ── Decide which HTML sections to build (hidden-tab skip) ──
+     const buildActive = curTabId === 'active';
+@@ -561,6 +581,8 @@
+         const isQuit  = _pKind === 'quit';
+         const isActive = !isQuit;
+         const safeBranch  = p.branch || 'CS1';
++        const statsBranch = _normalizeBranchCodeForStats(safeBranch, _branchCount);
++        if (!branchMemberStats[statsBranch]) branchMemberStats[statsBranch] = { active: 0, debt: 0 };
+         const yrBadge     = _getYrBadge(name, p, nameNCount);
+         const beltHTML    = getBeltBadge(p.belt);
+         const branchTdHTML = isSingleBranch
+@@ -569,7 +591,7 @@
+ 
+         if (isActive) {
+             m_active_theo++;
+-            if (bStats[safeBranch]) bStats[safeBranch].active++;
++            branchMemberStats[statsBranch].active++;
+             activeCount++;
+ 
+             const paidBadge = p.paidUntil
+@@ -656,7 +678,7 @@
+                 const passDebtOverdueFilter = !_debtOverdueMin || unpaidMonthsCount >= _debtOverdueMin;
+                 if (debtPassFilter && passDebtOverdueFilter) {
+                     debtCount++;
+-                    if (bStats[safeBranch] !== undefined) bStats[safeBranch].debt++;
++                    branchMemberStats[statsBranch].debt++;
+                     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
+                     totalDebtEst += totalDebtAmount;
+                     _debtTotalCount++;
+@@ -885,6 +907,7 @@
+         debtLimit:         _debtLimit,
+         quitLimit:         _quitLimit,
+         pgStudentsActive,
++        branchMemberStats,
+     };
+     _cache.summaryClubId = String(window.__store?.clubId || window.__store?.currentClubId || '');
+     _cache.summaryMonth = String(selMonth || '');

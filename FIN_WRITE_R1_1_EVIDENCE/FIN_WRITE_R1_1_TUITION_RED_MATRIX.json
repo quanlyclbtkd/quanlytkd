@@ -1,0 +1,33 @@
+{
+  "classification": "BASELINE_RED_REPRODUCED",
+  "method": "EXECUTABLE_BASELINE_HARNESS",
+  "tests": [
+    {
+      "gate": "TUITION_QUICK_PARTIAL_ABSENCE_RED",
+      "server_existing_payment_omitted_from_ram": true,
+      "new_transaction_writes": 1,
+      "profile_writes": 1,
+      "result": "RED_REPRODUCED"
+    },
+    {
+      "gate": "TUITION_COMBO_PARTIAL_ABSENCE_RED",
+      "server_existing_payment_omitted_from_ram": true,
+      "transaction_writes": 1,
+      "result": "RED_REPRODUCED"
+    },
+    {
+      "gate": "TUITION_FORM_PARTIAL_ABSENCE_RED",
+      "server_existing_payment_omitted_from_ram": true,
+      "transaction_writes": 1,
+      "result": "RED_REPRODUCED"
+    },
+    {
+      "gate": "TUITION_MULTIITEM_PARTIAL_ABSENCE_RED",
+      "server_existing_payment_omitted_from_ram": true,
+      "commit_count": 1,
+      "transaction_sets": 1,
+      "profile_updates": 1,
+      "result": "RED_REPRODUCED"
+    }
+  ]
+}

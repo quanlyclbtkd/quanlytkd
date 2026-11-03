@@ -1,0 +1,71 @@
+{
+  "purpose": "evidence accounting fixtures, not analytics authority",
+  "requests": [
+    {
+      "reason": "all-server legacy evidence",
+      "club": "club-A",
+      "month": "2026-09",
+      "readMode": "legacy",
+      "sources": [
+        {
+          "source": "txMonth",
+          "pages": 1,
+          "docs": 0
+        },
+        {
+          "source": "date",
+          "pages": 1,
+          "docs": 0
+        },
+        {
+          "source": "packageMonths",
+          "pages": 1,
+          "docs": 0
+        }
+      ],
+      "serverConfirmed": true,
+      "singleFlight": "miss"
+    },
+    {
+      "reason": "same-context concurrent evidence",
+      "club": "club-A",
+      "month": "2026-09",
+      "readMode": "legacy",
+      "logical_callers": 2,
+      "physical_getDocs": 3,
+      "serverConfirmed": true,
+      "singleFlight": "1 miss + 1 hit"
+    },
+    {
+      "reason": "earlier-page-cache test",
+      "club": "club-A",
+      "month": "2026-09",
+      "readMode": "legacy",
+      "sources": [
+        {
+          "source": "txMonth",
+          "pages": 2,
+          "docs": 500,
+          "allPagesServerConfirmed": false
+        }
+      ],
+      "serverConfirmed": false,
+      "singleFlight": "miss"
+    },
+    {
+      "reason": "canonical evidence",
+      "club": "club-A",
+      "month": "2026-09",
+      "readMode": "canonical",
+      "sources": [
+        {
+          "source": "accountingMonths",
+          "pages": 1,
+          "docs": 0
+        }
+      ],
+      "serverConfirmed": true,
+      "singleFlight": "miss"
+    }
+  ]
+}

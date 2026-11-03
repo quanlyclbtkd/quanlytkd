@@ -10,7 +10,7 @@
  * Owns:
  *   - Report HTML cache (buildReportRows → reportHtml)
  *   - Chart data cache (buildDashboardChartData → chartData)
- *   - Branch stats cache (bStats object từ financeRenderer + studentsRenderer)
+ *   - Branch stats cache (pure composition of Finance + Students derived state)
  *   - Summary numbers cache (incTuition, activeCount, v.v.)
  *   - Exam branch fees cache (bExamStats, inc_exam)
  *   - Explicit cache invalidation API
@@ -25,6 +25,56 @@
  *   render.js vẫn populate tabHtmlCache._chartData cho tabs.js legacy readers.
  *   Đồng thời gọi cacheDashboardData() để dashboard islands đọc từ đây.
  */
+
+
+// ── A9R18 R1.1: pure Finance ↔ Students branch composition ───────────────────
+function _clonePresentationValue(value) {
+    if (Array.isArray(value)) return value.map(_clonePresentationValue);
+    if (value && typeof value === 'object') {
+        const out = {};
+        Object.entries(value).forEach(([key, nested]) => { out[key] = _clonePresentationValue(nested); });
+        return out;
+    }
+    return value;
+}
+
+/**
+ * Compose final Dashboard branch stats without mutating either source cache.
+ * Finance owns all monetary/exam fields. Students owns active/debt member stats
+ * and has already adapted Debt values to FRESH / TRANSIENT / NOT_READY.
+ *
+ * @param {Object} financeBranchStats
+ * @param {Object|null} studentSummary
+ * @returns {Object}
+ */
+export function composeDashboardBranchStats(financeBranchStats = {}, studentSummary = null) {
+    const finance = financeBranchStats && typeof financeBranchStats === 'object' ? financeBranchStats : {};
+    const members = studentSummary?.branchMemberStats && typeof studentSummary.branchMemberStats === 'object'
+        ? studentSummary.branchMemberStats
+        : {};
+    const branches = new Set([...Object.keys(finance), ...Object.keys(members)]);
+    const out = {};
+
+    branches.forEach((branch) => {
+        const financeEntry = finance[branch] && typeof finance[branch] === 'object' ? finance[branch] : {};
+        const memberEntry = members[branch] && typeof members[branch] === 'object' ? members[branch] : null;
+        const composed = _clonePresentationValue(financeEntry);
+        composed.active = memberEntry ? Number(memberEntry.active || 0) : Number(composed.active || 0);
+
+        const debtPending = memberEntry
+            ? memberEntry.debtPending === true
+            : studentSummary?.branchDebtPending !== false;
+        const debtUpdating = memberEntry
+            ? memberEntry.debtUpdating === true
+            : studentSummary?.branchDebtUpdating === true;
+        composed.debt = debtPending ? null : Number(memberEntry?.debt || 0);
+        composed.debtPending = debtPending;
+        composed.debtUpdating = debtUpdating;
+        out[branch] = composed;
+    });
+
+    return out;
+}
 
 // ── Module-local dashboard data cache ────────────────────────────────────────
 const _cache = {

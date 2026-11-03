@@ -1,0 +1,49 @@
+{
+  "inputZipSHA256": "968fa0cdc71747d53ee894834920b89359e5ed6543d8c80e25e790a3a20b39df",
+  "parentRuntimeSHA256": "8f421d3a61d229a2052cf1ce1cd6532f665bcf458c0a1809b89a6e09f4603c22",
+  "finalRuntimeSHA256": "8dc0ff78ece749202db1189bce4ddccd4f1cd755cafa21118e6fd5d75d926dc6",
+  "rootPublicRuntimeSHA256": "8dc0ff78ece749202db1189bce4ddccd4f1cd755cafa21118e6fd5d75d926dc6",
+  "protected": {
+    "app.js": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+    "js/core/transactionCanonicalBoundary.js": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
+    "js/core/debtProfileReadBoundary.js": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08",
+    "js/ui/render/computation/financeRenderer.js": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
+    "firestore.rules": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+    "firestore.indexes.json": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2"
+  },
+  "changedFiles": {
+    "index.html": "4d1a1133a230295125fc6c3f1106e7260c2acde7362b4eb3fe2e44119d0dec41",
+    "js/main.js": "b91835b3ec163e3195f83cf3ac2dce7725602d28e2ca87bdc4f121cc3a0c0207",
+    "js/modules/dashboard.js": "999320d13bd4867097bd2bbca38c5481cfb5a8701cb1aacbad8853f3b96457bf",
+    "js/ui/render.js": "b2cd0efafaaf4bad19c487b4f3026e57adf10c80a19de7fae7aabc9f0da2f208",
+    "js/ui/render/computation/dashboardRenderer.js": "beccf91e83bce18b7a84a2e1f2e512af616a31d1ef6511814afb50c06ecfec9b",
+    "js/ui/render/computation/studentsRenderer.js": "43c26234d2eca584b02b5c2e51a3d651a526e4d4bada81316d8ca773c22b58db",
+    "js/ui/render/listComputationRefresh.js": "fb0b6d7595a87d31a68aa9dbea90bdc29e160fd96532915df1057b5f7840061e",
+    "js/ui/render/renderDashboard.js": "1f45da7e769e46f110e179a7a1686f0f561c78429f1900ed409e215827213da3",
+    "js/ui/render/renderInvalidation.js": "4592fbe5a799441547de3ee17acbcb40a2db76551e0c877e84cdad660d4032e2",
+    "js/ui/render/renderStudents.js": "6c53dfb122cbbce1ebf71ae1fdb1efb383b013f4795b2fef1ed976a2436dd063",
+    "package.json": "1094eaf79bbea78424bc8f47eec67705e1dcbd7b42eb2987ac2e6d5fe0c733b1",
+    "public/index.html": "4d1a1133a230295125fc6c3f1106e7260c2acde7362b4eb3fe2e44119d0dec41",
+    "public/js/main.js": "b91835b3ec163e3195f83cf3ac2dce7725602d28e2ca87bdc4f121cc3a0c0207",
+    "public/js/modules/dashboard.js": "999320d13bd4867097bd2bbca38c5481cfb5a8701cb1aacbad8853f3b96457bf",
+    "public/js/ui/render.js": "b2cd0efafaaf4bad19c487b4f3026e57adf10c80a19de7fae7aabc9f0da2f208",
+    "public/js/ui/render/computation/dashboardRenderer.js": "beccf91e83bce18b7a84a2e1f2e512af616a31d1ef6511814afb50c06ecfec9b",
+    "public/js/ui/render/computation/studentsRenderer.js": "43c26234d2eca584b02b5c2e51a3d651a526e4d4bada81316d8ca773c22b58db",
+    "public/js/ui/render/listComputationRefresh.js": "fb0b6d7595a87d31a68aa9dbea90bdc29e160fd96532915df1057b5f7840061e",
+    "public/js/ui/render/renderDashboard.js": "1f45da7e769e46f110e179a7a1686f0f561c78429f1900ed409e215827213da3",
+    "public/js/ui/render/renderInvalidation.js": "4592fbe5a799441547de3ee17acbcb40a2db76551e0c877e84cdad660d4032e2",
+    "public/js/ui/render/renderStudents.js": "6c53dfb122cbbce1ebf71ae1fdb1efb383b013f4795b2fef1ed976a2436dd063",
+    "tools/check-attendance-history-r1-1.mjs": "85b5b75d83b59da9bdce3f203aef3b08ebdc87eed4a8cef9b6e5541aedf2dc08",
+    "tools/check-fin-canon-r1-2-policy.mjs": "0a5eba36b9d351667da04eb0ee501702a94ab7c5a2bf0ba907cc0e602d701192",
+    "tools/check-finance-students-bstats-ownership-r1.mjs": "358c068ee1d3890bc137d7b93cb6f4698463df78fe091b36379eddbd499a15bc",
+    "tools/check-r2r5-2-true-zero-matrix.mjs": "c24d2b6f205f5bae3f05c9c29e7a0ec79a5c54498cfb9ce5a5486cc3a788e9dc",
+    "tools/fixtures/bstats-r1-1-baseline-red.json": "b23079a63546ff454338f94e308397ffb3f7407d18c00df376b52cd1a98bdea7",
+    "tools/v11r2/manifests/V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1.json": "49df00f347c979c19eda4e0e1e7674103d080e3e66b872b8be790b9a679ca82c",
+    "tools/v11r2/runtime-profile.mjs": "d67fd0d8236bdfa25c14de5d0446b196676024675c6fe159b508b5cc0ad5ecfd",
+    "tools/v11r2/source-identity.mjs": "2221f323025e16672c85e87a0c994e02ea732a1d2f283b102773050d4638c75b"
+  },
+  "sourceIdentityManifest": {
+    "file": "tools/v11r2/manifests/V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1.json",
+    "sha256": "49df00f347c979c19eda4e0e1e7674103d080e3e66b872b8be790b9a679ca82c"
+  }
+}

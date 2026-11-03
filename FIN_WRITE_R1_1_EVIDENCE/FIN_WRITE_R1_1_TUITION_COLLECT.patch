@@ -1,0 +1,367 @@
+# Logical PATCH B — shared tuition write-evidence adapter and QuickPay/Combo/Form/MultiItem callsites. Mixed-command hunk also contains the Exam guard and is cross-referenced by PATCH D.
+--- a/js/core/tuitionCommandBoundary.js
++++ b/js/core/tuitionCommandBoundary.js
+@@ -102,6 +102,68 @@
+     throw error;
+   }
+   return owner.areTuitionMonthsSettled(profile, months, { name: studentName });
++}
++
++function _canonicalSettlementWithEvidence(profile, studentName, months, transactions, allowTransactionFallback = true) {
++  const owner = typeof window !== 'undefined' ? window.TuitionDebtCanonical : null;
++  if (!owner || typeof owner.areTuitionMonthsSettled !== 'function') {
++    const error = new Error('[TuitionCommandBoundary] Canonical tuition settlement helper chưa sẵn sàng.');
++    error.code = 'tuition/canonical-settlement-not-ready';
++    throw error;
++  }
++  return owner.areTuitionMonthsSettled(profile, months, {
++    name: studentName,
++    transactions: Array.isArray(transactions) ? transactions : undefined,
++    allowTransactionFallback,
++  });
++}
++async function _resolveTuitionSettlementForWrite({ profile, studentName, targetMonths, reason = 'tuition-write' } = {}) {
++  const name = String(studentName || '').trim();
++  const months = _normalizeMonths(targetMonths);
++  const service = _service();
++  const startProfile = profile || _profiles()[name] || {};
++  const startProfileId = _profileIdentity(startProfile, name);
++  if (!name || !months.length || !startProfileId) return { status: 'UNKNOWN', code: 'TUITION_SETTLEMENT_UNVERIFIED' };
++
++  const profileOnly = _canonicalSettlementWithEvidence(startProfile, name, months, [], false);
++  if (Array.isArray(profileOnly?.paidMonths) && profileOnly.paidMonths.length > 0) {
++    return { status: 'PAID', source: 'profile-proven', settlement: profileOnly, profile: startProfile, evidenceReadCount: 0 };
++  }
++
++  const currentRows = typeof service.getRuntimeTransactionRowsForEvidence === 'function' ? service.getRuntimeTransactionRowsForEvidence() : [];
++  const currentSettlement = _canonicalSettlementWithEvidence(startProfile, name, months, currentRows, true);
++  if (Array.isArray(currentSettlement?.paidMonths) && currentSettlement.paidMonths.length > 0) {
++    return { status: 'PAID', source: 'positive-current-evidence', settlement: currentSettlement, profile: startProfile, evidenceReadCount: 0 };
++  }
++
++  const rowsById = new Map();
++  currentRows.forEach((tx, i) => rowsById.set(String(tx?.id || tx?.txId || 'ram:' + i), tx));
++  let evidenceReadCount = 0;
++  for (const month of months) {
++    const current = service.getCurrentMonthEvidenceForWrite?.({ month });
++    let evidence = current;
++    if (!current?.strictCurrentCoverageComplete) {
++      evidence = await service.getCompleteMonthEvidence?.({ month, reason: reason + ':' + month });
++      evidenceReadCount++;
++    }
++    if (!evidence?.serverComplete || evidence?.contextStillCurrent !== true) {
++      return { status: 'UNKNOWN', code: evidence?.code || 'TUITION_SETTLEMENT_UNVERIFIED', evidence, evidenceReadCount };
++    }
++    (evidence.rows || []).forEach((tx, i) => rowsById.set(String(tx?.id || tx?.txId || month + ':' + i), tx));
++  }
++
++  const latestProfile = _profiles()[name] || startProfile;
++  if (_profileIdentity(latestProfile, name) !== startProfileId) return { status: 'UNKNOWN', code: 'FINANCE_EVIDENCE_CONTEXT_STALE', evidenceReadCount };
++  const latestProfileOnly = _canonicalSettlementWithEvidence(latestProfile, name, months, [], false);
++  if (Array.isArray(latestProfileOnly?.paidMonths) && latestProfileOnly.paidMonths.length > 0) {
++    return { status: 'PAID', source: 'profile-proven-after-await', settlement: latestProfileOnly, profile: latestProfile, evidenceReadCount };
++  }
++  const completeRows = Array.from(rowsById.values());
++  const finalSettlement = _canonicalSettlementWithEvidence(latestProfile, name, months, completeRows, true);
++  if (Array.isArray(finalSettlement?.paidMonths) && finalSettlement.paidMonths.length > 0) {
++    return { status: 'PAID', source: 'server-complete-evidence', settlement: finalSettlement, profile: latestProfile, rows: completeRows, evidenceReadCount };
++  }
++  return { status: 'VERIFIED_UNPAID', source: evidenceReadCount ? 'server-complete-evidence' : 'strict-current-coverage', settlement: finalSettlement, profile: latestProfile, rows: completeRows, evidenceReadCount };
+ }
+ function _canonicalPaidUntilAfterPayment(profile, paidMonths) {
+   const owner = typeof window !== 'undefined' ? window.TuitionDebtCanonical : null;
+@@ -310,6 +372,18 @@
+   build: BUILD,
+   phase: PHASE,
+ 
++  resolveTuitionSettlementForWrite: _resolveTuitionSettlementForWrite,
++  async requireTuitionUnpaidForWrite(args = {}) {
++    const d = await _resolveTuitionSettlementForWrite(args);
++    if (d?.status === 'UNKNOWN') { const e = new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.'); e.code = d.code || 'TUITION_SETTLEMENT_UNVERIFIED'; throw e; }
++    if (d?.status === 'VERIFIED_UNPAID') {
++      const p = d.profile || _profiles()[String(args.studentName || '').trim()] || {};
++      const c = typeof window !== 'undefined' ? window.TuitionDebtCanonical : null;
++      d.paidUntil = c?.reconcilePaidUntilFromMonthEvidence?.(p, [...(Array.isArray(p.paidMonths) ? p.paidMonths : []), ..._normalizeMonths(args.targetMonths)], { allowRegression: false }) || p.paidUntil || '';
++    }
++    return d;
++  },
++
+   async collectTuition({ studentName, months, branch, amount, source = 'quickPay' } = {}) {
+     const name = String(studentName || '').trim();
+     const rawMonths = Array.isArray(months) ? months : String(months ?? '').split(',');
+@@ -348,19 +422,24 @@
+     return _run('tuition.collect', identity, async (runContext) => _withProfileMutationLane(profileLaneKey, async () => {
+       const replay = runContext?.getCompletedReplay?.();
+       if (replay) return replay;
+-      const latestProfile = _profiles()[name] || profile;
+-      const settlement = _canonicalSettlement(latestProfile, name, paidMonths);
+-      if (settlement.allSettled) {
++      let latestProfile = _profiles()[name] || profile;
++      const writeDecision = await _resolveTuitionSettlementForWrite({ profile: latestProfile, studentName: name, targetMonths: paidMonths, reason: source || 'quickPay' });
++      if (writeDecision.status === 'PAID') {
++        const settlement = writeDecision.settlement || _canonicalSettlement(latestProfile, name, paidMonths);
+         metrics.duplicatePrevented++;
+         metrics.settledStatePrevented++;
+         _track('tuition.collect', 'duplicatePrevented');
+         return {
+           ok: true, alreadySettled: true, duplicatePrevented: true, primaryWritePerformed: false,
+           txId: null, studentName: name, amount: numericAmount, branch: normalizedBranch,
+-          paidMonths, paidUntil: normalizeYYYYMM(latestProfile.paidUntil) || '', txMonth: lastMonth,
++          paidMonths, paidUntil: normalizeYYYYMM((writeDecision.profile || latestProfile).paidUntil) || '', txMonth: lastMonth,
+           txDate: '', monthLabel: formatMonthCompact(paidMonths.join(',')), settlement
+         };
+       }
++      if (writeDecision.status !== 'VERIFIED_UNPAID') {
++        return { ok: false, blocked: true, primaryWritePerformed: false, reason: writeDecision.code || 'TUITION_SETTLEMENT_UNVERIFIED', writeDecision };
++      }
++      latestProfile = writeDecision.profile || _profiles()[name] || latestProfile;
+       if (!_guard('tuition.quickPay', auditPayload)) return { ok: false, cancelled: true, reason: 'financial-write-guard' };
+       _audit('tuition.quickPay', 'before', auditPayload);
+       const today = getLocalToday();
+--- a/public/js/core/tuitionCommandBoundary.js
++++ b/public/js/core/tuitionCommandBoundary.js
+@@ -102,6 +102,68 @@
+     throw error;
+   }
+   return owner.areTuitionMonthsSettled(profile, months, { name: studentName });
++}
++
++function _canonicalSettlementWithEvidence(profile, studentName, months, transactions, allowTransactionFallback = true) {
++  const owner = typeof window !== 'undefined' ? window.TuitionDebtCanonical : null;
++  if (!owner || typeof owner.areTuitionMonthsSettled !== 'function') {
++    const error = new Error('[TuitionCommandBoundary] Canonical tuition settlement helper chưa sẵn sàng.');
++    error.code = 'tuition/canonical-settlement-not-ready';
++    throw error;
++  }
++  return owner.areTuitionMonthsSettled(profile, months, {
++    name: studentName,
++    transactions: Array.isArray(transactions) ? transactions : undefined,
++    allowTransactionFallback,
++  });
++}
++async function _resolveTuitionSettlementForWrite({ profile, studentName, targetMonths, reason = 'tuition-write' } = {}) {
++  const name = String(studentName || '').trim();
++  const months = _normalizeMonths(targetMonths);
++  const service = _service();
++  const startProfile = profile || _profiles()[name] || {};
++  const startProfileId = _profileIdentity(startProfile, name);
++  if (!name || !months.length || !startProfileId) return { status: 'UNKNOWN', code: 'TUITION_SETTLEMENT_UNVERIFIED' };
++
++  const profileOnly = _canonicalSettlementWithEvidence(startProfile, name, months, [], false);
++  if (Array.isArray(profileOnly?.paidMonths) && profileOnly.paidMonths.length > 0) {
++    return { status: 'PAID', source: 'profile-proven', settlement: profileOnly, profile: startProfile, evidenceReadCount: 0 };
++  }
++
++  const currentRows = typeof service.getRuntimeTransactionRowsForEvidence === 'function' ? service.getRuntimeTransactionRowsForEvidence() : [];
++  const currentSettlement = _canonicalSettlementWithEvidence(startProfile, name, months, currentRows, true);
++  if (Array.isArray(currentSettlement?.paidMonths) && currentSettlement.paidMonths.length > 0) {
++    return { status: 'PAID', source: 'positive-current-evidence', settlement: currentSettlement, profile: startProfile, evidenceReadCount: 0 };
++  }
++
++  const rowsById = new Map();
++  currentRows.forEach((tx, i) => rowsById.set(String(tx?.id || tx?.txId || 'ram:' + i), tx));
++  let evidenceReadCount = 0;
++  for (const month of months) {
++    const current = service.getCurrentMonthEvidenceForWrite?.({ month });
++    let evidence = current;
++    if (!current?.strictCurrentCoverageComplete) {
++      evidence = await service.getCompleteMonthEvidence?.({ month, reason: reason + ':' + month });
++      evidenceReadCount++;
++    }
++    if (!evidence?.serverComplete || evidence?.contextStillCurrent !== true) {
++      return { status: 'UNKNOWN', code: evidence?.code || 'TUITION_SETTLEMENT_UNVERIFIED', evidence, evidenceReadCount };
++    }
++    (evidence.rows || []).forEach((tx, i) => rowsById.set(String(tx?.id || tx?.txId || month + ':' + i), tx));
++  }
++
++  const latestProfile = _profiles()[name] || startProfile;
++  if (_profileIdentity(latestProfile, name) !== startProfileId) return { status: 'UNKNOWN', code: 'FINANCE_EVIDENCE_CONTEXT_STALE', evidenceReadCount };
++  const latestProfileOnly = _canonicalSettlementWithEvidence(latestProfile, name, months, [], false);
++  if (Array.isArray(latestProfileOnly?.paidMonths) && latestProfileOnly.paidMonths.length > 0) {
++    return { status: 'PAID', source: 'profile-proven-after-await', settlement: latestProfileOnly, profile: latestProfile, evidenceReadCount };
++  }
++  const completeRows = Array.from(rowsById.values());
++  const finalSettlement = _canonicalSettlementWithEvidence(latestProfile, name, months, completeRows, true);
++  if (Array.isArray(finalSettlement?.paidMonths) && finalSettlement.paidMonths.length > 0) {
++    return { status: 'PAID', source: 'server-complete-evidence', settlement: finalSettlement, profile: latestProfile, rows: completeRows, evidenceReadCount };
++  }
++  return { status: 'VERIFIED_UNPAID', source: evidenceReadCount ? 'server-complete-evidence' : 'strict-current-coverage', settlement: finalSettlement, profile: latestProfile, rows: completeRows, evidenceReadCount };
+ }
+ function _canonicalPaidUntilAfterPayment(profile, paidMonths) {
+   const owner = typeof window !== 'undefined' ? window.TuitionDebtCanonical : null;
+@@ -310,6 +372,18 @@
+   build: BUILD,
+   phase: PHASE,
+ 
++  resolveTuitionSettlementForWrite: _resolveTuitionSettlementForWrite,
++  async requireTuitionUnpaidForWrite(args = {}) {
++    const d = await _resolveTuitionSettlementForWrite(args);
++    if (d?.status === 'UNKNOWN') { const e = new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.'); e.code = d.code || 'TUITION_SETTLEMENT_UNVERIFIED'; throw e; }
++    if (d?.status === 'VERIFIED_UNPAID') {
++      const p = d.profile || _profiles()[String(args.studentName || '').trim()] || {};
++      const c = typeof window !== 'undefined' ? window.TuitionDebtCanonical : null;
++      d.paidUntil = c?.reconcilePaidUntilFromMonthEvidence?.(p, [...(Array.isArray(p.paidMonths) ? p.paidMonths : []), ..._normalizeMonths(args.targetMonths)], { allowRegression: false }) || p.paidUntil || '';
++    }
++    return d;
++  },
++
+   async collectTuition({ studentName, months, branch, amount, source = 'quickPay' } = {}) {
+     const name = String(studentName || '').trim();
+     const rawMonths = Array.isArray(months) ? months : String(months ?? '').split(',');
+@@ -348,19 +422,24 @@
+     return _run('tuition.collect', identity, async (runContext) => _withProfileMutationLane(profileLaneKey, async () => {
+       const replay = runContext?.getCompletedReplay?.();
+       if (replay) return replay;
+-      const latestProfile = _profiles()[name] || profile;
+-      const settlement = _canonicalSettlement(latestProfile, name, paidMonths);
+-      if (settlement.allSettled) {
++      let latestProfile = _profiles()[name] || profile;
++      const writeDecision = await _resolveTuitionSettlementForWrite({ profile: latestProfile, studentName: name, targetMonths: paidMonths, reason: source || 'quickPay' });
++      if (writeDecision.status === 'PAID') {
++        const settlement = writeDecision.settlement || _canonicalSettlement(latestProfile, name, paidMonths);
+         metrics.duplicatePrevented++;
+         metrics.settledStatePrevented++;
+         _track('tuition.collect', 'duplicatePrevented');
+         return {
+           ok: true, alreadySettled: true, duplicatePrevented: true, primaryWritePerformed: false,
+           txId: null, studentName: name, amount: numericAmount, branch: normalizedBranch,
+-          paidMonths, paidUntil: normalizeYYYYMM(latestProfile.paidUntil) || '', txMonth: lastMonth,
++          paidMonths, paidUntil: normalizeYYYYMM((writeDecision.profile || latestProfile).paidUntil) || '', txMonth: lastMonth,
+           txDate: '', monthLabel: formatMonthCompact(paidMonths.join(',')), settlement
+         };
+       }
++      if (writeDecision.status !== 'VERIFIED_UNPAID') {
++        return { ok: false, blocked: true, primaryWritePerformed: false, reason: writeDecision.code || 'TUITION_SETTLEMENT_UNVERIFIED', writeDecision };
++      }
++      latestProfile = writeDecision.profile || _profiles()[name] || latestProfile;
+       if (!_guard('tuition.quickPay', auditPayload)) return { ok: false, cancelled: true, reason: 'financial-write-guard' };
+       _audit('tuition.quickPay', 'before', auditPayload);
+       const today = getLocalToday();
+--- a/js/modules/finance.js
++++ b/js/modules/finance.js
+@@ -540,7 +539,6 @@
+         finally { window.quickCollectExam.__inFlight=false; }
+     };
+ 
+-    // 8. processCombo — Thu gộp học phí 2 võ sinh cùng gia đình
+ 
+     /** Ghi hai khoản học phí hoặc xuất phiếu báo. */
+     window.processCombo = async (action) => {
+@@ -555,8 +553,9 @@
+         try{
+             const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLanes||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+             const result=await laneOwner.runInProfileTuitionMutationLanes({profiles:intents.map(x=>({studentName:x.studentName,profileId:x.profileId})),reason:'finance.processCombo'},async()=>{
+-                const latest=intents.map(x=>({...x,..._freshTuitionDecision(x.studentName,[x.month])}));
+-                if(latest.some(x=>x.settlement?.paidMonths?.length))return{stale:true};
++                const decisions=await Promise.all(intents.map(x=>laneOwner.requireTuitionUnpaidForWrite({profile:_profiles()[x.studentName],studentName:x.studentName,targetMonths:[x.month],reason:'finance.processCombo'})));
++                if(decisions.some(d=>d.status==='PAID'))return{stale:true};
++                const latest=intents.map((x,i)=>{const profile=decisions[i].profile||_profiles()[x.studentName]||x.profile;return{...x,profile,settlement:decisions[i].settlement,paidUntil:decisions[i].paidUntil};});
+                 const today=getLocalToday(),todayM=today.substring(0,7),transactions=[],profileUpdates=[],audits=[];
+                 for(const row of latest){const branch=String(row.profile.branch||'CS1'),date=row.month<todayM?row.month+'-01':today;transactions.push({data:{branch,type:'Học phí',description:row.studentName,amount:row.amount,date,txMonth:row.month,packageMonths:[row.month],timestamp:Date.now()+row.order},reason:'family-pay-student-'+(row.order+1)});profileUpdates.push({studentName:row.studentName,data:{paidUntil:row.paidUntil,paidMonths:FinanceService._arrayUnion(row.month)}});audits.push({studentId:row.studentName,amount:row.amount,date:today,type:'tuition',month:row.paidUntil,months:[row.month],by:window.currentUserEmail||'admin',timestamp:Date.now()+row.order});}
+                 const atomic=await FinanceService.commitAtomicWritePlan({transactions,profileUpdates});latest.forEach(row=>laneOwner.commitLocalTuitionPaymentState({studentName:row.studentName,paidUntil:row.paidUntil,paidMonths:[row.month],reason:'finance.processCombo'}));return{ok:true,atomic,audits,receiptBranch:String(latest[0]?.profile?.branch||'CS1')};
+@@ -568,9 +567,9 @@
+ 
+     // Phase 4K-6S: openComboModal is registered once by registerFinanceUiGlobals().
+ 
++
+     // ════════════════════════════════════════════════════════════════
+     // 10. saveTx — Form thu tiền chính (transactionForm.onsubmit)
+-
+     /** Form thu tiền: Tuition updates only canonical paid fields. */
+     const _txFormEl = document.getElementById('transactionForm');
+     if (_txFormEl) _txFormEl.onsubmit = async (e) => {
+@@ -595,7 +594,7 @@
+             const monthsToRecord=[];if(isTuition){let[y,m]=txMonth.split('-').map(Number);for(let i=0;i<packageCount;i++){let mm=m+i,yy=y;while(mm>12){mm-=12;yy++;}monthsToRecord.push(`${yy}-${String(mm).padStart(2,'0')}`);}}
+             let txData={branch,type,description:name,date,timestamp:Date.now(),amount:type==='Học phí + Lệ phí thi'?amount+examAmount:amount};
+             if(monthsToRecord.length){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLane||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+-                const result=await laneOwner.runInProfileTuitionMutationLane({studentName:name,reason:'finance.transactionForm'},async()=>{const fresh=_freshTuitionDecision(name,monthsToRecord);if(fresh.settlement?.paidMonths?.length)return{alreadySettled:true,settlement:fresh.settlement};const finalTx={...txData,txMonth,packageMonths:monthsToRecord};if(type==='Học phí + Lệ phí thi')Object.assign(finalTx,{tuitionAmount:amount,examAmount,examTitle});const atomic=await FinanceService.commitAtomicWritePlan({transactions:[{data:finalTx,reason:'transaction-form-tuition'}],profileUpdates:[{studentName:name,data:{paidUntil:fresh.paidUntil,paidMonths:FinanceService._arrayUnion(...monthsToRecord)}}]});laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil:fresh.paidUntil,paidMonths:monthsToRecord,reason:'finance.transactionForm'});return{ok:true,atomic,txData:finalTx,paidUntil:fresh.paidUntil};});
++                const result=await laneOwner.runInProfileTuitionMutationLane({studentName:name,reason:'finance.transactionForm'},async()=>{const tuitionDecision=await laneOwner.requireTuitionUnpaidForWrite({profile:_profiles()[name],studentName:name,targetMonths:monthsToRecord,reason:'finance.transactionForm'});if(tuitionDecision.status==='PAID')return{alreadySettled:true,settlement:tuitionDecision.settlement};const freshProfile=tuitionDecision.profile||_profiles()[name];if(type==='Học phí + Lệ phí thi'){const examDecision=await FinanceService.requireExamUnpaidForWrite({profile:freshProfile,studentName:name,month:txMonth,reason:'finance.transactionForm.mixedExam'});if(examDecision.status==='PAID'){const e=new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng chọn giao dịch chỉ Học phí.');e.code='exam/already-paid';throw e;}}const paidUntil=tuitionDecision.paidUntil;const finalTx={...txData,txMonth,packageMonths:monthsToRecord};if(type==='Học phí + Lệ phí thi')Object.assign(finalTx,{tuitionAmount:amount,examAmount,examTitle});const atomic=await FinanceService.commitAtomicWritePlan({transactions:[{data:finalTx,reason:'transaction-form-tuition'}],profileUpdates:[{studentName:name,data:{paidUntil,paidMonths:FinanceService._arrayUnion(...monthsToRecord)}}]});laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil,paidMonths:monthsToRecord,reason:'finance.transactionForm'});return{ok:true,atomic,txData:finalTx,paidUntil};});
+                 if(result?.alreadySettled){window.showToast('⚠️ Học phí tháng này đã được ghi nhận. Không tạo thêm khoản thu.');return false;}txData=result.txData;_detachFeeAudit({studentId:name,amount:txData.amount,date:getLocalToday(),type:'tuition',month:result.paidUntil,months:monthsToRecord,by:window.currentUserEmail||'admin',timestamp:Date.now()});
+             }else await FinanceService.addTransaction(txData);
+             e.target.reset();document.getElementById('date').value=getLocalToday();if(pkgEl)pkgEl.value='1';const disc=document.getElementById('tx_discount');if(disc)disc.checked=false;const pct=document.getElementById('tx_discount_pct');if(pct)pct.value='10';const sv=document.getElementById('tx_discount_saved');if(sv)sv.style.display='none';const ex=document.getElementById('tx_exam_amountActual');if(ex)ex.value='';window.toggleTxFormType?.();window.showToast('✅ Đã lưu khoản thu!');return true;
+--- a/public/js/modules/finance.js
++++ b/public/js/modules/finance.js
+@@ -540,7 +539,6 @@
+         finally { window.quickCollectExam.__inFlight=false; }
+     };
+ 
+-    // 8. processCombo — Thu gộp học phí 2 võ sinh cùng gia đình
+ 
+     /** Ghi hai khoản học phí hoặc xuất phiếu báo. */
+     window.processCombo = async (action) => {
+@@ -555,8 +553,9 @@
+         try{
+             const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLanes||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+             const result=await laneOwner.runInProfileTuitionMutationLanes({profiles:intents.map(x=>({studentName:x.studentName,profileId:x.profileId})),reason:'finance.processCombo'},async()=>{
+-                const latest=intents.map(x=>({...x,..._freshTuitionDecision(x.studentName,[x.month])}));
+-                if(latest.some(x=>x.settlement?.paidMonths?.length))return{stale:true};
++                const decisions=await Promise.all(intents.map(x=>laneOwner.requireTuitionUnpaidForWrite({profile:_profiles()[x.studentName],studentName:x.studentName,targetMonths:[x.month],reason:'finance.processCombo'})));
++                if(decisions.some(d=>d.status==='PAID'))return{stale:true};
++                const latest=intents.map((x,i)=>{const profile=decisions[i].profile||_profiles()[x.studentName]||x.profile;return{...x,profile,settlement:decisions[i].settlement,paidUntil:decisions[i].paidUntil};});
+                 const today=getLocalToday(),todayM=today.substring(0,7),transactions=[],profileUpdates=[],audits=[];
+                 for(const row of latest){const branch=String(row.profile.branch||'CS1'),date=row.month<todayM?row.month+'-01':today;transactions.push({data:{branch,type:'Học phí',description:row.studentName,amount:row.amount,date,txMonth:row.month,packageMonths:[row.month],timestamp:Date.now()+row.order},reason:'family-pay-student-'+(row.order+1)});profileUpdates.push({studentName:row.studentName,data:{paidUntil:row.paidUntil,paidMonths:FinanceService._arrayUnion(row.month)}});audits.push({studentId:row.studentName,amount:row.amount,date:today,type:'tuition',month:row.paidUntil,months:[row.month],by:window.currentUserEmail||'admin',timestamp:Date.now()+row.order});}
+                 const atomic=await FinanceService.commitAtomicWritePlan({transactions,profileUpdates});latest.forEach(row=>laneOwner.commitLocalTuitionPaymentState({studentName:row.studentName,paidUntil:row.paidUntil,paidMonths:[row.month],reason:'finance.processCombo'}));return{ok:true,atomic,audits,receiptBranch:String(latest[0]?.profile?.branch||'CS1')};
+@@ -568,9 +567,9 @@
+ 
+     // Phase 4K-6S: openComboModal is registered once by registerFinanceUiGlobals().
+ 
++
+     // ════════════════════════════════════════════════════════════════
+     // 10. saveTx — Form thu tiền chính (transactionForm.onsubmit)
+-
+     /** Form thu tiền: Tuition updates only canonical paid fields. */
+     const _txFormEl = document.getElementById('transactionForm');
+     if (_txFormEl) _txFormEl.onsubmit = async (e) => {
+@@ -595,7 +594,7 @@
+             const monthsToRecord=[];if(isTuition){let[y,m]=txMonth.split('-').map(Number);for(let i=0;i<packageCount;i++){let mm=m+i,yy=y;while(mm>12){mm-=12;yy++;}monthsToRecord.push(`${yy}-${String(mm).padStart(2,'0')}`);}}
+             let txData={branch,type,description:name,date,timestamp:Date.now(),amount:type==='Học phí + Lệ phí thi'?amount+examAmount:amount};
+             if(monthsToRecord.length){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLane||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+-                const result=await laneOwner.runInProfileTuitionMutationLane({studentName:name,reason:'finance.transactionForm'},async()=>{const fresh=_freshTuitionDecision(name,monthsToRecord);if(fresh.settlement?.paidMonths?.length)return{alreadySettled:true,settlement:fresh.settlement};const finalTx={...txData,txMonth,packageMonths:monthsToRecord};if(type==='Học phí + Lệ phí thi')Object.assign(finalTx,{tuitionAmount:amount,examAmount,examTitle});const atomic=await FinanceService.commitAtomicWritePlan({transactions:[{data:finalTx,reason:'transaction-form-tuition'}],profileUpdates:[{studentName:name,data:{paidUntil:fresh.paidUntil,paidMonths:FinanceService._arrayUnion(...monthsToRecord)}}]});laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil:fresh.paidUntil,paidMonths:monthsToRecord,reason:'finance.transactionForm'});return{ok:true,atomic,txData:finalTx,paidUntil:fresh.paidUntil};});
++                const result=await laneOwner.runInProfileTuitionMutationLane({studentName:name,reason:'finance.transactionForm'},async()=>{const tuitionDecision=await laneOwner.requireTuitionUnpaidForWrite({profile:_profiles()[name],studentName:name,targetMonths:monthsToRecord,reason:'finance.transactionForm'});if(tuitionDecision.status==='PAID')return{alreadySettled:true,settlement:tuitionDecision.settlement};const freshProfile=tuitionDecision.profile||_profiles()[name];if(type==='Học phí + Lệ phí thi'){const examDecision=await FinanceService.requireExamUnpaidForWrite({profile:freshProfile,studentName:name,month:txMonth,reason:'finance.transactionForm.mixedExam'});if(examDecision.status==='PAID'){const e=new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng chọn giao dịch chỉ Học phí.');e.code='exam/already-paid';throw e;}}const paidUntil=tuitionDecision.paidUntil;const finalTx={...txData,txMonth,packageMonths:monthsToRecord};if(type==='Học phí + Lệ phí thi')Object.assign(finalTx,{tuitionAmount:amount,examAmount,examTitle});const atomic=await FinanceService.commitAtomicWritePlan({transactions:[{data:finalTx,reason:'transaction-form-tuition'}],profileUpdates:[{studentName:name,data:{paidUntil,paidMonths:FinanceService._arrayUnion(...monthsToRecord)}}]});laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil,paidMonths:monthsToRecord,reason:'finance.transactionForm'});return{ok:true,atomic,txData:finalTx,paidUntil};});
+                 if(result?.alreadySettled){window.showToast('⚠️ Học phí tháng này đã được ghi nhận. Không tạo thêm khoản thu.');return false;}txData=result.txData;_detachFeeAudit({studentId:name,amount:txData.amount,date:getLocalToday(),type:'tuition',month:result.paidUntil,months:monthsToRecord,by:window.currentUserEmail||'admin',timestamp:Date.now()});
+             }else await FinanceService.addTransaction(txData);
+             e.target.reset();document.getElementById('date').value=getLocalToday();if(pkgEl)pkgEl.value='1';const disc=document.getElementById('tx_discount');if(disc)disc.checked=false;const pct=document.getElementById('tx_discount_pct');if(pct)pct.value='10';const sv=document.getElementById('tx_discount_saved');if(sv)sv.style.display='none';const ex=document.getElementById('tx_exam_amountActual');if(ex)ex.value='';window.toggleTxFormType?.();window.showToast('✅ Đã lưu khoản thu!');return true;
+--- a/app.js
++++ b/app.js
+@@ -9607,12 +9607,14 @@
+                     const latestProfiles=(window.__store&&window.__store.profiles)||window.allProfiles||allProfiles||{}, latestProfile=latestProfiles[name]||allProfiles[name]||profile, latestMonths=_resolveMiTuitionMonths(latestProfile); profile=latestProfile;
+                     if(latestMonths.length!==packageMonths.length||!latestMonths.every((m,i)=>m===packageMonths[i])){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-tuition-package';throw e;}
+                     const canonical=window.TuitionDebtCanonical; if(!canonical?.areTuitionMonthsSettled||!canonical?.reconcilePaidUntilFromMonthEvidence)throw new Error('Tuition canonical settlement helper chưa sẵn sàng.');
+-                    const settlement=canonical.areTuitionMonthsSettled(latestProfile,latestMonths,{name}), settledCount=Array.isArray(settlement?.states)?settlement.states.filter(r=>r?.settled).length:0;
+-                    if(settlement?.allSettled){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
+-                    if(settledCount>0){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/partial-settlement-changed';throw e;}
+-                    packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(latestProfile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
+-                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(latestProfile,(Array.isArray(latestProfile.paidMonths)?latestProfile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
++                    const evidenceOwner=window.TuitionCommandBoundary;if(!evidenceOwner?.resolveTuitionSettlementForWrite)throw new Error('Tuition write-evidence owner chưa sẵn sàng.');
++                    const tuitionDecision=await evidenceOwner.resolveTuitionSettlementForWrite({profile:latestProfile,studentName:name,targetMonths:latestMonths,reason:'processMultiItem.tuition'});
++                    if(tuitionDecision?.status==='UNKNOWN'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=tuitionDecision.code||'TUITION_SETTLEMENT_UNVERIFIED';throw e;}
++                    if(tuitionDecision?.status==='PAID'){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Học phí đã được ghi nhận. Vui lòng tách khoản thu còn lại khỏi giao dịch này.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
++                    profile=tuitionDecision.profile||latestProfile;packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(profile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
++                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(profile,(Array.isArray(profile.paidMonths)?profile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
+                 }
++                if(hasExam&&examFee>0){const examOwner=window.FinanceService;if(!examOwner?.resolveExamPaymentForWrite)throw new Error('Exam write-evidence owner chưa sẵn sàng.');const examDecision=await examOwner.resolveExamPaymentForWrite({profile,studentName:name,month:refMonth,reason:'processMultiItem.exam'});if(examDecision?.status==='PAID'){const e=new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng bỏ khoản Lệ phí thi khỏi giao dịch.');e.code='exam/already-paid';throw e;}if(examDecision?.status!=='VERIFIED_UNPAID'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=examDecision?.code||'EXAM_EVIDENCE_UNVERIFIED';throw e;}}
+ 
+             // H8R2 C3 — PREPARE → VALIDATE → ONE ATOMIC COMMIT.
+             // This remains inside the existing multi-item owner and reuses the
+--- a/public/app.js
++++ b/public/app.js
+@@ -9607,12 +9607,14 @@
+                     const latestProfiles=(window.__store&&window.__store.profiles)||window.allProfiles||allProfiles||{}, latestProfile=latestProfiles[name]||allProfiles[name]||profile, latestMonths=_resolveMiTuitionMonths(latestProfile); profile=latestProfile;
+                     if(latestMonths.length!==packageMonths.length||!latestMonths.every((m,i)=>m===packageMonths[i])){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-tuition-package';throw e;}
+                     const canonical=window.TuitionDebtCanonical; if(!canonical?.areTuitionMonthsSettled||!canonical?.reconcilePaidUntilFromMonthEvidence)throw new Error('Tuition canonical settlement helper chưa sẵn sàng.');
+-                    const settlement=canonical.areTuitionMonthsSettled(latestProfile,latestMonths,{name}), settledCount=Array.isArray(settlement?.states)?settlement.states.filter(r=>r?.settled).length:0;
+-                    if(settlement?.allSettled){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
+-                    if(settledCount>0){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/partial-settlement-changed';throw e;}
+-                    packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(latestProfile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
+-                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(latestProfile,(Array.isArray(latestProfile.paidMonths)?latestProfile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
++                    const evidenceOwner=window.TuitionCommandBoundary;if(!evidenceOwner?.resolveTuitionSettlementForWrite)throw new Error('Tuition write-evidence owner chưa sẵn sàng.');
++                    const tuitionDecision=await evidenceOwner.resolveTuitionSettlementForWrite({profile:latestProfile,studentName:name,targetMonths:latestMonths,reason:'processMultiItem.tuition'});
++                    if(tuitionDecision?.status==='UNKNOWN'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=tuitionDecision.code||'TUITION_SETTLEMENT_UNVERIFIED';throw e;}
++                    if(tuitionDecision?.status==='PAID'){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Học phí đã được ghi nhận. Vui lòng tách khoản thu còn lại khỏi giao dịch này.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
++                    profile=tuitionDecision.profile||latestProfile;packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(profile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
++                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(profile,(Array.isArray(profile.paidMonths)?profile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
+                 }
++                if(hasExam&&examFee>0){const examOwner=window.FinanceService;if(!examOwner?.resolveExamPaymentForWrite)throw new Error('Exam write-evidence owner chưa sẵn sàng.');const examDecision=await examOwner.resolveExamPaymentForWrite({profile,studentName:name,month:refMonth,reason:'processMultiItem.exam'});if(examDecision?.status==='PAID'){const e=new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng bỏ khoản Lệ phí thi khỏi giao dịch.');e.code='exam/already-paid';throw e;}if(examDecision?.status!=='VERIFIED_UNPAID'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=examDecision?.code||'EXAM_EVIDENCE_UNVERIFIED';throw e;}}
+ 
+             // H8R2 C3 — PREPARE → VALIDATE → ONE ATOMIC COMMIT.
+             // This remains inside the existing multi-item owner and reuses the

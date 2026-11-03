@@ -1,0 +1,116 @@
+{
+  "baseline": [
+    {
+      "gate": "npm run check",
+      "exit": 0,
+      "result": "PASS",
+      "log": "logs/baseline_check.log"
+    },
+    {
+      "gate": "npm run check:all",
+      "exit": 0,
+      "result": "PASS",
+      "log": "logs/baseline_check_all.log"
+    }
+  ],
+  "final": [
+    {
+      "gate": "check:finance-students-bstats-ownership-r1",
+      "result": "PASS 40/40",
+      "log": "logs/bstats_gate_matrix_expanded.log"
+    },
+    {
+      "gate": "npm run check",
+      "exit": 0,
+      "result": "PASS",
+      "log": "logs/final_check_FINAL.log"
+    },
+    {
+      "gate": "npm run check:all",
+      "exit": 0,
+      "result": "PASS",
+      "log": "logs/final_check_all_FINAL.log"
+    },
+    {
+      "gate": "R2R5.1 Debt sync",
+      "result": "PASS 34/34",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "R2R5.2 coalescing coverage",
+      "result": "PASS 14/14",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "R2R5.2 correctness",
+      "result": "PASS 25/25",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "R2R5.2 epoch single-owner",
+      "result": "PASS 10/10",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "R2R5.2 dashboard true-zero",
+      "result": "PASS 9/9",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "R1.2 canonical policy",
+      "result": "PASS 26/26",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "Inventory ledger",
+      "result": "PASS 33/33",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "Exam/Finance separation",
+      "result": "PASS 41/41",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "QR actual handlers",
+      "result": "PASS 109/109",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "QR network",
+      "result": "PASS 16/16",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "Attendance R1",
+      "result": "PASS 45/45",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "Attendance R1.1",
+      "result": "PASS 31/31",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "Coach attendance read boundary",
+      "result": "PASS 30/30",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "Coach ACL/security branch boundary",
+      "result": "PASS 35/35",
+      "log": "logs/explicit_regression_matrix.log"
+    },
+    {
+      "gate": "Coach runtime repair suites",
+      "result": "PASS (all reported sub-suites)",
+      "log": "logs/explicit_regression_matrix.log"
+    }
+  ],
+  "noExpectedOrBusinessMockChangedToHideRegression": true,
+  "qaHarnessAdjustments": [
+    "R2R5 true-zero harness injected the newly required pure composer dependency",
+    "Attendance R1.1 parent-import assertion updated to the accepted bStats parent lineage while all nested Attendance lineage assertions remain unchanged",
+    "source-integrity verifier extended backward-compatibly for layered cache-lineage scopes"
+  ]
+}

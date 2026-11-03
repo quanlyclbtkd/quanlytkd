@@ -1,0 +1,220 @@
+{
+  "changed": [
+    {
+      "file": "index.html",
+      "baselineSHA256": "616f3b743854258d51b6263f164580667bdbafb95c37ed04e2bcea815d30aa59",
+      "finalSHA256": "4d1a1133a230295125fc6c3f1106e7260c2acde7362b4eb3fe2e44119d0dec41",
+      "kind": "changed",
+      "scope": "cache-lineage-runtime"
+    },
+    {
+      "file": "js/main.js",
+      "baselineSHA256": "fa6e456e8187ff3dd73cd5b37af067a5cb9ee89d34ac0378956ac469221da802",
+      "finalSHA256": "b91835b3ec163e3195f83cf3ac2dce7725602d28e2ca87bdc4f121cc3a0c0207",
+      "kind": "changed",
+      "scope": "cache-lineage-runtime"
+    },
+    {
+      "file": "js/modules/dashboard.js",
+      "baselineSHA256": "704552ead6ff421d384c0d444f6f3bbfe29111c90da0fcdd48222e32ad4ba99f",
+      "finalSHA256": "999320d13bd4867097bd2bbca38c5481cfb5a8701cb1aacbad8853f3b96457bf",
+      "kind": "changed",
+      "scope": "business-runtime"
+    },
+    {
+      "file": "js/ui/render.js",
+      "baselineSHA256": "71c25d3a5de067831cea37a743cf82872f4cd442b066c3f2c76ca813dcd3e558",
+      "finalSHA256": "b2cd0efafaaf4bad19c487b4f3026e57adf10c80a19de7fae7aabc9f0da2f208",
+      "kind": "changed",
+      "scope": "business-runtime"
+    },
+    {
+      "file": "js/ui/render/computation/dashboardRenderer.js",
+      "baselineSHA256": "a9f6c7dcadeb03c008515801c31ce49416c2bef6b0d2e7a431024e8b78d9848c",
+      "finalSHA256": "beccf91e83bce18b7a84a2e1f2e512af616a31d1ef6511814afb50c06ecfec9b",
+      "kind": "changed",
+      "scope": "business-runtime"
+    },
+    {
+      "file": "js/ui/render/computation/studentsRenderer.js",
+      "baselineSHA256": "186cfdcb58e6e4add095642d7079706c92188eb3e6bb2ad022c81508a703f34c",
+      "finalSHA256": "43c26234d2eca584b02b5c2e51a3d651a526e4d4bada81316d8ca773c22b58db",
+      "kind": "changed",
+      "scope": "business-runtime"
+    },
+    {
+      "file": "js/ui/render/listComputationRefresh.js",
+      "baselineSHA256": "373c98a8d98f88c3e8028b34c9b94c46ba8b3f5f16acca41914d3c03d21d8466",
+      "finalSHA256": "fb0b6d7595a87d31a68aa9dbea90bdc29e160fd96532915df1057b5f7840061e",
+      "kind": "changed",
+      "scope": "business-runtime"
+    },
+    {
+      "file": "js/ui/render/renderDashboard.js",
+      "baselineSHA256": "722d03135dedd70113a85c11ecf3b9538ca78724e4307225f8f955d44637da6b",
+      "finalSHA256": "1f45da7e769e46f110e179a7a1686f0f561c78429f1900ed409e215827213da3",
+      "kind": "changed",
+      "scope": "cache-lineage-runtime"
+    },
+    {
+      "file": "js/ui/render/renderInvalidation.js",
+      "baselineSHA256": "3e3741bbd70256302ef1258a43a259949f79c80d1286c80d24d8d7b9d725b888",
+      "finalSHA256": "4592fbe5a799441547de3ee17acbcb40a2db76551e0c877e84cdad660d4032e2",
+      "kind": "changed",
+      "scope": "cache-lineage-runtime"
+    },
+    {
+      "file": "js/ui/render/renderStudents.js",
+      "baselineSHA256": "bf9376eca6fe5a1f6e0d6909236301df9efd654e162b1c00e59e00043051e702",
+      "finalSHA256": "6c53dfb122cbbce1ebf71ae1fdb1efb383b013f4795b2fef1ed976a2436dd063",
+      "kind": "changed",
+      "scope": "cache-lineage-runtime"
+    },
+    {
+      "file": "package.json",
+      "baselineSHA256": "8aa37bfcf67f2cbe68481573ab8a8b32e9ba68cb8d72a58592ac4b7dfb508ef4",
+      "finalSHA256": "1094eaf79bbea78424bc8f47eec67705e1dcbd7b42eb2987ac2e6d5fe0c733b1",
+      "kind": "changed",
+      "scope": "qa-tooling"
+    },
+    {
+      "file": "public/index.html",
+      "baselineSHA256": "616f3b743854258d51b6263f164580667bdbafb95c37ed04e2bcea815d30aa59",
+      "finalSHA256": "4d1a1133a230295125fc6c3f1106e7260c2acde7362b4eb3fe2e44119d0dec41",
+      "kind": "changed",
+      "scope": "public-mirror-cache-lineage-runtime"
+    },
+    {
+      "file": "public/js/main.js",
+      "baselineSHA256": "fa6e456e8187ff3dd73cd5b37af067a5cb9ee89d34ac0378956ac469221da802",
+      "finalSHA256": "b91835b3ec163e3195f83cf3ac2dce7725602d28e2ca87bdc4f121cc3a0c0207",
+      "kind": "changed",
+      "scope": "public-mirror-cache-lineage-runtime"
+    },
+    {
+      "file": "public/js/modules/dashboard.js",
+      "baselineSHA256": "704552ead6ff421d384c0d444f6f3bbfe29111c90da0fcdd48222e32ad4ba99f",
+      "finalSHA256": "999320d13bd4867097bd2bbca38c5481cfb5a8701cb1aacbad8853f3b96457bf",
+      "kind": "changed",
+      "scope": "public-mirror-business-runtime"
+    },
+    {
+      "file": "public/js/ui/render.js",
+      "baselineSHA256": "71c25d3a5de067831cea37a743cf82872f4cd442b066c3f2c76ca813dcd3e558",
+      "finalSHA256": "b2cd0efafaaf4bad19c487b4f3026e57adf10c80a19de7fae7aabc9f0da2f208",
+      "kind": "changed",
+      "scope": "public-mirror-business-runtime"
+    },
+    {
+      "file": "public/js/ui/render/computation/dashboardRenderer.js",
+      "baselineSHA256": "a9f6c7dcadeb03c008515801c31ce49416c2bef6b0d2e7a431024e8b78d9848c",
+      "finalSHA256": "beccf91e83bce18b7a84a2e1f2e512af616a31d1ef6511814afb50c06ecfec9b",
+      "kind": "changed",
+      "scope": "public-mirror-business-runtime"
+    },
+    {
+      "file": "public/js/ui/render/computation/studentsRenderer.js",
+      "baselineSHA256": "186cfdcb58e6e4add095642d7079706c92188eb3e6bb2ad022c81508a703f34c",
+      "finalSHA256": "43c26234d2eca584b02b5c2e51a3d651a526e4d4bada81316d8ca773c22b58db",
+      "kind": "changed",
+      "scope": "public-mirror-business-runtime"
+    },
+    {
+      "file": "public/js/ui/render/listComputationRefresh.js",
+      "baselineSHA256": "373c98a8d98f88c3e8028b34c9b94c46ba8b3f5f16acca41914d3c03d21d8466",
+      "finalSHA256": "fb0b6d7595a87d31a68aa9dbea90bdc29e160fd96532915df1057b5f7840061e",
+      "kind": "changed",
+      "scope": "public-mirror-business-runtime"
+    },
+    {
+      "file": "public/js/ui/render/renderDashboard.js",
+      "baselineSHA256": "722d03135dedd70113a85c11ecf3b9538ca78724e4307225f8f955d44637da6b",
+      "finalSHA256": "1f45da7e769e46f110e179a7a1686f0f561c78429f1900ed409e215827213da3",
+      "kind": "changed",
+      "scope": "public-mirror-cache-lineage-runtime"
+    },
+    {
+      "file": "public/js/ui/render/renderInvalidation.js",
+      "baselineSHA256": "3e3741bbd70256302ef1258a43a259949f79c80d1286c80d24d8d7b9d725b888",
+      "finalSHA256": "4592fbe5a799441547de3ee17acbcb40a2db76551e0c877e84cdad660d4032e2",
+      "kind": "changed",
+      "scope": "public-mirror-cache-lineage-runtime"
+    },
+    {
+      "file": "public/js/ui/render/renderStudents.js",
+      "baselineSHA256": "bf9376eca6fe5a1f6e0d6909236301df9efd654e162b1c00e59e00043051e702",
+      "finalSHA256": "6c53dfb122cbbce1ebf71ae1fdb1efb383b013f4795b2fef1ed976a2436dd063",
+      "kind": "changed",
+      "scope": "public-mirror-cache-lineage-runtime"
+    },
+    {
+      "file": "tools/check-attendance-history-r1-1.mjs",
+      "baselineSHA256": "662b4d8484229e1121ecb35d6c9a728783b4af26a114f2aee11218eeabe56ab6",
+      "finalSHA256": "85b5b75d83b59da9bdce3f203aef3b08ebdc87eed4a8cef9b6e5541aedf2dc08",
+      "kind": "changed",
+      "scope": "qa-tooling"
+    },
+    {
+      "file": "tools/check-fin-canon-r1-2-policy.mjs",
+      "baselineSHA256": "24af3b16a58397f73981cf6bf3301f0aaf940a583ac04af75d6e7687bcdfb6f0",
+      "finalSHA256": "0a5eba36b9d351667da04eb0ee501702a94ab7c5a2bf0ba907cc0e602d701192",
+      "kind": "changed",
+      "scope": "qa-tooling"
+    },
+    {
+      "file": "tools/check-finance-students-bstats-ownership-r1.mjs",
+      "baselineSHA256": null,
+      "finalSHA256": "358c068ee1d3890bc137d7b93cb6f4698463df78fe091b36379eddbd499a15bc",
+      "kind": "added",
+      "scope": "qa-tooling"
+    },
+    {
+      "file": "tools/check-r2r5-2-true-zero-matrix.mjs",
+      "baselineSHA256": "fd9f99de1e6f3f98cd5b52b8641a55cbedc694b5f580b6acf3cfae06d5e7373c",
+      "finalSHA256": "c24d2b6f205f5bae3f05c9c29e7a0ec79a5c54498cfb9ce5a5486cc3a788e9dc",
+      "kind": "changed",
+      "scope": "qa-tooling"
+    },
+    {
+      "file": "tools/fixtures/bstats-r1-1-baseline-red.json",
+      "baselineSHA256": null,
+      "finalSHA256": "b23079a63546ff454338f94e308397ffb3f7407d18c00df376b52cd1a98bdea7",
+      "kind": "added",
+      "scope": "qa-tooling"
+    },
+    {
+      "file": "tools/v11r2/manifests/V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1.json",
+      "baselineSHA256": null,
+      "finalSHA256": "49df00f347c979c19eda4e0e1e7674103d080e3e66b872b8be790b9a679ca82c",
+      "kind": "added",
+      "scope": "qa-tooling"
+    },
+    {
+      "file": "tools/v11r2/runtime-profile.mjs",
+      "baselineSHA256": "ded73208b65107648b7076a3fc05dbd097d0abb4a010e1b5d3a1db8df066cc50",
+      "finalSHA256": "d67fd0d8236bdfa25c14de5d0446b196676024675c6fe159b508b5cc0ad5ecfd",
+      "kind": "changed",
+      "scope": "qa-tooling"
+    },
+    {
+      "file": "tools/v11r2/source-identity.mjs",
+      "baselineSHA256": "a36ec03ccf02721effb574633753abc009dfb78ecb0a7efd801c283c61f2d0f1",
+      "finalSHA256": "2221f323025e16672c85e87a0c994e02ea732a1d2f283b102773050d4638c75b",
+      "kind": "changed",
+      "scope": "qa-tooling"
+    }
+  ],
+  "protectedUnchanged": [
+    "app.js",
+    "js/ui/render/computation/financeRenderer.js",
+    "js/core/transactionCanonicalBoundary.js",
+    "js/core/debtProfileReadBoundary.js",
+    "firestore.rules",
+    "firestore.indexes.json",
+    "Attendance business runtime",
+    "Inventory business runtime",
+    "Exam business runtime",
+    "QR business runtime"
+  ],
+  "unexpectedScopeExpansion": false
+}

@@ -140,11 +140,16 @@ check(
     'Thêm TransactionDeleteIntegrity.analyzeTransactionDeleteImpact vào deleteTx trong finance.js'
 );
 
-// ── 12. deleteTx gọi reconcileStudentTuitionAfterDeletedTransaction ───────
+// ── 12. R1.1: normal delete must NOT use legacy global reconcile authority ─
 check(
-    'finance.js deleteTx gọi reconcileStudentTuitionAfterDeletedTransaction',
-    finJs.includes('reconcileStudentTuitionAfterDeletedTransaction'),
-    'Thêm reconcileStudentTuitionAfterDeletedTransaction vào deleteTx trong finance.js'
+    'finance.js deleteTx không dùng legacy reconcileStudentTuitionAfterDeletedTransaction',
+    !finJs.includes('reconcileStudentTuitionAfterDeletedTransaction'),
+    'R1.1 yêu cầu normal-runtime callers của legacy reconcile bằng 0'
+);
+check(
+    'finance.js deleteTx đi qua TuitionCommandBoundary.deleteTuitionTransaction',
+    finJs.includes('deleteTuitionTransaction'),
+    'Giữ TuitionCommandBoundary là normal-runtime tuition delete owner'
 );
 
 // ── 13. deleteTx chặn unsafe bundle inventory delete ─────────────────────

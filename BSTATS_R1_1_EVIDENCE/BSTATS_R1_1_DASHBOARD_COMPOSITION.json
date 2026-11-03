@@ -1,0 +1,27 @@
+{
+  "owner": "js/ui/render/computation/dashboardRenderer.js::composeDashboardBranchStats",
+  "pure": true,
+  "firestore": false,
+  "dom": false,
+  "timer": false,
+  "windowWrites": false,
+  "complexity": "O(branchCount)",
+  "financeContribution": "all existing branch properties copied recursively, no whitelist",
+  "studentsContribution": [
+    "active",
+    "debt",
+    "debtPending",
+    "debtUpdating"
+  ],
+  "notReadyDebt": null,
+  "transientDebt": "last verified value + debtUpdating=true",
+  "inputMutation": {
+    "finance": false,
+    "students": false
+  },
+  "outputNewIdentity": true,
+  "integration": [
+    "js/ui/render.js",
+    "js/ui/render/listComputationRefresh.js"
+  ]
+}

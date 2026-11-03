@@ -1,0 +1,29 @@
+{
+  "primary_scope": "coverage-induced write correctness",
+  "secondary_classification": "CROSS_DEVICE_FINANCIAL_UNIQUENESS_OPEN",
+  "tests": [
+    {
+      "scenario": "Client A + Client B collect same tuition month",
+      "result": "OPEN",
+      "both_can_decide": "VERIFIED_UNPAID",
+      "possible_writes": 2
+    },
+    {
+      "scenario": "Client A + Client B collect same exam fee",
+      "result": "OPEN",
+      "both_can_decide": "VERIFIED_UNPAID",
+      "possible_writes": 2
+    },
+    {
+      "scenario": "Client A deletes payment while Client B creates replacement",
+      "result": "OPEN",
+      "failure_mode": "A can verify absence before B replacement commit then regress profile after B writes"
+    }
+  ],
+  "evidence": [
+    "module-local single-flight is same-runtime only",
+    "no new unique marker/lock document",
+    "no relevant cross-device transaction serialization added"
+  ],
+  "policy": "Reported, not patched because closure would require a separate uniqueness/schema/transaction design phase."
+}

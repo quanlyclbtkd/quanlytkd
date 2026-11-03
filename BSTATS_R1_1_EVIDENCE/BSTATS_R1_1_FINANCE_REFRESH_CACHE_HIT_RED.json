@@ -1,0 +1,17 @@
+{
+  "baselineZipSha256": "968fa0cdc71747d53ee894834920b89359e5ed6543d8c80e25e790a3a20b39df",
+  "classification": "BSTATS_FINANCE_REFRESH_STUDENTS_CACHE_HIT_ZERO_RED",
+  "observed": {
+    "first": {
+      "a": 1,
+      "d": 1
+    },
+    "afterFinanceRefreshCacheHit": {
+      "a": 0,
+      "d": 0
+    },
+    "red": true
+  },
+  "closedByFinalGate": true,
+  "finalGate": "check:finance-students-bstats-ownership-r1"
+}

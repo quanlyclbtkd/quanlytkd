@@ -1,0 +1,160 @@
+{
+  "newImmutableToken": "a9r18-bstats-r1-1-20261031",
+  "changedEdges": [
+    {
+      "edge": "index.html->js/main.js",
+      "from": "index.html",
+      "to": "js/main.js",
+      "beforeUrl": "./js/main.js?v=att-history-r1-1-20261031",
+      "afterUrl": "./js/main.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "att-history-r1-1-20261031",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/main.js->js/ui/render.js",
+      "from": "js/main.js",
+      "to": "js/ui/render.js",
+      "beforeUrl": "./ui/render.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029",
+      "afterUrl": "./ui/render.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/main.js->js/ui/render/renderStudents.js",
+      "from": "js/main.js",
+      "to": "js/ui/render/renderStudents.js",
+      "beforeUrl": "./ui/render/renderStudents.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterUrl": "./ui/render/renderStudents.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/main.js->js/ui/render/renderDashboard.js",
+      "from": "js/main.js",
+      "to": "js/ui/render/renderDashboard.js",
+      "beforeUrl": "./ui/render/renderDashboard.js",
+      "afterUrl": "./ui/render/renderDashboard.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": null,
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/main.js->js/ui/render/renderInvalidation.js",
+      "from": "js/main.js",
+      "to": "js/ui/render/renderInvalidation.js",
+      "beforeUrl": "./ui/render/renderInvalidation.js?v=qr-v11r6-a9r18-usability-perf-r2-rcache-20261028",
+      "afterUrl": "./ui/render/renderInvalidation.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r18-usability-perf-r2-rcache-20261028",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/main.js->js/modules/dashboard.js",
+      "from": "js/main.js",
+      "to": "js/modules/dashboard.js",
+      "beforeUrl": "./modules/dashboard.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029",
+      "afterUrl": "./modules/dashboard.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render.js->js/modules/dashboard.js",
+      "from": "js/ui/render.js",
+      "to": "js/modules/dashboard.js",
+      "beforeUrl": "../modules/dashboard.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029",
+      "afterUrl": "../modules/dashboard.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render.js->js/ui/render/computation/studentsRenderer.js",
+      "from": "js/ui/render.js",
+      "to": "js/ui/render/computation/studentsRenderer.js",
+      "beforeUrl": "./render/computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterUrl": "./render/computation/studentsRenderer.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render.js->js/ui/render/computation/dashboardRenderer.js",
+      "from": "js/ui/render.js",
+      "to": "js/ui/render/computation/dashboardRenderer.js",
+      "beforeUrl": "./render/computation/dashboardRenderer.js",
+      "afterUrl": "./render/computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": null,
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render/renderStudents.js->js/ui/render/computation/studentsRenderer.js",
+      "from": "js/ui/render/renderStudents.js",
+      "to": "js/ui/render/computation/studentsRenderer.js",
+      "beforeUrl": "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterUrl": "./computation/studentsRenderer.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render/renderDashboard.js->js/ui/render/computation/dashboardRenderer.js",
+      "from": "js/ui/render/renderDashboard.js",
+      "to": "js/ui/render/computation/dashboardRenderer.js",
+      "beforeUrl": "./computation/dashboardRenderer.js",
+      "afterUrl": "./computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": null,
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render/renderInvalidation.js->js/ui/render/computation/studentsRenderer.js",
+      "from": "js/ui/render/renderInvalidation.js",
+      "to": "js/ui/render/computation/studentsRenderer.js",
+      "beforeUrl": "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterUrl": "./computation/studentsRenderer.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render/renderInvalidation.js->js/ui/render/computation/dashboardRenderer.js",
+      "from": "js/ui/render/renderInvalidation.js",
+      "to": "js/ui/render/computation/dashboardRenderer.js",
+      "beforeUrl": "./computation/dashboardRenderer.js",
+      "afterUrl": "./computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": null,
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render/renderInvalidation.js->js/ui/render/listComputationRefresh.js",
+      "from": "js/ui/render/renderInvalidation.js",
+      "to": "js/ui/render/listComputationRefresh.js",
+      "beforeUrl": "./listComputationRefresh.js?v=qr-v11r6-a9r18-usability-perf-r2-rcache-20261028",
+      "afterUrl": "./listComputationRefresh.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r18-usability-perf-r2-rcache-20261028",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render/listComputationRefresh.js->js/ui/render/computation/studentsRenderer.js",
+      "from": "js/ui/render/listComputationRefresh.js",
+      "to": "js/ui/render/computation/studentsRenderer.js",
+      "beforeUrl": "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterUrl": "./computation/studentsRenderer.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": "qr-v11r6-a9r17-mobile-layout-qr-20261026",
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    },
+    {
+      "edge": "js/ui/render/listComputationRefresh.js->js/ui/render/computation/dashboardRenderer.js",
+      "from": "js/ui/render/listComputationRefresh.js",
+      "to": "js/ui/render/computation/dashboardRenderer.js",
+      "beforeUrl": "./computation/dashboardRenderer.js",
+      "afterUrl": "./computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031",
+      "beforeToken": null,
+      "afterToken": "a9r18-bstats-r1-1-20261031"
+    }
+  ],
+  "layeredInheritedLineage": {
+    "attendanceToken": "att-history-r1-1-20261031",
+    "retainedEdges": [
+      "js/main.js→js/modules/attendance.js",
+      "js/main.js→js/modules/reports/reportExportFacade.js",
+      "js/modules/attendance.js→js/services/attendance.service.js",
+      "js/modules/reports/reportExportFacade.js→js/modules/reports/attendanceExcelReport.js"
+    ]
+  },
+  "identityVerifier": "runtime-profile supports multiple scoped lineage tokens backward-compatibly; legacy single-token pins remain supported",
+  "rootPublicRuntimeParity": true
+}

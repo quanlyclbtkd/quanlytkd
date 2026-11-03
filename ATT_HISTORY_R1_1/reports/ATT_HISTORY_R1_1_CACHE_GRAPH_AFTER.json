@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "newToken": "att-history-r1-1-20261031",
+  "activeAttendanceChangedEdges": [
+    {
+      "from": "index.html",
+      "to": "js/main.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "att-history-r1-1-20261031"
+    },
+    {
+      "from": "js/main.js",
+      "to": "js/modules/attendance.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "att-history-r1-1-20261031"
+    },
+    {
+      "from": "js/main.js",
+      "to": "js/modules/reports/reportExportFacade.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "att-history-r1-1-20261031"
+    },
+    {
+      "from": "js/modules/attendance.js",
+      "to": "js/services/attendance.service.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "att-history-r1-1-20261031"
+    },
+    {
+      "from": "js/modules/reports/reportExportFacade.js",
+      "to": "js/modules/reports/attendanceExcelReport.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "att-history-r1-1-20261031"
+    }
+  ],
+  "allRequiredChangedEdgesUseNewToken": true,
+  "oldTokenOnChangedEdges": false,
+  "unrelatedAssetsMassBumped": false,
+  "rootPublicParity": true,
+  "appJsChanged": false,
+  "toolingVerifier": "Scoped R1.1 cache lineage is verified while unrelated authority edges remain on the existing global build tag."
+}

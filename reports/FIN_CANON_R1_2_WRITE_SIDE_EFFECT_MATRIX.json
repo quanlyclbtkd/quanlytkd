@@ -1,0 +1,21 @@
+{
+  "NORMAL_BUSINESS_WRITES": {
+    "status": "UNCHANGED",
+    "canonicalFieldsPreserved": true
+  },
+  "HISTORICAL_POLICY_WRITES": {
+    "baseline": {
+      "historicalBatchWrites": ">0",
+      "settingsPromotion": ">0"
+    },
+    "candidate": {
+      "historicalBatchWrites": 0,
+      "settingsPromotion": 0
+    }
+  },
+  "listenerTopologyDuringBlockedPath": {
+    "detach": 0,
+    "attach": 0
+  },
+  "transitionBarrierDuringBlockedPath": 0
+}

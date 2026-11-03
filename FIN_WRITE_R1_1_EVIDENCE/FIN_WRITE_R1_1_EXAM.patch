@@ -1,0 +1,255 @@
+# Logical PATCH D — Exam write-evidence adapter, Quick Exam and mixed/MultiItem Exam guards. Mixed app/form hunks overlap PATCH B by design because one atomic command contains both authorities.
+--- a/js/services/finance.service.js
++++ b/js/services/finance.service.js
+@@ -185,6 +292,65 @@
+         const results = [];
+         snap.forEach(d => results.push({ id: d.id, data: d.data() }));
+         return results;
++    },
++
++
++    /** Current bounded RAM is negative-authoritative only under the exact current coverage contract. */
++    getCurrentMonthEvidenceForWrite({ month } = {}) {
++        const ctx = _evidenceContext(month);
++        const complete = _coverageCompleteForContext(ctx);
++        return { ok: complete, serverComplete: complete, strictCurrentCoverageComplete: complete,
++            contextStillCurrent: _evidenceContextCurrent(ctx), context: ctx, rows: _runtimeTransactionRows(), source: 'current-coverage' };
++    },
++
++    /** Lazy, single-flight, server-confirmed complete month evidence for financial negative decisions. */
++    async getCompleteMonthEvidence({ month, reason = 'financial-write-evidence', expectedContext = null } = {}) {
++        const ctx = expectedContext || _evidenceContext(month);
++        if (!ctx.clubId || !ctx.month) return { ok: false, serverComplete: false, contextStillCurrent: false, rows: [], context: ctx, reason, code: 'SERVER_EVIDENCE_UNVERIFIED' };
++        if (!_evidenceContextCurrent(ctx)) return { ok: false, serverComplete: false, contextStillCurrent: false, rows: [], context: ctx, reason, code: 'FINANCE_EVIDENCE_CONTEXT_STALE' };
++        const fast = this.getCurrentMonthEvidenceForWrite({ month: ctx.month });
++        if (fast.strictCurrentCoverageComplete && fast.context?.readMode === ctx.readMode && fast.context?.clubId === ctx.clubId) {
++            return { ...fast, reason, source: 'strict-current-coverage' };
++        }
++        const key = [ctx.clubId, ctx.month, ctx.readMode, ctx.uid, ctx.generation, ctx.sessionEpoch, ctx.authGeneration].join('|');
++        if (_completeEvidenceFlights.has(key)) {
++            const metrics = _evidenceMetrics;
++            metrics.singleFlightHits++;
++            return _completeEvidenceFlights.get(key);
++        }
++        const flight = _readServerCompleteMonth(ctx, reason).catch(error => ({ ok: false, serverComplete: false, contextStillCurrent: _evidenceContextCurrent(ctx), rows: [], context: ctx, reason, code: error?.code || 'SERVER_EVIDENCE_UNVERIFIED', error }));
++        _completeEvidenceFlights.set(key, flight);
++        try { return await flight; }
++        finally { if (_completeEvidenceFlights.get(key) === flight) _completeEvidenceFlights.delete(key); }
++    },
++
++    captureWriteEvidenceContext(month) { return _evidenceContext(month); },
++    isWriteEvidenceContextCurrent(ctx) { return _evidenceContextCurrent(ctx); },
++    getRuntimeTransactionRowsForEvidence() { return _runtimeTransactionRows(); },
++    getWriteEvidenceMetrics() { return { requests: _evidenceMetrics.requests.map(x => ({ ...x })), singleFlightHits: _evidenceMetrics.singleFlightHits, reads: _evidenceMetrics.reads }; },
++
++    async resolveExamPaymentForWrite({ profile, studentName, month, reason = 'exam-write' } = {}) {
++        const name = String(studentName || '').trim();
++        const ctx = _evidenceContext(month);
++        const build = window.buildCanonicalExamPaymentLedger;
++        if (!name || !ctx.month || typeof build !== 'function') return { status: 'UNKNOWN', code: 'EXAM_EVIDENCE_UNVERIFIED', context: ctx };
++        const canonicalName = typeof window.getCanonicalStudentName === 'function' ? window.getCanonicalStudentName(name, window.__store?.profiles || window.allProfiles || {}) : name;
++        const hasPayment = rows => !!build({ month: ctx.month, transactions: rows })?.byName?.[canonicalName];
++        const currentRows = _runtimeTransactionRows();
++        if (hasPayment(currentRows)) return { status: 'PAID', source: 'positive-current-evidence', rows: currentRows, context: ctx };
++        const current = this.getCurrentMonthEvidenceForWrite({ month: ctx.month });
++        if (current.strictCurrentCoverageComplete) return { status: 'VERIFIED_UNPAID', source: 'strict-current-coverage', rows: current.rows, context: ctx };
++        const complete = await this.getCompleteMonthEvidence({ month: ctx.month, reason, expectedContext: ctx });
++        if (!complete.serverComplete || !complete.contextStillCurrent || !_evidenceContextCurrent(ctx)) return { status: 'UNKNOWN', code: complete.code || 'EXAM_EVIDENCE_UNVERIFIED', context: ctx, evidence: complete };
++        return hasPayment(complete.rows)
++            ? { status: 'PAID', source: 'server-complete-evidence', rows: complete.rows, context: ctx }
++            : { status: 'VERIFIED_UNPAID', source: 'server-complete-evidence', rows: complete.rows, context: ctx };
++    },
++
++    async requireExamUnpaidForWrite(args = {}) {
++        const d = await this.resolveExamPaymentForWrite(args);
++        if (d?.status === 'UNKNOWN') { const e = new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.'); e.code = d.code || 'EXAM_EVIDENCE_UNVERIFIED'; throw e; }
++        return d;
+     },
+ 
+     // ── PAGINATION (Phase 3.2A) ─────────────────────────────────
+--- a/public/js/services/finance.service.js
++++ b/public/js/services/finance.service.js
+@@ -185,6 +292,65 @@
+         const results = [];
+         snap.forEach(d => results.push({ id: d.id, data: d.data() }));
+         return results;
++    },
++
++
++    /** Current bounded RAM is negative-authoritative only under the exact current coverage contract. */
++    getCurrentMonthEvidenceForWrite({ month } = {}) {
++        const ctx = _evidenceContext(month);
++        const complete = _coverageCompleteForContext(ctx);
++        return { ok: complete, serverComplete: complete, strictCurrentCoverageComplete: complete,
++            contextStillCurrent: _evidenceContextCurrent(ctx), context: ctx, rows: _runtimeTransactionRows(), source: 'current-coverage' };
++    },
++
++    /** Lazy, single-flight, server-confirmed complete month evidence for financial negative decisions. */
++    async getCompleteMonthEvidence({ month, reason = 'financial-write-evidence', expectedContext = null } = {}) {
++        const ctx = expectedContext || _evidenceContext(month);
++        if (!ctx.clubId || !ctx.month) return { ok: false, serverComplete: false, contextStillCurrent: false, rows: [], context: ctx, reason, code: 'SERVER_EVIDENCE_UNVERIFIED' };
++        if (!_evidenceContextCurrent(ctx)) return { ok: false, serverComplete: false, contextStillCurrent: false, rows: [], context: ctx, reason, code: 'FINANCE_EVIDENCE_CONTEXT_STALE' };
++        const fast = this.getCurrentMonthEvidenceForWrite({ month: ctx.month });
++        if (fast.strictCurrentCoverageComplete && fast.context?.readMode === ctx.readMode && fast.context?.clubId === ctx.clubId) {
++            return { ...fast, reason, source: 'strict-current-coverage' };
++        }
++        const key = [ctx.clubId, ctx.month, ctx.readMode, ctx.uid, ctx.generation, ctx.sessionEpoch, ctx.authGeneration].join('|');
++        if (_completeEvidenceFlights.has(key)) {
++            const metrics = _evidenceMetrics;
++            metrics.singleFlightHits++;
++            return _completeEvidenceFlights.get(key);
++        }
++        const flight = _readServerCompleteMonth(ctx, reason).catch(error => ({ ok: false, serverComplete: false, contextStillCurrent: _evidenceContextCurrent(ctx), rows: [], context: ctx, reason, code: error?.code || 'SERVER_EVIDENCE_UNVERIFIED', error }));
++        _completeEvidenceFlights.set(key, flight);
++        try { return await flight; }
++        finally { if (_completeEvidenceFlights.get(key) === flight) _completeEvidenceFlights.delete(key); }
++    },
++
++    captureWriteEvidenceContext(month) { return _evidenceContext(month); },
++    isWriteEvidenceContextCurrent(ctx) { return _evidenceContextCurrent(ctx); },
++    getRuntimeTransactionRowsForEvidence() { return _runtimeTransactionRows(); },
++    getWriteEvidenceMetrics() { return { requests: _evidenceMetrics.requests.map(x => ({ ...x })), singleFlightHits: _evidenceMetrics.singleFlightHits, reads: _evidenceMetrics.reads }; },
++
++    async resolveExamPaymentForWrite({ profile, studentName, month, reason = 'exam-write' } = {}) {
++        const name = String(studentName || '').trim();
++        const ctx = _evidenceContext(month);
++        const build = window.buildCanonicalExamPaymentLedger;
++        if (!name || !ctx.month || typeof build !== 'function') return { status: 'UNKNOWN', code: 'EXAM_EVIDENCE_UNVERIFIED', context: ctx };
++        const canonicalName = typeof window.getCanonicalStudentName === 'function' ? window.getCanonicalStudentName(name, window.__store?.profiles || window.allProfiles || {}) : name;
++        const hasPayment = rows => !!build({ month: ctx.month, transactions: rows })?.byName?.[canonicalName];
++        const currentRows = _runtimeTransactionRows();
++        if (hasPayment(currentRows)) return { status: 'PAID', source: 'positive-current-evidence', rows: currentRows, context: ctx };
++        const current = this.getCurrentMonthEvidenceForWrite({ month: ctx.month });
++        if (current.strictCurrentCoverageComplete) return { status: 'VERIFIED_UNPAID', source: 'strict-current-coverage', rows: current.rows, context: ctx };
++        const complete = await this.getCompleteMonthEvidence({ month: ctx.month, reason, expectedContext: ctx });
++        if (!complete.serverComplete || !complete.contextStillCurrent || !_evidenceContextCurrent(ctx)) return { status: 'UNKNOWN', code: complete.code || 'EXAM_EVIDENCE_UNVERIFIED', context: ctx, evidence: complete };
++        return hasPayment(complete.rows)
++            ? { status: 'PAID', source: 'server-complete-evidence', rows: complete.rows, context: ctx }
++            : { status: 'VERIFIED_UNPAID', source: 'server-complete-evidence', rows: complete.rows, context: ctx };
++    },
++
++    async requireExamUnpaidForWrite(args = {}) {
++        const d = await this.resolveExamPaymentForWrite(args);
++        if (d?.status === 'UNKNOWN') { const e = new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.'); e.code = d.code || 'EXAM_EVIDENCE_UNVERIFIED'; throw e; }
++        return d;
+     },
+ 
+     // ── PAGINATION (Phase 3.2A) ─────────────────────────────────
+--- a/js/modules/finance.js
++++ b/js/modules/finance.js
+@@ -506,7 +505,6 @@
+         modal.style.display = 'flex';
+     };
+ 
+-    // 7. quickCollectExam — Thu lệ phí thi nhanh (tab Thi Đai)
+ 
+     /** Thu lệ phí thi theo võ sinh và cơ sở. */
+     window.quickCollectExam = async (name, branch) => {
+@@ -528,7 +526,8 @@
+             if(input==null||!/^[\d.,\s]+$/.test(String(input).trim()))return false;
+             const amount=Number(String(input).replace(/[.,\s]/g,''));
+             if(!displayName||!title||_positiveAmount(amount)==null||!_guardAllowed('exam.collect',{amount,profileId:name,month}))return false;
+-            if(paid())return false;
++            const examDecision=await FinanceService.requireExamUnpaidForWrite({profile,studentName:name,month,reason:'finance.quickCollectExam'});
++            if(examDecision.status==='PAID'){window.showToast('ℹ️ Võ sinh đã nộp lệ phí thi kỳ này.');return false;}
+             const today=getLocalToday(),todayMonth=today.slice(0,7),date=month===todayMonth?today:(month<todayMonth?month+'-28':month+'-01');
+             await FinanceService.addTransaction({branch:branch||profile.branch||'CS1',type:'Lệ phí thi',
+                 description:`${displayName} (${title})`,studentName:displayName,profileName:displayName,profileId:name,
+@@ -540,7 +539,6 @@
+         finally { window.quickCollectExam.__inFlight=false; }
+     };
+ 
+-    // 8. processCombo — Thu gộp học phí 2 võ sinh cùng gia đình
+ 
+     /** Ghi hai khoản học phí hoặc xuất phiếu báo. */
+     window.processCombo = async (action) => {
+@@ -595,7 +594,7 @@
+             const monthsToRecord=[];if(isTuition){let[y,m]=txMonth.split('-').map(Number);for(let i=0;i<packageCount;i++){let mm=m+i,yy=y;while(mm>12){mm-=12;yy++;}monthsToRecord.push(`${yy}-${String(mm).padStart(2,'0')}`);}}
+             let txData={branch,type,description:name,date,timestamp:Date.now(),amount:type==='Học phí + Lệ phí thi'?amount+examAmount:amount};
+             if(monthsToRecord.length){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLane||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+-                const result=await laneOwner.runInProfileTuitionMutationLane({studentName:name,reason:'finance.transactionForm'},async()=>{const fresh=_freshTuitionDecision(name,monthsToRecord);if(fresh.settlement?.paidMonths?.length)return{alreadySettled:true,settlement:fresh.settlement};const finalTx={...txData,txMonth,packageMonths:monthsToRecord};if(type==='Học phí + Lệ phí thi')Object.assign(finalTx,{tuitionAmount:amount,examAmount,examTitle});const atomic=await FinanceService.commitAtomicWritePlan({transactions:[{data:finalTx,reason:'transaction-form-tuition'}],profileUpdates:[{studentName:name,data:{paidUntil:fresh.paidUntil,paidMonths:FinanceService._arrayUnion(...monthsToRecord)}}]});laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil:fresh.paidUntil,paidMonths:monthsToRecord,reason:'finance.transactionForm'});return{ok:true,atomic,txData:finalTx,paidUntil:fresh.paidUntil};});
++                const result=await laneOwner.runInProfileTuitionMutationLane({studentName:name,reason:'finance.transactionForm'},async()=>{const tuitionDecision=await laneOwner.requireTuitionUnpaidForWrite({profile:_profiles()[name],studentName:name,targetMonths:monthsToRecord,reason:'finance.transactionForm'});if(tuitionDecision.status==='PAID')return{alreadySettled:true,settlement:tuitionDecision.settlement};const freshProfile=tuitionDecision.profile||_profiles()[name];if(type==='Học phí + Lệ phí thi'){const examDecision=await FinanceService.requireExamUnpaidForWrite({profile:freshProfile,studentName:name,month:txMonth,reason:'finance.transactionForm.mixedExam'});if(examDecision.status==='PAID'){const e=new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng chọn giao dịch chỉ Học phí.');e.code='exam/already-paid';throw e;}}const paidUntil=tuitionDecision.paidUntil;const finalTx={...txData,txMonth,packageMonths:monthsToRecord};if(type==='Học phí + Lệ phí thi')Object.assign(finalTx,{tuitionAmount:amount,examAmount,examTitle});const atomic=await FinanceService.commitAtomicWritePlan({transactions:[{data:finalTx,reason:'transaction-form-tuition'}],profileUpdates:[{studentName:name,data:{paidUntil,paidMonths:FinanceService._arrayUnion(...monthsToRecord)}}]});laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil,paidMonths:monthsToRecord,reason:'finance.transactionForm'});return{ok:true,atomic,txData:finalTx,paidUntil};});
+                 if(result?.alreadySettled){window.showToast('⚠️ Học phí tháng này đã được ghi nhận. Không tạo thêm khoản thu.');return false;}txData=result.txData;_detachFeeAudit({studentId:name,amount:txData.amount,date:getLocalToday(),type:'tuition',month:result.paidUntil,months:monthsToRecord,by:window.currentUserEmail||'admin',timestamp:Date.now()});
+             }else await FinanceService.addTransaction(txData);
+             e.target.reset();document.getElementById('date').value=getLocalToday();if(pkgEl)pkgEl.value='1';const disc=document.getElementById('tx_discount');if(disc)disc.checked=false;const pct=document.getElementById('tx_discount_pct');if(pct)pct.value='10';const sv=document.getElementById('tx_discount_saved');if(sv)sv.style.display='none';const ex=document.getElementById('tx_exam_amountActual');if(ex)ex.value='';window.toggleTxFormType?.();window.showToast('✅ Đã lưu khoản thu!');return true;
+--- a/public/js/modules/finance.js
++++ b/public/js/modules/finance.js
+@@ -506,7 +505,6 @@
+         modal.style.display = 'flex';
+     };
+ 
+-    // 7. quickCollectExam — Thu lệ phí thi nhanh (tab Thi Đai)
+ 
+     /** Thu lệ phí thi theo võ sinh và cơ sở. */
+     window.quickCollectExam = async (name, branch) => {
+@@ -528,7 +526,8 @@
+             if(input==null||!/^[\d.,\s]+$/.test(String(input).trim()))return false;
+             const amount=Number(String(input).replace(/[.,\s]/g,''));
+             if(!displayName||!title||_positiveAmount(amount)==null||!_guardAllowed('exam.collect',{amount,profileId:name,month}))return false;
+-            if(paid())return false;
++            const examDecision=await FinanceService.requireExamUnpaidForWrite({profile,studentName:name,month,reason:'finance.quickCollectExam'});
++            if(examDecision.status==='PAID'){window.showToast('ℹ️ Võ sinh đã nộp lệ phí thi kỳ này.');return false;}
+             const today=getLocalToday(),todayMonth=today.slice(0,7),date=month===todayMonth?today:(month<todayMonth?month+'-28':month+'-01');
+             await FinanceService.addTransaction({branch:branch||profile.branch||'CS1',type:'Lệ phí thi',
+                 description:`${displayName} (${title})`,studentName:displayName,profileName:displayName,profileId:name,
+@@ -540,7 +539,6 @@
+         finally { window.quickCollectExam.__inFlight=false; }
+     };
+ 
+-    // 8. processCombo — Thu gộp học phí 2 võ sinh cùng gia đình
+ 
+     /** Ghi hai khoản học phí hoặc xuất phiếu báo. */
+     window.processCombo = async (action) => {
+@@ -595,7 +594,7 @@
+             const monthsToRecord=[];if(isTuition){let[y,m]=txMonth.split('-').map(Number);for(let i=0;i<packageCount;i++){let mm=m+i,yy=y;while(mm>12){mm-=12;yy++;}monthsToRecord.push(`${yy}-${String(mm).padStart(2,'0')}`);}}
+             let txData={branch,type,description:name,date,timestamp:Date.now(),amount:type==='Học phí + Lệ phí thi'?amount+examAmount:amount};
+             if(monthsToRecord.length){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLane||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+-                const result=await laneOwner.runInProfileTuitionMutationLane({studentName:name,reason:'finance.transactionForm'},async()=>{const fresh=_freshTuitionDecision(name,monthsToRecord);if(fresh.settlement?.paidMonths?.length)return{alreadySettled:true,settlement:fresh.settlement};const finalTx={...txData,txMonth,packageMonths:monthsToRecord};if(type==='Học phí + Lệ phí thi')Object.assign(finalTx,{tuitionAmount:amount,examAmount,examTitle});const atomic=await FinanceService.commitAtomicWritePlan({transactions:[{data:finalTx,reason:'transaction-form-tuition'}],profileUpdates:[{studentName:name,data:{paidUntil:fresh.paidUntil,paidMonths:FinanceService._arrayUnion(...monthsToRecord)}}]});laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil:fresh.paidUntil,paidMonths:monthsToRecord,reason:'finance.transactionForm'});return{ok:true,atomic,txData:finalTx,paidUntil:fresh.paidUntil};});
++                const result=await laneOwner.runInProfileTuitionMutationLane({studentName:name,reason:'finance.transactionForm'},async()=>{const tuitionDecision=await laneOwner.requireTuitionUnpaidForWrite({profile:_profiles()[name],studentName:name,targetMonths:monthsToRecord,reason:'finance.transactionForm'});if(tuitionDecision.status==='PAID')return{alreadySettled:true,settlement:tuitionDecision.settlement};const freshProfile=tuitionDecision.profile||_profiles()[name];if(type==='Học phí + Lệ phí thi'){const examDecision=await FinanceService.requireExamUnpaidForWrite({profile:freshProfile,studentName:name,month:txMonth,reason:'finance.transactionForm.mixedExam'});if(examDecision.status==='PAID'){const e=new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng chọn giao dịch chỉ Học phí.');e.code='exam/already-paid';throw e;}}const paidUntil=tuitionDecision.paidUntil;const finalTx={...txData,txMonth,packageMonths:monthsToRecord};if(type==='Học phí + Lệ phí thi')Object.assign(finalTx,{tuitionAmount:amount,examAmount,examTitle});const atomic=await FinanceService.commitAtomicWritePlan({transactions:[{data:finalTx,reason:'transaction-form-tuition'}],profileUpdates:[{studentName:name,data:{paidUntil,paidMonths:FinanceService._arrayUnion(...monthsToRecord)}}]});laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil,paidMonths:monthsToRecord,reason:'finance.transactionForm'});return{ok:true,atomic,txData:finalTx,paidUntil};});
+                 if(result?.alreadySettled){window.showToast('⚠️ Học phí tháng này đã được ghi nhận. Không tạo thêm khoản thu.');return false;}txData=result.txData;_detachFeeAudit({studentId:name,amount:txData.amount,date:getLocalToday(),type:'tuition',month:result.paidUntil,months:monthsToRecord,by:window.currentUserEmail||'admin',timestamp:Date.now()});
+             }else await FinanceService.addTransaction(txData);
+             e.target.reset();document.getElementById('date').value=getLocalToday();if(pkgEl)pkgEl.value='1';const disc=document.getElementById('tx_discount');if(disc)disc.checked=false;const pct=document.getElementById('tx_discount_pct');if(pct)pct.value='10';const sv=document.getElementById('tx_discount_saved');if(sv)sv.style.display='none';const ex=document.getElementById('tx_exam_amountActual');if(ex)ex.value='';window.toggleTxFormType?.();window.showToast('✅ Đã lưu khoản thu!');return true;
+--- a/app.js
++++ b/app.js
+@@ -9607,12 +9607,14 @@
+                     const latestProfiles=(window.__store&&window.__store.profiles)||window.allProfiles||allProfiles||{}, latestProfile=latestProfiles[name]||allProfiles[name]||profile, latestMonths=_resolveMiTuitionMonths(latestProfile); profile=latestProfile;
+                     if(latestMonths.length!==packageMonths.length||!latestMonths.every((m,i)=>m===packageMonths[i])){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-tuition-package';throw e;}
+                     const canonical=window.TuitionDebtCanonical; if(!canonical?.areTuitionMonthsSettled||!canonical?.reconcilePaidUntilFromMonthEvidence)throw new Error('Tuition canonical settlement helper chưa sẵn sàng.');
+-                    const settlement=canonical.areTuitionMonthsSettled(latestProfile,latestMonths,{name}), settledCount=Array.isArray(settlement?.states)?settlement.states.filter(r=>r?.settled).length:0;
+-                    if(settlement?.allSettled){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
+-                    if(settledCount>0){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/partial-settlement-changed';throw e;}
+-                    packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(latestProfile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
+-                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(latestProfile,(Array.isArray(latestProfile.paidMonths)?latestProfile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
++                    const evidenceOwner=window.TuitionCommandBoundary;if(!evidenceOwner?.resolveTuitionSettlementForWrite)throw new Error('Tuition write-evidence owner chưa sẵn sàng.');
++                    const tuitionDecision=await evidenceOwner.resolveTuitionSettlementForWrite({profile:latestProfile,studentName:name,targetMonths:latestMonths,reason:'processMultiItem.tuition'});
++                    if(tuitionDecision?.status==='UNKNOWN'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=tuitionDecision.code||'TUITION_SETTLEMENT_UNVERIFIED';throw e;}
++                    if(tuitionDecision?.status==='PAID'){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Học phí đã được ghi nhận. Vui lòng tách khoản thu còn lại khỏi giao dịch này.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
++                    profile=tuitionDecision.profile||latestProfile;packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(profile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
++                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(profile,(Array.isArray(profile.paidMonths)?profile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
+                 }
++                if(hasExam&&examFee>0){const examOwner=window.FinanceService;if(!examOwner?.resolveExamPaymentForWrite)throw new Error('Exam write-evidence owner chưa sẵn sàng.');const examDecision=await examOwner.resolveExamPaymentForWrite({profile,studentName:name,month:refMonth,reason:'processMultiItem.exam'});if(examDecision?.status==='PAID'){const e=new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng bỏ khoản Lệ phí thi khỏi giao dịch.');e.code='exam/already-paid';throw e;}if(examDecision?.status!=='VERIFIED_UNPAID'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=examDecision?.code||'EXAM_EVIDENCE_UNVERIFIED';throw e;}}
+ 
+             // H8R2 C3 — PREPARE → VALIDATE → ONE ATOMIC COMMIT.
+             // This remains inside the existing multi-item owner and reuses the
+--- a/public/app.js
++++ b/public/app.js
+@@ -9607,12 +9607,14 @@
+                     const latestProfiles=(window.__store&&window.__store.profiles)||window.allProfiles||allProfiles||{}, latestProfile=latestProfiles[name]||allProfiles[name]||profile, latestMonths=_resolveMiTuitionMonths(latestProfile); profile=latestProfile;
+                     if(latestMonths.length!==packageMonths.length||!latestMonths.every((m,i)=>m===packageMonths[i])){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-tuition-package';throw e;}
+                     const canonical=window.TuitionDebtCanonical; if(!canonical?.areTuitionMonthsSettled||!canonical?.reconcilePaidUntilFromMonthEvidence)throw new Error('Tuition canonical settlement helper chưa sẵn sàng.');
+-                    const settlement=canonical.areTuitionMonthsSettled(latestProfile,latestMonths,{name}), settledCount=Array.isArray(settlement?.states)?settlement.states.filter(r=>r?.settled).length:0;
+-                    if(settlement?.allSettled){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
+-                    if(settledCount>0){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/partial-settlement-changed';throw e;}
+-                    packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(latestProfile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
+-                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(latestProfile,(Array.isArray(latestProfile.paidMonths)?latestProfile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
++                    const evidenceOwner=window.TuitionCommandBoundary;if(!evidenceOwner?.resolveTuitionSettlementForWrite)throw new Error('Tuition write-evidence owner chưa sẵn sàng.');
++                    const tuitionDecision=await evidenceOwner.resolveTuitionSettlementForWrite({profile:latestProfile,studentName:name,targetMonths:latestMonths,reason:'processMultiItem.tuition'});
++                    if(tuitionDecision?.status==='UNKNOWN'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=tuitionDecision.code||'TUITION_SETTLEMENT_UNVERIFIED';throw e;}
++                    if(tuitionDecision?.status==='PAID'){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Học phí đã được ghi nhận. Vui lòng tách khoản thu còn lại khỏi giao dịch này.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
++                    profile=tuitionDecision.profile||latestProfile;packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(profile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
++                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(profile,(Array.isArray(profile.paidMonths)?profile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
+                 }
++                if(hasExam&&examFee>0){const examOwner=window.FinanceService;if(!examOwner?.resolveExamPaymentForWrite)throw new Error('Exam write-evidence owner chưa sẵn sàng.');const examDecision=await examOwner.resolveExamPaymentForWrite({profile,studentName:name,month:refMonth,reason:'processMultiItem.exam'});if(examDecision?.status==='PAID'){const e=new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng bỏ khoản Lệ phí thi khỏi giao dịch.');e.code='exam/already-paid';throw e;}if(examDecision?.status!=='VERIFIED_UNPAID'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=examDecision?.code||'EXAM_EVIDENCE_UNVERIFIED';throw e;}}
+ 
+             // H8R2 C3 — PREPARE → VALIDATE → ONE ATOMIC COMMIT.
+             // This remains inside the existing multi-item owner and reuses the

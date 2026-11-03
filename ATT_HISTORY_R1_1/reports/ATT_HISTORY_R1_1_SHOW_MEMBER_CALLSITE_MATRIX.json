@@ -1,0 +1,46 @@
+{
+  "status": "COMPLETE",
+  "runtimeCallsiteCount": 3,
+  "callsites": [
+    {
+      "file": "js/modules/attendance.js",
+      "line": 812,
+      "caller": "daily attendance member card",
+      "userAction": "Attendance daily roster → click member name",
+      "role": "Admin/SuperAdmin/Coach depending exposure",
+      "monthArgument": null,
+      "branchArgument": null,
+      "branchExplicit": false,
+      "branchImplicitBefore": true,
+      "expectedHistoricalScope": "NORMAL_MEMBER_HISTORY; Admin/SuperAdmin NO_EXPLICIT_SCOPE → all recorded branches; Coach ROLE_FORCED_SCOPE → assigned branch",
+      "classification": "NORMAL_MEMBER_HISTORY"
+    },
+    {
+      "file": "js/modules/attendance.js",
+      "line": 2747,
+      "caller": "monthly mobile attendance row",
+      "userAction": "Monthly statistics mobile → click member name",
+      "role": "Admin/Coach according to monthly exposure",
+      "monthArgument": "selMonth",
+      "branchArgument": "r.branch",
+      "branchExplicit": true,
+      "branchImplicitBefore": false,
+      "expectedHistoricalScope": "explicit selected historical branch; Coach remains role-forced assigned branch",
+      "classification": "MONTHLY_BRANCH_HISTORY"
+    },
+    {
+      "file": "js/modules/attendance.js",
+      "line": 2779,
+      "caller": "monthly desktop attendance row",
+      "userAction": "Monthly statistics desktop → click member name",
+      "role": "Admin/Coach according to monthly exposure",
+      "monthArgument": "selMonth",
+      "branchArgument": "r.branch",
+      "branchExplicit": true,
+      "branchImplicitBefore": false,
+      "expectedHistoricalScope": "explicit selected historical branch; Coach remains role-forced assigned branch",
+      "classification": "MONTHLY_BRANCH_HISTORY"
+    }
+  ],
+  "finding": "Only the normal Daily call omits branch intentionally; both Monthly callers explicitly scope branch."
+}

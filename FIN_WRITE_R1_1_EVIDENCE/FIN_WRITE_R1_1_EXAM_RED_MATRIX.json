@@ -1,0 +1,21 @@
+{
+  "classification": "BASELINE_RED_REPRODUCED",
+  "method": "EXECUTABLE_BASELINE_HARNESS",
+  "tests": [
+    {
+      "gate": "EXAM_QUICK_PARTIAL_ABSENCE_RED",
+      "writes": 1,
+      "result": "RED_REPRODUCED"
+    },
+    {
+      "gate": "EXAM_MIXED_PARTIAL_ABSENCE_RED",
+      "writes": 1,
+      "result": "RED_REPRODUCED"
+    },
+    {
+      "gate": "EXAM_MULTIITEM_PARTIAL_ABSENCE_RED",
+      "writes": 1,
+      "result": "RED_REPRODUCED"
+    }
+  ]
+}

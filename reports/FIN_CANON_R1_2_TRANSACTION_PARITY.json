@@ -1,0 +1,13 @@
+{
+  "normalBusinessWriterFunctionsByteIdentical": true,
+  "canonicalizeCreatePreserved": true,
+  "canonicalizePatchPreserved": true,
+  "dynamicCanonicalFieldsGate": "PASS",
+  "fields": [
+    "accountingMonths",
+    "primaryAccountingMonth",
+    "accountingSchemaVersion",
+    "accountingBoundarySource"
+  ],
+  "appJsByteIdentical": true
+}

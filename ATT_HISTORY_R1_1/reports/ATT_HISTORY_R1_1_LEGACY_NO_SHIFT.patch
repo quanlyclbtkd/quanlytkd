@@ -1,0 +1,182 @@
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -58,6 +58,7 @@
+ let _attendanceCache    = {};
+ let _attendanceServerVersions = {};
+ let _attendanceServerContext = '';
++let _attendanceLegacyNoShiftEvidence = { key: '', rows: [] };
+ // Owned intents actually shown in this view. Their IDs express causality;
+ // pending/inflight entries never imply a server ACK.
+ let _attendanceIntentStates = new Map();
+@@ -446,6 +447,7 @@
+     _attendanceCache = {};
+     _attendanceServerVersions = {};
+     _attendanceServerContext = '';
++    _attendanceLegacyNoShiftEvidence = { key: '', rows: [] };
+     _attendanceIntentStates.clear();
+     _attendanceDerivedStats.clear();
+     _attendanceSavingEdits.clear();
+@@ -738,7 +740,13 @@
+         const k = _attStripSuffix(n);
+         _attNCount[k] = (_attNCount[k] || 0) + 1;
+     });
+-    let html = _coachRosterWarning;
++    const currentDailyContextKey = _captureAttendanceDailyContext().key;
++    const legacyNoShiftCount = _attendanceLegacyNoShiftEvidence.key === currentDailyContextKey
++        ? _attendanceLegacyNoShiftEvidence.rows.length : 0;
++    const _legacyNoShiftWarning = legacyNoShiftCount > 0
++        ? '<div role="status" aria-live="polite" style="grid-column:1/-1;padding:9px 11px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:0.78rem;line-height:1.4;">ℹ️ Có ' + legacyNoShiftCount + ' bản ghi lịch sử cũ chưa xác định ca tập. Các bản ghi này chỉ để tra cứu, không được gán vào ca đang chọn và không tham gia thao tác sửa.</div>'
++        : '';
++    let html = _coachRosterWarning + _legacyNoShiftWarning;
+     const savingProjection = _attendanceSavingProjection();
+     window.currentAttendanceData = {};
+     _attCurrentProfiles.forEach(([name]) => {
+@@ -1716,14 +1724,30 @@
+             _recordAttendanceDailyStale(token);
+             return { stale: true, key: token.key };
+         }
++        const historicalAdminReopen = token.date < _getLocalToday() &&
++            _attendanceCanonicalRole(window.__verifiedAuthContextState?.role) !== 'coach';
++        const legacyNoShiftRows = historicalAdminReopen
++            ? attList.filter(({data}) => !String(data.shiftId || '').trim() && [1,2,3].includes(Number(data.status)))
++            : [];
++        _attendanceLegacyNoShiftEvidence = {
++            key: token.key,
++            rows: legacyNoShiftRows.map(({id,data}) => ({
++                id, name: String(data.profileId || data.name || ''), date: String(data.date || ''),
++                status: Number(data.status || 0), branch: String(data.branch || '')
++            }))
++        };
++        // Only the explicitly selected shift may enter editable/CAS state.
++        // Other explicit shifts and legacy no-shift rows remain read evidence.
++        const selectedShiftRows = attList.filter(({data}) => {
++            const docShift = String(data.shiftId || '').trim();
++            return token.shiftId ? docShift === token.shiftId : !docShift;
++        });
+         const nextCache = {};
+-        attList.forEach(({ id, data }) => {
+-            const docShift = data.shiftId || '';
+-            if (token.shiftId && docShift !== token.shiftId) return;
++        selectedShiftRows.forEach(({ id, data }) => {
+             nextCache[id] = _mapLegacyStatus(data.status || 0);
+         });
+         const nextServerVersions = attList.serverConfirmed === true
+-            ? Object.fromEntries(attList.map(({id,data}) => [id,attendanceServerVersion(data)])) : null;
++            ? Object.fromEntries(selectedShiftRows.map(({id,data}) => [id,attendanceServerVersion(data)])) : null;
+         // Overlay unresolved durable intents; never present a pending mark as ACK.
+         let pending=[];
+         try {pending=await AttendanceJournal.list(_captureOfflineAttendanceSyncContext());}
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -58,6 +58,7 @@
+ let _attendanceCache    = {};
+ let _attendanceServerVersions = {};
+ let _attendanceServerContext = '';
++let _attendanceLegacyNoShiftEvidence = { key: '', rows: [] };
+ // Owned intents actually shown in this view. Their IDs express causality;
+ // pending/inflight entries never imply a server ACK.
+ let _attendanceIntentStates = new Map();
+@@ -446,6 +447,7 @@
+     _attendanceCache = {};
+     _attendanceServerVersions = {};
+     _attendanceServerContext = '';
++    _attendanceLegacyNoShiftEvidence = { key: '', rows: [] };
+     _attendanceIntentStates.clear();
+     _attendanceDerivedStats.clear();
+     _attendanceSavingEdits.clear();
+@@ -738,7 +740,13 @@
+         const k = _attStripSuffix(n);
+         _attNCount[k] = (_attNCount[k] || 0) + 1;
+     });
+-    let html = _coachRosterWarning;
++    const currentDailyContextKey = _captureAttendanceDailyContext().key;
++    const legacyNoShiftCount = _attendanceLegacyNoShiftEvidence.key === currentDailyContextKey
++        ? _attendanceLegacyNoShiftEvidence.rows.length : 0;
++    const _legacyNoShiftWarning = legacyNoShiftCount > 0
++        ? '<div role="status" aria-live="polite" style="grid-column:1/-1;padding:9px 11px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:0.78rem;line-height:1.4;">ℹ️ Có ' + legacyNoShiftCount + ' bản ghi lịch sử cũ chưa xác định ca tập. Các bản ghi này chỉ để tra cứu, không được gán vào ca đang chọn và không tham gia thao tác sửa.</div>'
++        : '';
++    let html = _coachRosterWarning + _legacyNoShiftWarning;
+     const savingProjection = _attendanceSavingProjection();
+     window.currentAttendanceData = {};
+     _attCurrentProfiles.forEach(([name]) => {
+@@ -1716,14 +1724,30 @@
+             _recordAttendanceDailyStale(token);
+             return { stale: true, key: token.key };
+         }
++        const historicalAdminReopen = token.date < _getLocalToday() &&
++            _attendanceCanonicalRole(window.__verifiedAuthContextState?.role) !== 'coach';
++        const legacyNoShiftRows = historicalAdminReopen
++            ? attList.filter(({data}) => !String(data.shiftId || '').trim() && [1,2,3].includes(Number(data.status)))
++            : [];
++        _attendanceLegacyNoShiftEvidence = {
++            key: token.key,
++            rows: legacyNoShiftRows.map(({id,data}) => ({
++                id, name: String(data.profileId || data.name || ''), date: String(data.date || ''),
++                status: Number(data.status || 0), branch: String(data.branch || '')
++            }))
++        };
++        // Only the explicitly selected shift may enter editable/CAS state.
++        // Other explicit shifts and legacy no-shift rows remain read evidence.
++        const selectedShiftRows = attList.filter(({data}) => {
++            const docShift = String(data.shiftId || '').trim();
++            return token.shiftId ? docShift === token.shiftId : !docShift;
++        });
+         const nextCache = {};
+-        attList.forEach(({ id, data }) => {
+-            const docShift = data.shiftId || '';
+-            if (token.shiftId && docShift !== token.shiftId) return;
++        selectedShiftRows.forEach(({ id, data }) => {
+             nextCache[id] = _mapLegacyStatus(data.status || 0);
+         });
+         const nextServerVersions = attList.serverConfirmed === true
+-            ? Object.fromEntries(attList.map(({id,data}) => [id,attendanceServerVersion(data)])) : null;
++            ? Object.fromEntries(selectedShiftRows.map(({id,data}) => [id,attendanceServerVersion(data)])) : null;
+         // Overlay unresolved durable intents; never present a pending mark as ACK.
+         let pending=[];
+         try {pending=await AttendanceJournal.list(_captureOfflineAttendanceSyncContext());}
+--- a/js/services/attendance.service.js
++++ b/js/services/attendance.service.js
+@@ -309,7 +309,10 @@
+             if (canonicalBranch === 'CS1') baseConstraints.push(where('branch', 'in', ['CS1', 'Mặc định']));
+             else if (canonicalBranch) baseConstraints.push(where('branch', '==', canonicalBranch));
+         }
+-        if (shiftId) baseConstraints.push(where('shiftId', '==', shiftId));
++        // R1.1: an Admin historical reopen must also observe legacy rows
++        // that predate shiftId. Keep current-day and Coach operational reads
++        // shift-exact; historical Admin reads partition shift evidence in RAM.
++        if (shiftId && !historicalReopen) baseConstraints.push(where('shiftId', '==', shiftId));
+ 
+         const results = [];
+         let cursor = null;
+@@ -375,7 +378,7 @@
+ 
+         window.__attendanceDailyLoadMetrics = {
+             date,
+-            shiftFiltered: !!shiftId,
++            shiftFiltered: !!shiftId && !historicalReopen,
+             branchFiltered: !!branch && branch !== 'all',
+             branch,
+             docs: results.length,
+--- a/public/js/services/attendance.service.js
++++ b/public/js/services/attendance.service.js
+@@ -309,7 +309,10 @@
+             if (canonicalBranch === 'CS1') baseConstraints.push(where('branch', 'in', ['CS1', 'Mặc định']));
+             else if (canonicalBranch) baseConstraints.push(where('branch', '==', canonicalBranch));
+         }
+-        if (shiftId) baseConstraints.push(where('shiftId', '==', shiftId));
++        // R1.1: an Admin historical reopen must also observe legacy rows
++        // that predate shiftId. Keep current-day and Coach operational reads
++        // shift-exact; historical Admin reads partition shift evidence in RAM.
++        if (shiftId && !historicalReopen) baseConstraints.push(where('shiftId', '==', shiftId));
+ 
+         const results = [];
+         let cursor = null;
+@@ -375,7 +378,7 @@
+ 
+         window.__attendanceDailyLoadMetrics = {
+             date,
+-            shiftFiltered: !!shiftId,
++            shiftFiltered: !!shiftId && !historicalReopen,
+             branchFiltered: !!branch && branch !== 'all',
+             branch,
+             docs: results.length,

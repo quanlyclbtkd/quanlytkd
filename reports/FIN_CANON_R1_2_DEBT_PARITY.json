@@ -1,0 +1,21 @@
+{
+  "protectedDebtFiles": [
+    {
+      "js/core/tuitionDebtCanonical.js": true
+    },
+    {
+      "js/core/debtProfileReadBoundary.js": true
+    },
+    {
+      "js/ui/render/computation/studentsRenderer.js": true
+    }
+  ],
+  "tuitionDebtSourceOfTruthGate": "PASS",
+  "fullRegression": "PASS",
+  "debtStatesPreserved": [
+    "FRESH",
+    "TRANSIENT_LOCAL_WRITE",
+    "NOT_READY"
+  ],
+  "conclusion": "Debt semantics/code unchanged."
+}

@@ -1,0 +1,53 @@
+{
+  "runtime_sha256": "bc30abc33c7f738136584eedf110b94a4e5c55bb0ce2c9c19bd2be2b1c2a0c64",
+  "files": {
+    "app.js": {
+      "bytes": 703994,
+      "sha256": "5bb96e3c2beeca629f595108ce7ca948869e7a7317f5fed505a5a8c10b79401d"
+    },
+    "js/services/finance.service.js": {
+      "bytes": 41387,
+      "sha256": "7831309a926641b9d9d87873c489e6b88db972420bacf8602f00fac906f98149"
+    },
+    "js/core/tuitionCommandBoundary.js": {
+      "bytes": 34918,
+      "sha256": "eb40a2f522c6979b1c4b209146c7282c12819eea43446fb749d06ab02c708a40"
+    },
+    "js/modules/finance.js": {
+      "bytes": 71966,
+      "sha256": "7bce6d3bd16b6d81bbd4098d2403313797a4ba322064102340178417996ac298"
+    },
+    "js/main.js": {
+      "bytes": 306279,
+      "sha256": "7cea5116e0f8c871a68bf2878a3654307df4a6a245344cd36f6e20120665ce90"
+    },
+    "index.html": {
+      "bytes": 236544,
+      "sha256": "97327ece3a00cea9b455b1e79094babbe191f039f9869fa571bdaf7b1eebde75"
+    },
+    "js/core/transactionCanonicalBoundary.js": {
+      "bytes": 45043,
+      "sha256": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f"
+    },
+    "js/core/debtProfileReadBoundary.js": {
+      "bytes": 42255,
+      "sha256": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08"
+    },
+    "js/ui/render/computation/financeRenderer.js": {
+      "bytes": 37059,
+      "sha256": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f"
+    },
+    "firestore.rules": {
+      "bytes": 30357,
+      "sha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3"
+    },
+    "firestore.indexes.json": {
+      "bytes": 9211,
+      "sha256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2"
+    },
+    "tools/v11r2/manifests/V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1.json": {
+      "bytes": 24349,
+      "sha256": "02307b8272a516f412efef4085cbb5bf86d462c4de194e865e08ab36a9402cea"
+    }
+  }
+}

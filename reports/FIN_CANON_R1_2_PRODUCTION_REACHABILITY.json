@@ -1,0 +1,20 @@
+{
+  "baselineProductionReachable": true,
+  "classification": "AUTOMATIC_HISTORICAL_MUTATION_REPRODUCED",
+  "entry": "app.js -> window.recordTransactionQueryOverlap",
+  "chain": [
+    "recordTransactionOverlap",
+    "scheduleAutomaticCutover",
+    "setTimeout 2200ms",
+    "runAutomaticCutover",
+    "executeCanonicalCutover dryRun:false",
+    "writeBatch historical transactions",
+    "persistReadMode setDoc settings/main_config"
+  ],
+  "productionDebugBridges": [
+    "executeCanonicalTransactionCutover",
+    "scheduleAutomaticCanonicalTransactionOptimization",
+    "runAutomaticCanonicalTransactionOptimization"
+  ],
+  "candidatePolicy": "all mutation-capable entry points blocked before side effects"
+}

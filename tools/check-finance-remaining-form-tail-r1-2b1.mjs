@@ -1,0 +1,11 @@
+import {spawnSync} from 'node:child_process';import fs from 'node:fs';import path from 'node:path';
+const ROOT=process.cwd();let pass=0,fail=0;const check=(n,ok,d='')=>{console.log(`${ok?'PASS':'FAIL'} ${n}${d?` :: ${d}`:''}`);ok?pass++:fail++};
+const r=spawnSync(process.execPath,['tools/r1_2b1/remaining-form-tail-behavior.mjs'],{cwd:ROOT,env:{...process.env,ROOT},encoding:'utf8'});process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');check('A-F behavioral remaining Finance tails',r.status===0,`rc=${r.status}`);
+const fin=fs.readFileSync(path.join(ROOT,'js/modules/finance.js'),'utf8'),svc=fs.readFileSync(path.join(ROOT,'js/services/finance.service.js'),'utf8'),students=fs.readFileSync(path.join(ROOT,'js/modules/students.js'),'utf8');
+const qStart=fin.indexOf('window.quickCollectExam');const qEnd=fin.indexOf('/** Ghi hai khoản học phí',qStart);const q=fin.slice(qStart,qEnd);
+check('QuickExam final context check precedes addTransaction with no await',/if\s*\(\s*!_finCtxCurrent\(ctx\)\s*\)\s*return false;\s*await FinanceService\.addTransaction/.test(q));
+check('QuickExam addTransaction service implementation not context-rewritten',/async addTransaction\(data\)/.test(svc)&&!/async addTransaction\(data,\s*\{\s*expectedContext/.test(svc));
+console.log('INFO finance.js bytes (no correctness ceiling):', Buffer.byteLength(fin));
+check('Admission business source untouched by R1.2B1 marker',!students.includes('R1.2B1'));
+check('No new R1.2B1 writer V2',!/(?:ExamTransactionWriter|FinanceWriterV3|addTransactionV2)/.test(fin+svc));
+console.log(`\nR1.2B1 GATE: ${pass} PASS / ${fail} FAIL`);if(fail)process.exitCode=1;

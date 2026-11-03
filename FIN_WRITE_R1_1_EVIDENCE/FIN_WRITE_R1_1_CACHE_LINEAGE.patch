@@ -1,0 +1,1627 @@
+# Logical PATCH E — immutable cache lineage, source identity and QA gates only; business semantics A–D must already be GREEN.
+--- a/index.html
++++ b/index.html
+@@ -586,7 +586,7 @@
+ <!-- V5U6C2 lineage only: app.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2; ./js/main.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2 -->
+ <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
+ <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
+-<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=fin-canon-r1-2-20261031"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
++<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=fin-canon-r1-2-20261031"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=a9r18-fin-write-r1-1-20261101"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
+ /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
+    app.js still loads via <script defer> so ALL business logic works regardless.
+    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=a9r18-bstats-r1-1-20261031"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=a9r18-fin-write-r1-1-20261101"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+--- a/public/index.html
++++ b/public/index.html
+@@ -586,7 +586,7 @@
+ <!-- V5U6C2 lineage only: app.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2; ./js/main.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2 -->
+ <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
+ <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
+-<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=fin-canon-r1-2-20261031"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
++<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=fin-canon-r1-2-20261031"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=a9r18-fin-write-r1-1-20261101"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
+ /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
+    app.js still loads via <script defer> so ALL business logic works regardless.
+    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=a9r18-bstats-r1-1-20261031"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=a9r18-fin-write-r1-1-20261101"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+--- a/js/main.js
++++ b/js/main.js
+@@ -249,7 +249,7 @@
+ import { ActionGuard }        from './core/actionGuard.js';
+ import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+ import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+-import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=a9r18-fin-write-r1-1-20261101";
+ // Phase 4K-6E: Transaction Delete Integrity
+ import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
+ // Phase 4K-6F: Legacy App Kernel Audit + Diagnostics Extraction
+@@ -351,7 +351,7 @@
+ } from './firebase/paginatedQuery.js';
+ 
+ // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
+-import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { initStudents, initStudentPagination }        from "./modules/students.js?v=a9r18-fin-write-r1-1-20261101";
+ // V5U6G compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // Compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
+@@ -363,7 +363,7 @@
+     debugSearchPerformance,
+ } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
+ // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-fin-write-r1-1-20261101";
+ import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Compatibility marker: from './modules/attendance.js'
+ import { initAttendance }                             from "./modules/attendance.js?v=att-history-r1-1-20261031";
+@@ -2488,7 +2488,7 @@
+     if (window.__appLoaded) return Promise.resolve();
+     return new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+-        script.src = "app.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++        script.src = "app.js?v=a9r18-fin-write-r1-1-20261101";
+         script.onload  = () => resolve();
+         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
+         document.head.appendChild(script);
+--- a/public/js/main.js
++++ b/public/js/main.js
+@@ -249,7 +249,7 @@
+ import { ActionGuard }        from './core/actionGuard.js';
+ import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+ import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+-import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=a9r18-fin-write-r1-1-20261101";
+ // Phase 4K-6E: Transaction Delete Integrity
+ import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
+ // Phase 4K-6F: Legacy App Kernel Audit + Diagnostics Extraction
+@@ -351,7 +351,7 @@
+ } from './firebase/paginatedQuery.js';
+ 
+ // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
+-import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { initStudents, initStudentPagination }        from "./modules/students.js?v=a9r18-fin-write-r1-1-20261101";
+ // V5U6G compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // Compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
+@@ -363,7 +363,7 @@
+     debugSearchPerformance,
+ } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
+ // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-fin-write-r1-1-20261101";
+ import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Compatibility marker: from './modules/attendance.js'
+ import { initAttendance }                             from "./modules/attendance.js?v=att-history-r1-1-20261031";
+@@ -2488,7 +2488,7 @@
+     if (window.__appLoaded) return Promise.resolve();
+     return new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+-        script.src = "app.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
++        script.src = "app.js?v=a9r18-fin-write-r1-1-20261101";
+         script.onload  = () => resolve();
+         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
+         document.head.appendChild(script);
+--- a/js/modules/students.js
++++ b/js/modules/students.js
+@@ -31,7 +31,7 @@
+ import { escapeHtml } from '../utils/helpers.js';
+ import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
+-import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-write-r1-1-20261101";
+ import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ 
+ const _registrationForms = new Map();
+@@ -1209,7 +1209,7 @@
+         prepareNextPage, preparePreviousPage,
+         renderPaginationControls, PAGE_SIZE,
+     }) => {
+-        import("./students.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029").then(() => {}); // no-op — chỉ để IDE không warn
++        import("./students.js?v=a9r18-fin-write-r1-1-20261101").then(() => {}); // no-op — chỉ để IDE không warn
+         import("../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029").then(({ StudentService }) => {
+ 
+             const store = window.__store;
+--- a/public/js/modules/students.js
++++ b/public/js/modules/students.js
+@@ -31,7 +31,7 @@
+ import { escapeHtml } from '../utils/helpers.js';
+ import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
+-import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-write-r1-1-20261101";
+ import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ 
+ const _registrationForms = new Map();
+@@ -1209,7 +1209,7 @@
+         prepareNextPage, preparePreviousPage,
+         renderPaginationControls, PAGE_SIZE,
+     }) => {
+-        import("./students.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029").then(() => {}); // no-op — chỉ để IDE không warn
++        import("./students.js?v=a9r18-fin-write-r1-1-20261101").then(() => {}); // no-op — chỉ để IDE không warn
+         import("../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029").then(({ StudentService }) => {
+ 
+             const store = window.__store;
+--- a/package.json
++++ b/package.json
+@@ -8,7 +8,7 @@
+     "precheck": "npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority && npm run check:production-security-trust-boundary",
+     "precheck:all": "npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority && npm run check:production-security-trust-boundary",
+     "precheck:all:critical": "npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority && npm run check:production-security-trust-boundary",
+-    "check": "npm run check:syntax && npm run check:mobile-startup-performance && npm run check:lazy-assets-loading && npm run check:tailwind-static-css-build && npm run check:mobile-filter-currency-stability && npm run check:exam-upgrade-finance-separation && npm run check:global-ownership-adoption-cleanup && npm run check:listener-ownership-boundary && npm run check:inventory-multiitem-readonly-ui && npm run check:financial-action-audit-guard && npm run check:diagnostics-tooling-isolation && npm run check:report-export-lazy-isolation && npm run check:attendance-canonical-ownership && npm run check:spark-read-cost-hardening && npm run check:inventory-history-active-debt && npm run check:inventory-consumer-hydration-hotfix && npm run check:inventory-dynamic-size-catalog && npm run check:inventory-ledger-reconciliation && npm run check:firestore-read-attribution-canonical-tx-boundary && npm run check:payment-bundle-runtime-hotfix && npm run check:canonical-transaction-safe-cutover && npm run check:debt-profile-read-boundary && npm run check:debt-authoritative-tuition-coverage && npm run check:coach-attendance-only-read-boundary && npm run check:security-coach-branch-boundary && npm run check:coach-branch-runtime-repair && npm run check:quit-tab-completeness && npm run check:quit-tab-authoritative-completeness && npm run check:quit-tab-mobile-parity && npm run check:render-warning-coalescing && npm run check:tuition-debt-source-of-truth && npm run check:active-skipped-month-section && npm run check:profile-canonical-store && npm run check:v4d1a-runtime-recovery && npm run check:v5q-quit-single-authoritative-pipeline && npm run check:v5r-quit-single-source-lock && npm run check:v5r-quit-source-behavior && npm run check:v5s-quit-context-render-loop-guard && npm run check:v5s-quit-context-behavior && npm run check:v5t-command-boundary-write-freeze && npm run check:v5t-command-boundary-behavior && npm run check:v5u1-student-status-command-cutover && npm run check:v5u1-student-status-command-behavior && npm run check:v5u2-tuition-command-cutover && npm run check:v5u2-tuition-command-behavior && npm run check:v5u2e-attendance-excel-sdk-fix && npm run check:student-name-search-priority && npm run check:superadmin-auth-principal-alignment && npm run check:admin-credential-single-source && npm run check:auth-context-single-writer && npm run check:legacy-global-freeze && npm run check:dashboard-single-read-authority && npm run check:dashboard-cache-freshness-guard && npm run check:dashboard-hydration-mutation-guard && npm run check:attendance-history-r1 && npm run check:attendance-history-r1-1 && npm run check:finance-students-bstats-ownership-r1",
++    "check": "npm run check:syntax && npm run check:mobile-startup-performance && npm run check:lazy-assets-loading && npm run check:tailwind-static-css-build && npm run check:mobile-filter-currency-stability && npm run check:exam-upgrade-finance-separation && npm run check:global-ownership-adoption-cleanup && npm run check:listener-ownership-boundary && npm run check:inventory-multiitem-readonly-ui && npm run check:financial-action-audit-guard && npm run check:diagnostics-tooling-isolation && npm run check:report-export-lazy-isolation && npm run check:attendance-canonical-ownership && npm run check:spark-read-cost-hardening && npm run check:inventory-history-active-debt && npm run check:inventory-consumer-hydration-hotfix && npm run check:inventory-dynamic-size-catalog && npm run check:inventory-ledger-reconciliation && npm run check:firestore-read-attribution-canonical-tx-boundary && npm run check:payment-bundle-runtime-hotfix && npm run check:canonical-transaction-safe-cutover && npm run check:debt-profile-read-boundary && npm run check:debt-authoritative-tuition-coverage && npm run check:coach-attendance-only-read-boundary && npm run check:security-coach-branch-boundary && npm run check:coach-branch-runtime-repair && npm run check:quit-tab-completeness && npm run check:quit-tab-authoritative-completeness && npm run check:quit-tab-mobile-parity && npm run check:render-warning-coalescing && npm run check:tuition-debt-source-of-truth && npm run check:active-skipped-month-section && npm run check:profile-canonical-store && npm run check:v4d1a-runtime-recovery && npm run check:v5q-quit-single-authoritative-pipeline && npm run check:v5r-quit-single-source-lock && npm run check:v5r-quit-source-behavior && npm run check:v5s-quit-context-render-loop-guard && npm run check:v5s-quit-context-behavior && npm run check:v5t-command-boundary-write-freeze && npm run check:v5t-command-boundary-behavior && npm run check:v5u1-student-status-command-cutover && npm run check:v5u1-student-status-command-behavior && npm run check:v5u2-tuition-command-cutover && npm run check:v5u2-tuition-command-behavior && npm run check:v5u2e-attendance-excel-sdk-fix && npm run check:student-name-search-priority && npm run check:superadmin-auth-principal-alignment && npm run check:admin-credential-single-source && npm run check:auth-context-single-writer && npm run check:legacy-global-freeze && npm run check:dashboard-single-read-authority && npm run check:dashboard-cache-freshness-guard && npm run check:dashboard-hydration-mutation-guard && npm run check:attendance-history-r1 && npm run check:attendance-history-r1-1 && npm run check:finance-students-bstats-ownership-r1 && npm run check:finance-write-evidence-r1-1",
+     "check:verbose": "node tools/check-syntax.mjs --verbose",
+     "check:syntax": "node tools/check-syntax.mjs",
+     "check:assets": "node tools/check-assets.mjs",
+@@ -24,7 +24,7 @@
+     "check:superadmin-audit": "node tools/check-superadmin-audit.mjs",
+     "check:scale-readiness-write-safety": "node tools/check-scale-readiness-write-safety.mjs",
+     "check:legacy-render-entrypoints": "node tools/check-legacy-render-entrypoints.mjs",
+-    "check:all": "npm run check:syntax && npm run check:mobile-startup-performance && npm run check:lazy-assets-loading && npm run check:tailwind-static-css-build && npm run check:mobile-filter-currency-stability && npm run check:low-risk-helper-extraction && npm run check:receipt-qr-helper-extraction && npm run check:transaction-realtime && npm run check:stats-aggregation && npm run check:runtime-smoke-test && npm run check:deploy-package && npm run check:github-pages-paths && npm run check:runtime-stability-gate && npm run check:dashboard-exam-registration-branch && npm run check:dashboard-branch-components && npm run check:dashboard-chart-lifecycle && npm run check:debt-service-bridge && npm run check:debt-actions-sync && npm run check:multiitem-skipped-months && npm run check:active-loadmore-newest-first && npm run check:mobile-superadmin-gate && npm run check:search-runtime-v2 && npm run check:search-latency-optimization && npm run check:student-search-index && npm run check:cross-tab-search-replay && npm run check:active-loadmore-single-source && npm run check:exam-auto-select-paid && npm run check:exam-upgrade-finance-separation && npm run check:performance-stability-gate && npm run check:tab-render-recovery && npm run check:financial-flow-guard-readiness && npm run check:security-license-ip-protection && npm run check:scale-readiness-write-safety && npm run check:exam-export-belt-sort && npm run check:active-new-students-filter && npm run check:legacy-app-reduction-readiness && npm run check:multiitem-inventory-hydration && npm run check:legacy-diagnostics-extraction && npm run check:legacy-render-entrypoints && npm run check:inline-handler-bridge && npm run check:superadmin-aggregation-hard-stop && npm run check:superadmin-quota-guard && npm run check:legacy-runtime-fallback-fix && npm run check:superadmin-cache-stats-island-fallback && npm run check:superadmin-render-scope-fix && npm run check:club-stats-auto-cache && npm run check:superadmin-server-summary-cache && npm run check:superadmin-safe-server-refresh && npm run check:excel-import-vtf-upsert && npm run check:production-stability-gate && npm run check:multiitem-tuition-package-fix && npm run check:admission-tuition-type-normalization && npm run check:inventory-multiitem-readonly-ui && npm run check:listener-ownership-boundary && npm run check:financial-action-audit-guard && npm run check:global-ownership-adoption-cleanup && npm run check:diagnostics-tooling-isolation && npm run check:report-export-lazy-isolation && npm run check:attendance-canonical-ownership && npm run check:spark-read-cost-hardening && npm run check:inventory-history-active-debt && npm run check:inventory-consumer-hydration-hotfix && npm run check:inventory-dynamic-size-catalog && npm run check:inventory-ledger-reconciliation && npm run check:firestore-read-attribution-canonical-tx-boundary && npm run check:payment-bundle-runtime-hotfix && npm run check:canonical-transaction-safe-cutover && npm run check:debt-profile-read-boundary && npm run check:debt-authoritative-tuition-coverage && npm run check:tuition-package-month-coverage && npm run check:coach-attendance-only-read-boundary && npm run check:security-coach-branch-boundary && npm run check:coach-branch-runtime-repair && npm run check:quit-tab-completeness && npm run check:quit-tab-authoritative-completeness && npm run check:quit-tab-mobile-parity && npm run check:superadmin-monthstats && npm run check:v5r-quit-single-source-lock && npm run check:v5r-quit-source-behavior && npm run check:v5s-quit-context-render-loop-guard && npm run check:v5s-quit-context-behavior && npm run check:superadmin-hotfix && npm run check:v5t-command-boundary-write-freeze && npm run check:v5t-command-boundary-behavior && npm run check:v5u1-student-status-command-cutover && npm run check:v5u1-student-status-command-behavior && npm run check:v5u2-tuition-command-cutover && npm run check:v5u2-tuition-command-behavior && npm run check:v5u2e-attendance-excel-sdk-fix && npm run check:student-name-search-priority && npm run check:superadmin-auth-principal-alignment && npm run check:admin-credential-single-source && npm run check:auth-context-single-writer && npm run check:legacy-global-freeze && npm run check:dashboard-single-read-authority && npm run check:dashboard-cache-freshness-guard && npm run check:dashboard-hydration-mutation-guard && npm run check:attendance-history-r1 && npm run check:attendance-history-r1-1 && npm run check:finance-students-bstats-ownership-r1",
++    "check:all": "npm run check:syntax && npm run check:mobile-startup-performance && npm run check:lazy-assets-loading && npm run check:tailwind-static-css-build && npm run check:mobile-filter-currency-stability && npm run check:low-risk-helper-extraction && npm run check:receipt-qr-helper-extraction && npm run check:transaction-realtime && npm run check:stats-aggregation && npm run check:runtime-smoke-test && npm run check:deploy-package && npm run check:github-pages-paths && npm run check:runtime-stability-gate && npm run check:dashboard-exam-registration-branch && npm run check:dashboard-branch-components && npm run check:dashboard-chart-lifecycle && npm run check:debt-service-bridge && npm run check:debt-actions-sync && npm run check:multiitem-skipped-months && npm run check:active-loadmore-newest-first && npm run check:mobile-superadmin-gate && npm run check:search-runtime-v2 && npm run check:search-latency-optimization && npm run check:student-search-index && npm run check:cross-tab-search-replay && npm run check:active-loadmore-single-source && npm run check:exam-auto-select-paid && npm run check:exam-upgrade-finance-separation && npm run check:performance-stability-gate && npm run check:tab-render-recovery && npm run check:financial-flow-guard-readiness && npm run check:security-license-ip-protection && npm run check:scale-readiness-write-safety && npm run check:exam-export-belt-sort && npm run check:active-new-students-filter && npm run check:legacy-app-reduction-readiness && npm run check:multiitem-inventory-hydration && npm run check:legacy-diagnostics-extraction && npm run check:legacy-render-entrypoints && npm run check:inline-handler-bridge && npm run check:superadmin-aggregation-hard-stop && npm run check:superadmin-quota-guard && npm run check:legacy-runtime-fallback-fix && npm run check:superadmin-cache-stats-island-fallback && npm run check:superadmin-render-scope-fix && npm run check:club-stats-auto-cache && npm run check:superadmin-server-summary-cache && npm run check:superadmin-safe-server-refresh && npm run check:excel-import-vtf-upsert && npm run check:production-stability-gate && npm run check:multiitem-tuition-package-fix && npm run check:admission-tuition-type-normalization && npm run check:inventory-multiitem-readonly-ui && npm run check:listener-ownership-boundary && npm run check:financial-action-audit-guard && npm run check:global-ownership-adoption-cleanup && npm run check:diagnostics-tooling-isolation && npm run check:report-export-lazy-isolation && npm run check:attendance-canonical-ownership && npm run check:spark-read-cost-hardening && npm run check:inventory-history-active-debt && npm run check:inventory-consumer-hydration-hotfix && npm run check:inventory-dynamic-size-catalog && npm run check:inventory-ledger-reconciliation && npm run check:firestore-read-attribution-canonical-tx-boundary && npm run check:payment-bundle-runtime-hotfix && npm run check:canonical-transaction-safe-cutover && npm run check:debt-profile-read-boundary && npm run check:debt-authoritative-tuition-coverage && npm run check:tuition-package-month-coverage && npm run check:coach-attendance-only-read-boundary && npm run check:security-coach-branch-boundary && npm run check:coach-branch-runtime-repair && npm run check:quit-tab-completeness && npm run check:quit-tab-authoritative-completeness && npm run check:quit-tab-mobile-parity && npm run check:superadmin-monthstats && npm run check:v5r-quit-single-source-lock && npm run check:v5r-quit-source-behavior && npm run check:v5s-quit-context-render-loop-guard && npm run check:v5s-quit-context-behavior && npm run check:superadmin-hotfix && npm run check:v5t-command-boundary-write-freeze && npm run check:v5t-command-boundary-behavior && npm run check:v5u1-student-status-command-cutover && npm run check:v5u1-student-status-command-behavior && npm run check:v5u2-tuition-command-cutover && npm run check:v5u2-tuition-command-behavior && npm run check:v5u2e-attendance-excel-sdk-fix && npm run check:student-name-search-priority && npm run check:superadmin-auth-principal-alignment && npm run check:admin-credential-single-source && npm run check:auth-context-single-writer && npm run check:legacy-global-freeze && npm run check:dashboard-single-read-authority && npm run check:dashboard-cache-freshness-guard && npm run check:dashboard-hydration-mutation-guard && npm run check:attendance-history-r1 && npm run check:attendance-history-r1-1 && npm run check:finance-students-bstats-ownership-r1 && npm run check:finance-write-evidence-r1-1",
+     "check:multiitem-inventory-hydration": "node tools/check-multiitem-inventory-hydration.mjs",
+     "check:legacy-diagnostics-extraction": "node tools/check-legacy-diagnostics-extraction.mjs",
+     "check:legacy-app-reduction-readiness": "node tools/check-legacy-app-reduction-readiness.mjs",
+@@ -317,7 +317,8 @@
+     "check:attendance-history-r1": "node tools/check-attendance-history-r1.mjs",
+     "check:attendance-history-r1-1": "node tools/check-attendance-history-r1-1.mjs",
+     "check:finance-students-bstats-ownership-r1": "node tools/check-finance-students-bstats-ownership-r1.mjs",
+-    "check:fin-canon-r1-2": "node tools/check-fin-canon-r1-2-policy.mjs"
++    "check:fin-canon-r1-2": "node tools/check-fin-canon-r1-2-policy.mjs",
++    "check:finance-write-evidence-r1-1": "node tools/check-finance-write-evidence-r1-1.mjs && node tools/check-finance-write-writer-matrix-r1-1.mjs"
+   },
+   "engines": {
+     "node": ">=18.0.0"
+--- a/tools/apply-fin-write-r1-1-lineage.mjs
++++ b/tools/apply-fin-write-r1-1-lineage.mjs
+@@ -0,0 +1,11 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import {buildImportGraph,buildTag} from './v11r2/import-graph.mjs';
++const token='a9r18-fin-write-r1-1-20261101';
++const scope=new Set(['index.html','app.js','js/main.js','js/modules/students.js','js/modules/finance.js','js/core/tuitionCommandBoundary.js','js/services/finance.service.js']);
++const g=buildImportGraph(process.cwd());
++function withToken(url){const [base,frag]=url.split('#'),i=base.indexOf('?'),pn=i<0?base:base.slice(0,i),params=new URLSearchParams(i<0?'':base.slice(i+1));params.set('v',token);return pn+'?'+params.toString()+(frag===undefined?'':'#'+frag)}
++const byFile=new Map();for(const e of g.edges){if(scope.has(e.from)&&e.to&&scope.has(e.to)){const arr=byFile.get(e.from)||[];arr.push(e);byFile.set(e.from,arr)}}
++for(const file of scope){if(file==='app.js'||file==='js/services/finance.service.js')continue;let text=fs.readFileSync(file,'utf8'),repls=[];for(const e of byFile.get(file)||[])repls.push({start:e.start,end:e.end,value:e.quoted?JSON.stringify(withToken(e.url)):withToken(e.url)});if(file==='js/main.js'){const b=buildTag(text);repls.push({start:b.start,end:b.end,value:JSON.stringify(token)})}for(const r of repls.sort((a,b)=>b.start-a.start))text=text.slice(0,r.start)+r.value+text.slice(r.end);fs.writeFileSync(file,text)}
++for(const file of scope){const pub=path.join('public',file);if(fs.existsSync(pub))fs.copyFileSync(file,pub)}
++console.log(JSON.stringify({token,scope:[...scope]}));
+--- a/tools/check-attendance-canonical-ownership.mjs
++++ b/tools/check-attendance-canonical-ownership.mjs
+@@ -8,6 +8,7 @@
+ import vm from 'node:vm';
+ import { pathToFileURL } from 'node:url';
+ import { verifyFinanceAppWaiver } from './check-r2r4-finance-app-guard.mjs';
++import { verifyFinanceWriteAppWaiver } from './check-fin-write-r1-1-app-guard.mjs';
+ 
+ const root = process.cwd();
+ const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
+@@ -109,8 +110,8 @@
+ const appLines = app.split('\n').length;
+ check(appBytes < baselineAppBytes, `app.js reduced from ${baselineAppBytes.toLocaleString()} to ${appBytes.toLocaleString()} bytes`);
+ check(appLines < baselineAppLines, `app.js reduced from ${baselineAppLines.toLocaleString()} to ${appLines.toLocaleString()} lines`);
+-const financeCorrectnessWaiver = appBytes > 700000 ? verifyFinanceAppWaiver(root) : null;
+-check(appBytes <= 700000 || financeCorrectnessWaiver?.ok === true, `app.js meets 700,000 byte target or exact R2R4 approved correctness-hunk proof (${appBytes.toLocaleString()} bytes; waiver ${financeCorrectnessWaiver?.ok === true ? 'verified' : 'absent'})`);
++const financeCorrectnessWaiver = appBytes > 700000 ? (verifyFinanceAppWaiver(root).ok ? verifyFinanceAppWaiver(root) : verifyFinanceWriteAppWaiver(root)) : null;
++check(appBytes <= 700000 || financeCorrectnessWaiver?.ok === true, `app.js meets 700,000 byte target or exact approved correctness-hunk proof (${appBytes.toLocaleString()} bytes; waiver ${financeCorrectnessWaiver?.ok === true ? 'verified' : 'absent'})`);
+ // V5U6E adds the transaction-coverage publisher and explicit recovery-probe guard
+ // at the canonical listener/bootstrap owners. Keep a tight compatible ceiling
+ // without treating those authorized safety guards as Attendance ownership drift.
+--- a/tools/check-attendance-history-r1-1.mjs
++++ b/tools/check-attendance-history-r1-1.mjs
+@@ -8,7 +8,7 @@
+ const reportFacade=fs.readFileSync(path.join(root,'js/modules/reports/reportExportFacade.js'),'utf8');
+ const failures=[]; const passes=[]; const check=(n,ok,d='')=>{(ok?passes:failures).push(n);console.log(`${ok?'✅':'❌'} ${n}${d?' — '+d:''}`)};
+ const NEW='att-history-r1-1-20261031';
+-const ACCEPTED_PARENT_LINEAGE='a9r18-bstats-r1-1-20261031';
++const ACCEPTED_PARENT_LINEAGE='a9r18-fin-write-r1-1-20261101';
+ console.log('\n=== ATTENDANCE HISTORY R1.1 ===\n');
+ const callsites=[...att.matchAll(/window\.showAttMemberHistory\(([^\n;]+)\)/g)].map(m=>m[1]);
+ check('ALL_SHOW_MEMBER_HISTORY_CALLSITES_INVENTORIED',callsites.length===3,`count=${callsites.length}`);
+--- a/tools/check-debt-service-bridge.mjs
++++ b/tools/check-debt-service-bridge.mjs
+@@ -54,7 +54,7 @@
+ // ── 1. finance.js import StudentService ──────────────────────────────────────
+ check(
+     '1. finance.js imports StudentService from students.service.js',
+-    financeJs.includes("import { StudentService } from '../services/students.service.js'"),
++    /import\s*\{\s*StudentService\s*\}\s*from\s*['\"]\.\.\/services\/students\.service\.js(?:\?[^'\"]+)?['\"]/.test(financeJs),
+     "Thêm: import { StudentService } from '../services/students.service.js'; vào đầu finance.js"
+ );
+ 
+--- a/tools/check-fin-write-r1-1-app-guard.mjs
++++ b/tools/check-fin-write-r1-1-app-guard.mjs
+@@ -0,0 +1,36 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import crypto from 'node:crypto';
++import assert from 'node:assert/strict';
++import { parse } from './v11r2/vendor/acorn.mjs';
++import { runtimeHash } from './v11r2/cutover.mjs';
++import { verifySourceIdentity } from './v11r2/source-identity.mjs';
++const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
++export function describeFinanceWriteApp(source){
++ const tree=parse(source,{ecmaVersion:'latest',sourceType:'script'}),bodies={},globals=[];
++ function clean(n){
++  if(!n||typeof n!=='object')return n;
++  if(Array.isArray(n))return n.map(clean);
++  if(n.type==='AssignmentExpression'&&n.left?.type==='MemberExpression'&&n.left.object?.name==='window'){
++   const name=n.left.property?.name;if(name)globals.push(name);
++   if(name==='processMultiItem'){assert(!bodies[name]);bodies[name]=sha(source.slice(n.right.start,n.right.end));return{type:'ApprovedFinanceWriteOwner',name};}
++  }
++  return Object.fromEntries(Object.entries(n).filter(([k])=>!['start','end','raw','loc'].includes(k)).map(([k,v])=>[k,clean(v)]));
++ }
++ const outside=clean(tree);assert.deepEqual(Object.keys(bodies),['processMultiItem']);
++ return{bytes:Buffer.byteLength(source),SHA256:sha(source),outsideProcessMultiItemAST_SHA256:sha(JSON.stringify(outside)),ownerBodySHA256:bodies,windowAssignments:globals.sort()};
++}
++export function verifyFinanceWriteAppWaiver(root=process.cwd()){
++ try{
++  const m=JSON.parse(fs.readFileSync(path.join(root,'tools/v11r2/manifests/FIN_WRITE_R1_1_APP_CORE_GUARD.json'),'utf8'));
++  assert.equal(m.baseline.SHA256,'c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13');
++  assert.equal(m.baseline.bytes,702900);
++  assert.equal(m.baseline.outsideProcessMultiItemAST_SHA256,m.approved.outsideProcessMultiItemAST_SHA256);
++  assert.deepEqual(m.baseline.windowAssignments,m.approved.windowAssignments);
++  const actual=describeFinanceWriteApp(fs.readFileSync(path.join(root,'app.js'),'utf8'));
++  assert.deepEqual(actual,m.approved,'Exact approved processMultiItem correctness hunk required');
++  assert(actual.bytes-m.baseline.bytes>0&&actual.bytes-m.baseline.bytes<=4096);
++  const pin=verifySourceIdentity(root,runtimeHash(root));assert.equal(pin.id,'V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1');
++  return{ok:true,byteDelta:actual.bytes-m.baseline.bytes,unchangedOutsideProcessMultiItem:true};
++ }catch(e){return{ok:false,reason:e.message};}
++}
+--- a/tools/check-finance-write-evidence-r1-1.mjs
++++ b/tools/check-finance-write-evidence-r1-1.mjs
+@@ -0,0 +1,88 @@
++#!/usr/bin/env node
++import fs from 'node:fs';
++let fail=0; const ok=(n,c,d='')=>{if(c)console.log('✅',n);else{fail++;console.error('❌',n,d)}};
++const sleep=ms=>new Promise(r=>setTimeout(r,ms));
++globalThis.window=globalThis;
++window.userRole='admin'; window.currentUserEmail='admin@example.com';
++window.__verifiedAuthContextState={ready:true,uid:'u1',role:'admin',clubId:'club-A',generation:7,sessionEpoch:11,authGeneration:13};
++window.getCanonicalTransactionReadMode=()=> 'legacy';
++window.__store={clubId:'club-A',profiles:{},transactions:[],allTransactions:[],_activeTxReadMode:'legacy',_activeTxProjectionEpoch:{id:'ep'}};
++window.__store.transactionCoverage={clubId:'club-A',month:'2026-09',readMode:'legacy',ready:false,complete:false,pageServerComplete:false,pageEvidence:{epoch:window.__store._activeTxProjectionEpoch}};
++window.guardFinancialWriteIntent=()=>true;window.isFinancialWriteAllowed=()=>true;window.recordFinancialActionAudit=()=>{};window.invalidateLists=()=>{};window.refreshListsComputation=()=>{};window.invalidateDashboard=()=>{};window.invalidateList=()=>{};
++let sourcePages={}; let getDocsCalls=0; let delayMs=0;
++function where(field,op,value){return{t:'where',field,op,value}} function limit(n){return{t:'limit',n}} function startAfter(cursor){return{t:'cursor',cursor}}
++function query(ref,...constraints){return{ref,constraints}} function collection(...args){return{args}} function doc(...args){return{args}}
++function sourceOf(q){const ws=q.constraints.filter(x=>x.t==='where'); if(ws.some(x=>x.field==='accountingMonths'))return'canonical'; if(ws.some(x=>x.field==='txMonth'))return'byTxMonth'; if(ws.some(x=>x.field==='packageMonths'))return'byPackageMonth'; return'byDate';}
++function pageIndex(q){return q.constraints.some(x=>x.t==='cursor')?1:0}
++function snap(spec={}){const docs=(spec.rows||[]).map((data,i)=>({id:data.id||`d${i}`,data:()=>({...data})}));return{docs,size:docs.length,metadata:spec.metadata,forEach(cb){docs.forEach(cb)}}}
++window._fb_init={query,where,limit,startAfter,collection,doc,async getDocs(q){getDocsCalls++; if(delayMs)await sleep(delayMs);const src=sourceOf(q),idx=pageIndex(q),spec=(sourcePages[src]||[])[idx]||{rows:[],metadata:{fromCache:false,hasPendingWrites:false}};return snap(spec)},arrayUnion:(...x)=>({arrayUnion:x}),arrayRemove:(...x)=>({arrayRemove:x})};
++window.__store.db={}; window.__store.colRef={};
++await import(`../js/core/tuitionDebtCanonical.js?fw=${Date.now()}`);
++const {FinanceService}=await import(`../js/services/finance.service.js?fw=${Date.now()}`);
++window.FinanceService=FinanceService;
++function resetCoverage(month='2026-09',complete=false){window.__store._activeTxProjectionEpoch={id:'ep'+Math.random()};window.__store._activeTxReadMode='legacy';window.__store.transactionCoverage={clubId:'club-A',month,readMode:'legacy',ready:complete,complete,pageServerComplete:complete,pageEvidence:{epoch:window.__store._activeTxProjectionEpoch}};window.__store.transactions=[];window.__store.allTransactions=[];window.allTransactions=[];}
++const trusted={fromCache:false,hasPendingWrites:false};
++// Evidence trust matrices
++resetCoverage(); sourcePages={byTxMonth:[{rows:[],metadata:trusted}],byDate:[{rows:[],metadata:trusted}],byPackageMonth:[{rows:[],metadata:trusted}]}; getDocsCalls=0;
++let e=await FinanceService.getCompleteMonthEvidence({month:'2026-09',reason:'all-server'}); ok('ALL_PAGES_SERVER_CONFIRMED',e.serverComplete===true&&e.sources.length===3&&getDocsCalls===3); ok('LEGACY_MODE_ALL_REQUIRED_SOURCES_COMPLETE',e.serverComplete===true&&new Set(e.sources.map(x=>x.source)).size===3&&['byTxMonth','byDate','byPackageMonth'].every(x=>e.sources.some(s=>s.source===x&&s.paginationComplete)));
++resetCoverage(); sourcePages={byTxMonth:[{rows:[],metadata:{fromCache:true,hasPendingWrites:false}}],byDate:[{rows:[],metadata:trusted}],byPackageMonth:[{rows:[],metadata:trusted}]}; e=await FinanceService.getCompleteMonthEvidence({month:'2026-09'});ok('CACHE_ONLY_EVIDENCE_BLOCKED',e.serverComplete===false);
++resetCoverage(); sourcePages={byTxMonth:[{rows:[],metadata:{fromCache:false,hasPendingWrites:true}}],byDate:[{rows:[],metadata:trusted}],byPackageMonth:[{rows:[],metadata:trusted}]};e=await FinanceService.getCompleteMonthEvidence({month:'2026-09'});ok('PENDING_WRITE_EVIDENCE_BLOCKED',e.serverComplete===false);
++resetCoverage(); sourcePages={byTxMonth:[{rows:[]}],byDate:[{rows:[],metadata:trusted}],byPackageMonth:[{rows:[],metadata:trusted}]};e=await FinanceService.getCompleteMonthEvidence({month:'2026-09'});ok('MISSING_METADATA_EVIDENCE_BLOCKED',e.serverComplete===false);
++// earlier page cached, later trusted: first page must be full 500 to paginate
++resetCoverage(); const rows500=Array.from({length:500},(_,i)=>({id:'x'+i,type:'Thu khác'})); sourcePages={byTxMonth:[{rows:rows500,metadata:{fromCache:true,hasPendingWrites:false}},{rows:[],metadata:trusted}],byDate:[{rows:[],metadata:trusted}],byPackageMonth:[{rows:[],metadata:trusted}]}; e=await FinanceService.getCompleteMonthEvidence({month:'2026-09'});ok('EARLIER_PAGE_CACHE_LATER_PAGE_SERVER_BLOCKED',e.serverComplete===false&&e.sources.find(x=>x.source==='byTxMonth').pageCount===2);
++// strict coverage zero read
++resetCoverage('2026-09',true);getDocsCalls=0;e=await FinanceService.getCompleteMonthEvidence({month:'2026-09'});ok('STRICT_COMPLETE_CURRENT_COVERAGE_CAUSES_ZERO_EXTRA_READ',e.serverComplete===true&&getDocsCalls===0);
++// single flight
++resetCoverage();sourcePages={byTxMonth:[{rows:[],metadata:trusted}],byDate:[{rows:[],metadata:trusted}],byPackageMonth:[{rows:[],metadata:trusted}]};getDocsCalls=0;delayMs=20;const [s1,s2]=await Promise.all([FinanceService.getCompleteMonthEvidence({month:'2026-09'}),FinanceService.getCompleteMonthEvidence({month:'2026-09'})]);delayMs=0;ok('EVIDENCE_SINGLE_FLIGHT',s1.serverComplete&&s2.serverComplete&&getDocsCalls===3);
++// stale club during read
++resetCoverage();delayMs=20;const staleP=FinanceService.getCompleteMonthEvidence({month:'2026-09'});await sleep(2);window.__store.clubId='club-B';e=await staleP;ok('EVIDENCE_CLUB_SWITCH_STALE',e.serverComplete===false&&e.contextStillCurrent===false);window.__store.clubId='club-A';delayMs=0;
++// stale session during read
++resetCoverage();delayMs=20;const staleS=FinanceService.getCompleteMonthEvidence({month:'2026-09'});await sleep(2);window.__verifiedAuthContextState={...window.__verifiedAuthContextState,generation:8};e=await staleS;ok('EVIDENCE_SESSION_STALE',e.serverComplete===false);window.__verifiedAuthContextState={...window.__verifiedAuthContextState,generation:7};delayMs=0;
++// canonical mode source only accountingMonths
++window.getCanonicalTransactionReadMode=()=> 'canonical';window.__store._activeTxReadMode='canonical';resetCoverage();window.__store._activeTxReadMode='canonical';window.__store.transactionCoverage.readMode='canonical';sourcePages={canonical:[{rows:[],metadata:trusted}]};getDocsCalls=0;e=await FinanceService.getCompleteMonthEvidence({month:'2026-09'});ok('CANONICAL_MODE_ACCOUNTINGMONTH_COMPLETE',e.serverComplete===true&&e.sources.length===1&&e.sources[0].source==='canonical'&&getDocsCalls===1);
++window.getCanonicalTransactionReadMode=()=> 'legacy';
++// Static no UI filter and ownership checks
++const svc=fs.readFileSync('js/services/finance.service.js','utf8'),tb=fs.readFileSync('js/core/tuitionCommandBoundary.js','utf8'),fm=fs.readFileSync('js/modules/finance.js','utf8'),app=fs.readFileSync('app.js','utf8');
++const evidencePrimitive=svc.slice(svc.indexOf('async function _readServerCompleteMonth'),svc.indexOf('export const FinanceService')); ok('EVIDENCE_IGNORES_UI_SEARCH',!/(searchText|filterSearch|transactionSearch|search\s*=)/.test(evidencePrimitive));
++ok('EVIDENCE_IGNORES_UI_BRANCH_FILTER',!svc.match(/getCompleteMonthEvidence[\s\S]{0,9000}(filterBranch|branchFilter)/));
++ok('LEGACY_GLOBAL_RECONCILE_NORMAL_CALLERS_ZERO',!tb.includes('reconcileStudentTuitionAfterDeletedTransaction')&&!fm.includes('reconcileStudentTuitionAfterDeletedTransaction'));
++ok('MULTIITEM_USES_TUITION_EVIDENCE_OWNER',app.includes("resolveTuitionSettlementForWrite({profile:latestProfile"));
++ok('MULTIITEM_USES_EXAM_EVIDENCE_OWNER',app.includes("resolveExamPaymentForWrite({profile,studentName:name"));
++ok('COMBO_USES_SHARED_TUITION_EVIDENCE',fm.includes('requireTuitionUnpaidForWrite') && fm.includes('finance.processCombo'));
++ok('FORM_USES_SHARED_TUITION_EVIDENCE',fm.includes('requireTuitionUnpaidForWrite') && fm.includes('finance.transactionForm'));
++ok('QUICK_EXAM_USES_SHARED_EXAM_EVIDENCE',fm.includes('requireExamUnpaidForWrite') && fm.includes('finance.quickCollectExam'));
++// Tuition boundary dynamic
++window.__store.profiles={'Nguyen A':{profileId:'p1',tuitionFee:100000,paidUntil:'2026-05',paidMonths:['2026-05']}};window.studentProfileStore={getAllProfilesCompat:()=>window.__store.profiles,mergeProfile:(n,d)=>{window.__store.profiles[n]={...window.__store.profiles[n],...d}}};
++window.TransactionDeleteIntegrity={analyzeTransactionDeleteImpact(tx){return{valid:true,failClosed:false,hasTuition:true,hasInventory:false,requiresInventoryRollback:false,isMixedBundle:false,isPureTuition:true,requiresProfileReconcile:true,studentName:tx.description,requiresExamRefresh:false,safeToHardDelete:true,tuitionMonths:tx.packageMonths||[]}}};
++let atomic=0,deleted=0,profileUpdates=0,completeReads=0,legacyReconcile=0; let evidenceRows=[], evidenceFail=false, currentComplete=false;
++window.FinanceService={
++ getRuntimeTransactionRowsForEvidence(){return window.__store.transactions||[]},getCurrentMonthEvidenceForWrite({month}){return{strictCurrentCoverageComplete:currentComplete,serverComplete:currentComplete,contextStillCurrent:true,rows:window.__store.transactions||[],context:{clubId:'club-A',month,readMode:'legacy'}}},
++ async getCompleteMonthEvidence({month}){completeReads++;return evidenceFail?{serverComplete:false,contextStillCurrent:true,rows:[],code:'SERVER_EVIDENCE_UNVERIFIED'}:{serverComplete:true,contextStillCurrent:true,rows:evidenceRows,context:{clubId:'club-A',month,readMode:'legacy'}}},
++ async commitAtomicWritePlan(plan){atomic++;return{txIds:['newtx'+atomic]}},_arrayUnion:(...x)=>({x}),async addFeeAuditSilent(){return{ok:true}},async deleteTransaction(){deleted++},async updateProfileAfterTxDelete(){profileUpdates++}
++};
++window.reconcileStudentTuitionAfterDeletedTransaction=async()=>{legacyReconcile++};
++const tmod=await import(`../js/core/tuitionCommandBoundary.js?fwgate=${Date.now()}`);tmod.initTuitionCommandBoundary();const B=window.TuitionCommandBoundary;
++// profile-paid zero read
++completeReads=0;let d=await B.resolveTuitionSettlementForWrite({profile:{profileId:'p1',paidMonths:['2026-09']},studentName:'Nguyen A',targetMonths:['2026-09']});ok('PROFILE_PROVEN_PAID_CAUSES_ZERO_READ',d.status==='PAID'&&completeReads===0);
++// Multi-month profile-proven fast path must remain zero-read for supported collection sizes.
++for (const count of [1,3,6,9,12]) { const months=Array.from({length:count},(_,i)=>`2026-${String(i+1).padStart(2,'0')}`); completeReads=0; d=await B.resolveTuitionSettlementForWrite({profile:{profileId:'p1',paidMonths:months},studentName:'Nguyen A',targetMonths:months}); ok(`MULTIMONTH_${count}_PROFILE_PROVEN_ZERO_READ`,d.status==='PAID'&&completeReads===0); }
++// server existing tx blocks duplicate
++window.__store.profiles['Nguyen A']={profileId:'p1',tuitionFee:100000,paidUntil:'2026-05',paidMonths:['2026-05']};window.__store.transactions=[];currentComplete=false;evidenceFail=false;evidenceRows=[{id:'server-pay',type:'Học phí',description:'Nguyen A',profileId:'p1',packageMonths:['2026-09'],txMonth:'2026-09',amount:100000}];atomic=0;d=await B.collectTuition({studentName:'Nguyen A',months:['2026-09'],branch:'CS1',amount:100000});ok('QUICKPAY_EXISTING_SERVER_TX_BLOCKS_DUPLICATE',d.alreadySettled===true&&atomic===0);
++// failure zero write
++window.__store.transactions=[];evidenceRows=[];evidenceFail=true;atomic=0;d=await B.collectTuition({studentName:'Nguyen A',months:['2026-10'],branch:'CS1',amount:100000});ok('SERVER_EVIDENCE_FAILURE_CAUSES_ZERO_WRITE',d.blocked===true&&atomic===0);
++// delete alternative preserves profile
++evidenceFail=false;evidenceRows=[{id:'alt',type:'Học phí',description:'Nguyen A',profileId:'p1',packageMonths:['2026-09'],txMonth:'2026-09'}];profileUpdates=0;legacyReconcile=0;d=await B.deleteTuitionTransaction({txId:'del1',transaction:{id:'del1',type:'Học phí',description:'Nguyen A',packageMonths:['2026-09'],txMonth:'2026-09'}});ok('ALTERNATIVE_PAYMENT_PRESERVES_PAIDMONTH_AND_PAIDUNTIL',d.ok===true&&profileUpdates===0&&legacyReconcile===0);
++// delete true removal writes once
++evidenceRows=[];profileUpdates=0;d=await B.deleteTuitionTransaction({txId:'del2',transaction:{id:'del2',type:'Học phí',description:'Nguyen A',packageMonths:['2026-09'],txMonth:'2026-09'}});ok('TRUE_UNCOVERED_MONTH_REMOVED_WITH_SINGLE_WRITER',d.ok===true&&profileUpdates===1&&legacyReconcile===0);
++// delete evidence fail: delete done, no profile lowering
++evidenceFail=true;profileUpdates=0;d=await B.deleteTuitionTransaction({txId:'del3',transaction:{id:'del3',type:'Học phí',description:'Nguyen A',packageMonths:['2026-09'],txMonth:'2026-09'}});ok('EVIDENCE_FAILURE_DOES_NOT_LOWER_PROFILE',d.transactionDeleted===true&&d.profileReconcileVerified===false&&profileUpdates===0);
++// exam resolver server existing, failure
++window.FinanceService=FinanceService;window.__store.profiles={'Nguyen A':{profileId:'p1'}};window.getCanonicalStudentName=(x)=>x;window.buildCanonicalExamPaymentLedger=({month,transactions})=>{const found=(transactions||[]).find(t=>(t.type==='Lệ phí thi'||t.examAmount>0)&&t.txMonth===month);return{byName:found?{'Nguyen A':found}:{}}};
++resetCoverage();sourcePages={byTxMonth:[{rows:[{id:'exam1',type:'Lệ phí thi',studentName:'Nguyen A',profileId:'p1',txMonth:'2026-09',amount:250000}],metadata:trusted}],byDate:[{rows:[],metadata:trusted}],byPackageMonth:[{rows:[],metadata:trusted}]};d=await FinanceService.resolveExamPaymentForWrite({profile:{profileId:'p1'},studentName:'Nguyen A',month:'2026-09'});ok('QUICKCOLLECT_EXISTING_SERVER_PAYMENT_ZERO_WRITE_DECISION',d.status==='PAID');
++resetCoverage();sourcePages={byTxMonth:[{rows:[],metadata:{fromCache:true,hasPendingWrites:false}}],byDate:[{rows:[],metadata:trusted}],byPackageMonth:[{rows:[],metadata:trusted}]};d=await FinanceService.resolveExamPaymentForWrite({profile:{profileId:'p1'},studentName:'Nguyen A',month:'2026-09'});ok('EXAM_EVIDENCE_FAILURE_ZERO_WRITE_DECISION',d.status==='UNKNOWN');
++// Exam decision must also fail closed when the captured auth/session context becomes stale mid-read.
++resetCoverage();sourcePages={byTxMonth:[{rows:[],metadata:trusted}],byDate:[{rows:[],metadata:trusted}],byPackageMonth:[{rows:[],metadata:trusted}]};delayMs=20;const examStaleP=FinanceService.resolveExamPaymentForWrite({profile:{profileId:'p1'},studentName:'Nguyen A',month:'2026-09'});await sleep(2);window.__verifiedAuthContextState={...window.__verifiedAuthContextState,generation:8};d=await examStaleP;ok('EXAM_CONTEXT_STALE_ZERO_WRITE',d.status==='UNKNOWN');window.__verifiedAuthContextState={...window.__verifiedAuthContextState,generation:7};delayMs=0;
++// no new listener/write owner static: service adds getDocs only, no onSnapshot; writes unchanged owners
++ok('NO_NEW_LISTENER_OWNER',!svc.includes('onSnapshot('));
++const multiItemSnippet=app.slice(app.indexOf('window.processMultiItem = async'),app.indexOf('// ─── Setup currency inputs')); ok('NO_PARALLEL_FINANCE_READER_OWNER',!fm.includes('getDocs(')&&!multiItemSnippet.includes('getDocs(')&&!tb.includes('getDocs('));
++console.log(`\nFINANCE-WRITE-EVIDENCE-R1.1: ${fail?'FAIL '+fail:'PASS'}`);if(fail)process.exit(1);
+--- a/tools/check-finance-write-writer-matrix-r1-1.mjs
++++ b/tools/check-finance-write-writer-matrix-r1-1.mjs
+@@ -0,0 +1,23 @@
++#!/usr/bin/env node
++import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import {pathToFileURL} from 'node:url';
++let fail=0;const ok=(n,c,d='')=>{if(c)console.log('✅',n);else{fail++;console.error('❌',n,d)}};
++globalThis.window=globalThis;window.location={hostname:'test'};globalThis.confirm=()=>true;globalThis.alert=()=>{};globalThis.prompt=()=> '250000';
++const form={dataset:{},reset(){}};const el=(value='',extra={})=>Object.assign({value,checked:false,style:{},options:[]},extra);const E={
++ combo_name1:el('Alice'),combo_fee1_actual:el('500000'),combo_month1:el('2026-09'),combo_name2:el(''),combo_fee2_actual:el(''),combo_month2:el(''),comboModal:el('',{style:{}}),
++ transactionForm:form,type:el('Học phí',{options:[]}),description:el('Alice'),amountActual:el('500000'),date:el('2026-09-01'),tx_package:el('1',{options:[{value:'1'}]}),branch:el('CS1',{options:[]}),tx_discount:el('',{checked:false}),tx_discount_pct:el('10'),tx_discount_saved:el('',{style:{}}),tx_exam_amountActual:el('250000'),tx_exam_title:el('Thi lên Đai vàng'),filterMonth:el('2026-09'),exam_fee_all_actual:el('250000'),
++ mi_name:el('Alice'),mi_tuition_month:el('2026-09'),mi_tuition_pkg:el('1',{options:[{value:'1'}]}),mi_tuition_actual:el('500000'),mi_tuition_enabled:el('',{checked:true}),mi_exam_toggle:el('',{checked:false}),mi_exam_title:el('Thi lên Đai vàng'),mi_exam_actual:el('250000'),mi_other_toggle:el('',{checked:false}),mi_other_desc:el(''),mi_other_actual:el('0'),mi_inv_toggle:el('',{checked:false}),mi_inv_category:el('Võ phục'),mi_inv_size_select:el(''),mi_inv_size_text:el(''),mi_inv_qty:el('1'),mi_inv_price_actual:el('0'),mi_inv_total_actual:el('0'),multiItemModal:el('',{style:{}})
++};globalThis.document={getElementById:id=>E[id]||null,querySelector:()=>null,querySelectorAll:()=>[]};
++window.__store={clubId:'club-A',profiles:{Alice:{id:'P1',profileId:'P1',branch:'CS1',tuitionFee:500000,paidMonths:[],paidUntil:'',belt:'Đai trắng - Cấp 10'}},transactions:[],allTransactions:[],clubConfig:{branchCount:1}};window.allProfiles=window.__store.profiles;globalThis.allProfiles=window.allProfiles;window.userRole='admin';window.currentUserEmail='admin@test';window.showToast=()=>{};window.renderExamList=()=>{};window.getClubExamFee=()=>250000;window.BELT_NEXT={'Đai trắng - Cấp 10':'Đai vàng'};window.ProfileCanonicalStore={resolveDisplayName:n=>n};window.mergeTransactionIntoRuntimeStore=()=>{};window.buildCanonicalExamPaymentLedger=()=>({byName:{}});window.guardFinancialWriteIntent=()=>({allowed:true});window.isFinancialWriteAllowed=()=>true;window.toggleTxFormType=()=>{};window.exportReceipt=async()=>({ok:true});window.recordFinancialActionAudit=()=>{};
++const token='a9r18-fin-write-r1-1-20261101';const svcUrl=pathToFileURL(path.resolve('js/services/finance.service.js')).href+'?v='+token;const {FinanceService}=await import(svcUrl);window.FinanceService=FinanceService;let atomic=0,addTx=0;FinanceService.commitAtomicWritePlan=async p=>{atomic++;return{txIds:['X']}};FinanceService.addTransaction=async()=>{addTx++;return{id:'X'}};FinanceService._arrayUnion=(...x)=>x;FinanceService.addFeeAuditSilent=async()=>({ok:true});FinanceService.requireExamUnpaidForWrite=async()=>({status:'PAID'});
++window.TuitionCommandBoundary={runInProfileTuitionMutationLanes:async(o,fn)=>fn(),runInProfileTuitionMutationLane:async(o,fn)=>fn(),commitLocalTuitionPaymentState:()=>{},requireTuitionUnpaidForWrite:async()=>({status:'PAID',profile:window.__store.profiles.Alice,settlement:{paidMonths:['2026-09']},paidUntil:'2026-09'})};
++const fin=await import(pathToFileURL(path.resolve('js/modules/finance.js')).href+'?wm='+Date.now());fin.initFinance();
++await window.quickCollectExam('Alice','CS1');ok('QUICKCOLLECT_EXISTING_SERVER_PAYMENT_ZERO_WRITE',addTx===0);
++atomic=0;await window.processCombo('pay');ok('COMBO_EXISTING_SERVER_TX_BLOCKS_DUPLICATE',atomic===0);
++atomic=0;E.type.value='Học phí';await form.onsubmit({preventDefault(){},target:form});ok('FORM_EXISTING_SERVER_TX_BLOCKS_DUPLICATE',atomic===0);
++// Mixed: tuition unpaid verified, exam already paid must block whole command.
++window.TuitionCommandBoundary.requireTuitionUnpaidForWrite=async()=>({status:'VERIFIED_UNPAID',profile:window.__store.profiles.Alice,settlement:{paidMonths:[]},paidUntil:'2026-09'});atomic=0;E.type.value='Học phí + Lệ phí thi';await form.onsubmit({preventDefault(){},target:form});ok('MIXED_EXISTING_SERVER_PAYMENT_ZERO_WRITE',atomic===0);
++// MultiItem current source, exact owner calls; PAID decisions must prevent batch commit.
++const app=fs.readFileSync('app.js','utf8'),a=app.indexOf('window.processMultiItem = async (action) => {'),b=app.indexOf('\n};\n\n// ─── Setup currency inputs',a)+4;globalThis.getLocalToday=()=> '2026-09-10';globalThis.normalizeYYYYMM=x=>String(x||'').slice(0,7);globalThis.db={};globalThis.currentClubId='club-A';globalThis.colRef={};globalThis.arrayUnion=(...x)=>x;globalThis.doc=(...args)=>({id:args.length===1?'TXNEW':String(args.at(-1)||'DOC'),args});globalThis._canonicalTxPayload=x=>x;let batchCommits=0;globalThis.writeBatch=()=>({update(){},set(){},commit:async()=>{batchCommits++}});window.buildMultiItemTuitionPackageMonths=m=>({months:[m]});window.formatTuitionMonthList=x=>x.join(',');window.formatMonthCompact=x=>x;window.TuitionDebtCanonical={areTuitionMonthsSettled:()=>({allSettled:false,states:[{settled:false}]}),reconcilePaidUntilFromMonthEvidence:()=> '2026-09'};window.buildPaymentBundleTransaction=x=>x;window.InventoryService={};
++vm.runInThisContext(app.slice(a,b));window.TuitionCommandBoundary.resolveTuitionSettlementForWrite=async()=>({status:'PAID'});E.mi_tuition_enabled.checked=true;E.mi_tuition_actual.value='500000';E.mi_exam_toggle.checked=false;await window.processMultiItem('pay');ok('MULTIITEM_EXISTING_SERVER_TX_BLOCKS_DUPLICATE',batchCommits===0);
++batchCommits=0;E.mi_tuition_enabled.checked=false;E.mi_tuition_actual.value='0';E.mi_exam_toggle.checked=true;window.TuitionCommandBoundary.resolveTuitionSettlementForWrite=async()=>({status:'VERIFIED_UNPAID'});window.FinanceService.resolveExamPaymentForWrite=async()=>({status:'PAID'});await window.processMultiItem('pay');ok('MULTIITEM_EXISTING_SERVER_PAYMENT_ZERO_WRITE',batchCommits===0);
++console.log(`\nFINANCE-WRITE-WRITER-MATRIX-R1.1: ${fail?'FAIL '+fail:'PASS'}`);if(fail)process.exit(1);
+--- a/tools/check-finance-write-cross-device-r1-1.mjs
++++ b/tools/check-finance-write-cross-device-r1-1.mjs
+@@ -0,0 +1,20 @@
++import fs from 'node:fs';
++let fail=0; const results=[];
++function record(name,open,detail){results.push({name,classification:open?'OPEN':'CLOSED',...detail});console.log(`${open?'⚠️':'✅'} ${name}: ${open?'OPEN':'CLOSED'}`);}
++const svc=fs.readFileSync('js/services/finance.service.js','utf8');
++const boundary=fs.readFileSync('js/core/tuitionCommandBoundary.js','utf8');
++const finance=fs.readFileSync('js/modules/finance.js','utf8');
++// Independent-runtime model: both clients complete the same negative read before either commits.
++function independentCollectRace(kind){let server=[];const observe=()=>server.slice();const decide=rows=>rows.length===0?'VERIFIED_UNPAID':'PAID';const a=decide(observe()),b=decide(observe());let writes=0;if(a==='VERIFIED_UNPAID'){server.push({id:'A',kind});writes++;}if(b==='VERIFIED_UNPAID'){server.push({id:'B',kind});writes++;}return {a,b,writes,duplicate:writes===2};}
++let r=independentCollectRace('tuition');record('CLIENT_A_B_SAME_TUITION_MONTH',r.duplicate,{decisions:[r.a,r.b],writes:r.writes,reason:'Both independent clients can obtain complete negative evidence before either commit; no cross-device uniqueness marker/transaction serializes the subsequent writes.'});
++r=independentCollectRace('exam');record('CLIENT_A_B_SAME_EXAM_FEE',r.duplicate,{decisions:[r.a,r.b],writes:r.writes,reason:'Same read-then-write window exists for exam payment.'});
++// Delete/create ordering: A verifies no replacement, B then creates one, A applies profile regression.
++let server=[{id:'tx-old',month:'2026-09'}];server=server.filter(x=>x.id!=='tx-old');const aEvidence=server.slice();const aPlansRemoval=aEvidence.length===0;server.push({id:'tx-new',month:'2026-09'});let profilePaid=true;if(aPlansRemoval)profilePaid=false;record('CLIENT_A_DELETE_WHILE_B_CREATES_REPLACEMENT',server.length===1 && profilePaid===false,{remainingServerPayments:server.length,profilePaidAfterAReconcile:profilePaid,reason:'A can verify absence before B replacement commit, then regress profile after B writes; context freshness does not serialize independent devices.'});
++const localSingleFlight=/const\s+_completeEvidenceFlights\s*=\s*new Map/.test(svc);
++const hasNewUniqueMarker=/unique.{0,20}(payment|tuition|exam)|payment.{0,20}lock|tuition.{0,20}lock|exam.{0,20}lock/i.test(svc+boundary+finance);
++const relevantRunTx=(svc+boundary+finance).match(/runTransaction\s*\(/g)?.length||0;
++console.log(JSON.stringify({localSingleFlight,hasNewUniqueMarker,relevantRunTransactionCallsites:relevantRunTx,results},null,2));
++if(!results.every(x=>x.classification==='OPEN'))fail++;
++if(!localSingleFlight)fail++;
++if(hasNewUniqueMarker)fail++;
++process.exit(fail?1:0);
+--- a/tools/check-scale-readiness-write-safety.mjs
++++ b/tools/check-scale-readiness-write-safety.mjs
+@@ -140,11 +140,16 @@
+     'Thêm TransactionDeleteIntegrity.analyzeTransactionDeleteImpact vào deleteTx trong finance.js'
+ );
+ 
+-// ── 12. deleteTx gọi reconcileStudentTuitionAfterDeletedTransaction ───────
+-check(
+-    'finance.js deleteTx gọi reconcileStudentTuitionAfterDeletedTransaction',
+-    finJs.includes('reconcileStudentTuitionAfterDeletedTransaction'),
+-    'Thêm reconcileStudentTuitionAfterDeletedTransaction vào deleteTx trong finance.js'
++// ── 12. R1.1: normal delete must NOT use legacy global reconcile authority ─
++check(
++    'finance.js deleteTx không dùng legacy reconcileStudentTuitionAfterDeletedTransaction',
++    !finJs.includes('reconcileStudentTuitionAfterDeletedTransaction'),
++    'R1.1 yêu cầu normal-runtime callers của legacy reconcile bằng 0'
++);
++check(
++    'finance.js deleteTx đi qua TuitionCommandBoundary.deleteTuitionTransaction',
++    finJs.includes('deleteTuitionTransaction'),
++    'Giữ TuitionCommandBoundary là normal-runtime tuition delete owner'
+ );
+ 
+ // ── 13. deleteTx chặn unsafe bundle inventory delete ─────────────────────
+--- a/tools/check-v5u2-tuition-command-behavior.mjs
++++ b/tools/check-v5u2-tuition-command-behavior.mjs
+@@ -9,7 +9,10 @@
+ globalThis.window = globalThis;
+ window.userRole = 'admin';
+ window.currentUserEmail = 'admin@example.com';
+-window.__store = { clubId: 'club-A', profiles: { 'Nguyen A': { tuitionFee: 100000, paidUntil: '2026-05', paidMonths: ['2026-05'] } }, transactions: [], allTransactions: [] };
++window.__verifiedAuthContextState = { ready:true, uid:'admin-1', generation:1, sessionEpoch:1, authGeneration:1 };
++window.getCanonicalTransactionReadMode = () => 'legacy';
++window.__store = { clubId: 'club-A', _activeTxReadMode:'legacy', _activeTxProjectionEpoch:{id:'epoch-1'}, transactionCoverage:{clubId:'club-A',month:'2026-06',readMode:'legacy',ready:true,complete:true,pageServerComplete:true,pageEvidence:{epoch:null}}, profiles: { 'Nguyen A': { tuitionFee: 100000, paidUntil: '2026-05', paidMonths: ['2026-05'] } }, transactions: [], allTransactions: [] };
++window.__store.transactionCoverage.pageEvidence.epoch = window.__store._activeTxProjectionEpoch;
+ window.allProfiles = window.__store.profiles;
+ window.allTransactions = [];
+ const calls = { add:0, update:0, atomic:0, audit:0, del:0, query:0, updateAfterDelete:0, reconcile:0, invalidate:0, auditEvents:[] };
+@@ -33,6 +36,9 @@
+   async deleteTransaction(id) { calls.del++; calls.lastDelete = id; await sleep(20); },
+   async getStudentTuitionTxs() { calls.query++; return []; },
+   async updateProfileAfterTxDelete(name, paidUntil, months) { calls.updateAfterDelete++; calls.lastDeleteProfile = {name,paidUntil,months}; },
++  getRuntimeTransactionRowsForEvidence() { return window.__store.transactions || []; },
++  getCurrentMonthEvidenceForWrite({month}={}) { return { strictCurrentCoverageComplete:true, serverComplete:true, contextStillCurrent:true, rows:window.__store.transactions||[], context:{clubId:'club-A',month,readMode:'legacy'} }; },
++  async getCompleteMonthEvidence({month}={}) { calls.query++; if (failReconcile) return {serverComplete:false,contextStillCurrent:true,rows:[],code:'SERVER_EVIDENCE_UNVERIFIED'}; return {serverComplete:true,contextStillCurrent:true,rows:window.__store.transactions||[],context:{clubId:'club-A',month,readMode:'legacy'}}; },
+ };
+ window.studentProfileStore = { mergeProfile(name, data) { calls.mergedProfile = {name,data}; }, getAllProfilesCompat() { return window.__store.profiles; } };
+ window.invalidateLists = (keys, reason) => { calls.invalidate++; calls.lastInvalidation = {keys,reason}; };
+@@ -42,7 +48,7 @@
+ window.guardFinancialWriteIntent = () => true; window.isFinancialWriteAllowed = r => r === true || r?.ok === true;
+ window.recordFinancialActionAudit = (action, stage, payload) => calls.auditEvents.push({action,stage,payload});
+ window.TransactionDeleteIntegrity = { analyzeTransactionDeleteImpact(tx) { return { valid:true, failClosed:false, hasTuition:true, hasInventory:false, requiresInventoryRollback:false, isMixedBundle:false, isPureTuition:true, requiresProfileReconcile:true, studentName:tx.description, requiresExamRefresh:false, safeToHardDelete:true, tuitionMonths:tx.packageMonths || [] }; } };
+-window.TuitionDebtCanonical = { areTuitionMonthsSettled(profile, months) { const skipped=Array.isArray(profile?.skippedMonths)?profile.skippedMonths:[]; const paid=Array.isArray(profile?.paidMonths)?profile.paidMonths:[]; const until=String(profile?.paidUntil||''); const states=months.map(m=>({month:m,paid:!skipped.includes(m)&&(paid.includes(m)||(until&&m<=until)),skipped:skipped.includes(m)})); return {states,allSettled:states.length>0&&states.every(x=>x.paid),paidMonths:states.filter(x=>x.paid).map(x=>x.month),skippedMonths:states.filter(x=>x.skipped).map(x=>x.month),unpaidMonths:states.filter(x=>!x.paid).map(x=>x.month)}; }, reconcilePaidUntilFromMonthEvidence(profile, paidMonths) { const all=Array.from(new Set([...(Array.isArray(profile?.paidMonths)?profile.paidMonths:[]),...(Array.isArray(paidMonths)?paidMonths:[])])).sort(); const until=String(profile?.paidUntil||''); return all.reduce((max,m)=>m>max?m:max,until); } };
++window.TuitionDebtCanonical = { extractTuitionTransactionMonths(profile,name,{transactions}={}) { const out=[]; for(const tx of (transactions||[])){ if(tx.id==='tuition-1'||tx.id==='tuition-partial-delete') continue; if(tx.type==='Học phí'||tx.type==='Học phí + Lệ phí thi'){ if(Array.isArray(tx.packageMonths)) out.push(...tx.packageMonths); else if(tx.txMonth) out.push(tx.txMonth); } } return Array.from(new Set(out)).sort(); }, areTuitionMonthsSettled(profile, months) { const skipped=Array.isArray(profile?.skippedMonths)?profile.skippedMonths:[]; const paid=Array.isArray(profile?.paidMonths)?profile.paidMonths:[]; const until=String(profile?.paidUntil||''); const states=months.map(m=>({month:m,paid:!skipped.includes(m)&&(paid.includes(m)||(until&&m<=until)),skipped:skipped.includes(m)})); return {states,allSettled:states.length>0&&states.every(x=>x.paid),paidMonths:states.filter(x=>x.paid).map(x=>x.month),skippedMonths:states.filter(x=>x.skipped).map(x=>x.month),unpaidMonths:states.filter(x=>!x.paid).map(x=>x.month)}; }, reconcilePaidUntilFromMonthEvidence(profile, paidMonths) { const all=Array.from(new Set([...(Array.isArray(profile?.paidMonths)?profile.paidMonths:[]),...(Array.isArray(paidMonths)?paidMonths:[])])).sort(); const until=String(profile?.paidUntil||''); return all.reduce((max,m)=>m>max?m:max,until); } };
+ window.reconcileStudentTuitionAfterDeletedTransaction = async (name, tx, opts) => { calls.reconcile++; calls.lastReconcile = {name,tx,opts}; if (failReconcile) throw new Error('reconcile failed'); return {ok:true}; };
+ 
+ const mod = await import(`../js/core/tuitionCommandBoundary.js?behavior=${Date.now()}`);
+@@ -65,7 +71,7 @@
+ const d2 = boundary.deleteTuitionTransaction({ txId:tx.id, transaction:tx });
+ await Promise.all([d1,d2]);
+ check('identical tuition delete executes Firestore delete once', calls.del === 1, `delete calls=${calls.del}`);
+-check('tuition delete reuses existing reconcile helper', calls.reconcile === 1 && calls.lastReconcile.opts.skipInvalidate === true);
++check('tuition delete bypasses legacy reconcile helper', calls.reconcile === 0 && calls.updateAfterDelete === 1);
+ check('tuition delete centralizes invalidation after reconcile', calls.invalidate === 2 && calls.lastInvalidation.reason === 'v5u2-delete-tuition');
+ 
+ failReconcile = true;
+@@ -73,13 +79,10 @@
+ window.__store.transactions = [partialDeleteTx];
+ window.__store.allTransactions = [partialDeleteTx];
+ window.allTransactions = [partialDeleteTx];
+-let deletePartial = false;
+-try {
+-  await boundary.deleteTuitionTransaction({ txId:partialDeleteTx.id, transaction:partialDeleteTx });
+-} catch (e) { deletePartial = e.partialWrite === true && e.transactionDeleted === true && e.transactionId === partialDeleteTx.id; }
+-check('delete reconcile failure reports transaction-already-deleted partial state', deletePartial);
+-check('delete partial state removes stale local transaction row', window.__store.transactions.length === 0 && window.__store.allTransactions.length === 0 && window.allTransactions.length === 0);
+-check('delete partial state forces tuition/debt refresh', calls.lastInvalidation.reason === 'v5u2-delete-tuition-partial-reconcile');
++const deletePartialResult = await boundary.deleteTuitionTransaction({ txId:partialDeleteTx.id, transaction:partialDeleteTx });
++check('delete evidence failure reports transaction-already-deleted reconcile-unverified state', deletePartialResult.transactionDeleted === true && deletePartialResult.profileReconcileVerified === false);
++check('delete evidence failure removes stale local transaction row', window.__store.transactions.length === 0 && window.__store.allTransactions.length === 0 && window.allTransactions.length === 0);
++check('delete evidence failure forces tuition/debt refresh', calls.lastInvalidation.reason === 'v5u2-delete-tuition-unverified-reconcile');
+ failReconcile = false;
+ 
+ failAtomicCommit = true;
+@@ -94,7 +97,7 @@
+ failAtomicCommit = false;
+ 
+ const metrics = boundary.getMetrics();
+-check('tuition command metrics record duplicate prevention and only genuine delete-reconcile partial write', metrics.duplicatePrevented >= 2 && metrics.partialWrites === 1, JSON.stringify(metrics));
++check('tuition command metrics record duplicate prevention without false partial-write on evidence failure', metrics.duplicatePrevented >= 2 && metrics.partialWrites === 0, JSON.stringify(metrics));
+ 
+ if (failures) {
+   console.error(`\nV5U-2 tuition command behavior check FAILED: ${failures}`);
+--- a/tools/check-v5u2-tuition-command-cutover.mjs
++++ b/tools/check-v5u2-tuition-command-cutover.mjs
+@@ -52,8 +52,8 @@
+ check('tuition boundary centralizes local commit and invalidation', boundary.includes('_commitProfilePayment') && boundary.includes('_removeLocalTransaction') && boundary.includes('_invalidateTuition') && ['tx.txList','students.debtList','students.activeList','dashboard.summary'].every(x => boundary.includes(x)));
+ check('tuition boundary has identical-action single-flight', boundary.includes('inFlight.get(key)') && boundary.includes('duplicatePrevented++') && boundary.includes('inFlight.set(key, promise)'));
+ check('tuition boundary prevents transaction/profile partial write atomically', boundary.includes('_service().commitAtomicWritePlan') && !boundary.includes('profileError.partialWrite = true') && !boundary.includes('v5u2-tuition-partial-write'));
+-check('tuition delete reuses existing reconcile helper without duplicate invalidation', boundary.includes('reconcileStudentTuitionAfterDeletedTransaction') && boundary.includes('skipInvalidate: true') && main.includes('options.skipInvalidate !== true'));
+-check('tuition delete reports post-delete reconcile failure as partial state', boundary.includes('transactionDeleted = true') && boundary.includes('v5u2-delete-tuition-partial-reconcile') && finance.includes('không bấm Xóa lại'));
++check('tuition delete uses server-complete evidence and canonical single profile writer', !boundary.includes('reconcileStudentTuitionAfterDeletedTransaction') && boundary.includes('getCompleteMonthEvidence') && boundary.includes('updateProfileAfterTxDelete'));
++check('tuition delete reports post-delete evidence-unverified state without lowering profile', boundary.includes('profileReconcileVerified = false') && boundary.includes('v5u2-delete-tuition-unverified-reconcile') && finance.includes('Không cần xóa lại giao dịch'));
+ 
+ const quickPayBlock = finance.slice(finance.indexOf('window.quickPay = async'), finance.indexOf('// 6. openQuickPayModal'));
+ check('finance quickPay is UI-only adapter into tuition boundary', quickPayBlock.includes('TuitionCommandBoundary.collectTuition') && !/\bFinanceService\.(?:addTransaction|updateStudentPayment)\s*\(/.test(quickPayBlock));
+--- a/tools/check-v5u2e-attendance-excel-sdk-fix.mjs
++++ b/tools/check-v5u2e-attendance-excel-sdk-fix.mjs
+@@ -63,7 +63,8 @@
+ check('index cache-busts app/main with current pinned coherent lineage',coherentEntryHTML(index));
+ check('public index cache-busts app/main with current pinned coherent lineage',coherentEntryHTML(publicIndex));
+ const activeProfile=verifyRuntimeProfile(root);
+-check('stale entrypoint token is rejected by coherence check',!coherentEntryHTML(index.replaceAll(activeProfile.identity.buildTag,'STALE_TEST_BUILD')));
++const activeAppUrl=buildImportGraph(root).edges.find(e=>e.from==='index.html'&&e.to==='app.js')?.url || '';
++check('stale entrypoint token is rejected by coherence check',!coherentEntryHTML(index.replace(activeAppUrl,activeAppUrl.replace(/v=[^&]+/,'v=STALE_TEST_BUILD'))));
+ check('APP patch marker updated in app/main', app.includes(patch) && main.includes(patch));
+ check('public APP patch marker updated', publicApp.includes(patch) && publicMain.includes(patch));
+ check('report remains read-only', !/(?:setDoc|updateDoc|addDoc|deleteDoc|writeBatch|runTransaction|onSnapshot)\s*\(/.test(report));
+--- a/tools/v11r2/manifests/FIN_WRITE_R1_1_APP_CORE_GUARD.json
++++ b/tools/v11r2/manifests/FIN_WRITE_R1_1_APP_CORE_GUARD.json
+@@ -0,0 +1,673 @@
++{
++  "schema": 1,
++  "phase": "A9R18-FINANCE-WRITE-EVIDENCE-R1.1",
++  "scope": "processMultiItem-only-correctness-hunk",
++  "baseline": {
++    "bytes": 702900,
++    "SHA256": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
++    "outsideProcessMultiItemAST_SHA256": "37fdabafc63ad8bb1ce0a88d15e5123691ca3b674a6ed6794716de5674d55996",
++    "ownerBodySHA256": {
++      "processMultiItem": "684fdd0b337824e14bfcaf03ce69fa369fcc13f558a2633a66e2d492b49f7768"
++    },
++    "windowAssignments": [
++      "APP_PATCH_VERSION",
++      "BELT_NEXT",
++      "COACH_BRANCH_RUNTIME_VERSION",
++      "SUPERADMIN_AUTH_PATCH_VERSION",
++      "__appContextReadyState",
++      "__appContextReadyState",
++      "__appLoaded",
++      "__canonicalTxSettingsWait",
++      "__completeInventoryDebts",
++      "__completeInventoryDebts",
++      "__completeInventoryDebts",
++      "__dataHydrationMetrics",
++      "__dbReadyEventDispatched",
++      "__editingExpenseOriginal",
++      "__editingInventoryOriginal",
++      "__examUpgradeInFlight",
++      "__examUpgradeInFlight",
++      "__firestoreDataSourceMetrics",
++      "__inventoryDebtCompleteness",
++      "__inventoryDebtCompleteness",
++      "__inventoryDebtCompleteness",
++      "__inventoryDebtCompleteness",
++      "__inventoryReadMetrics",
++      "__inventoryStockHydration",
++      "__inventoryStockHydration",
++      "__liveInvMapSource",
++      "__loginPerfMetrics",
++      "__loginPerfMetrics",
++      "__miLastManualTuitionPackage",
++      "__miLastManualTuitionPackage",
++      "__miLastManualTuitionPackage",
++      "__miLastPackageCoverage",
++      "__miLastPackageCoverage",
++      "__miLastPackageCoverage",
++      "__miLastPackageMonths",
++      "__miLastPackageMonths",
++      "__miLastPackageMonths",
++      "__miManualTuitionPackage",
++      "__miManualTuitionPackage",
++      "__miManualTuitionPackage",
++      "__miManualTuitionPackage",
++      "__miManualTuitionPackage",
++      "__miReadOnlyTotalDelegating",
++      "__miReadOnlyTotalDelegating",
++      "__miTuitionPackageGuardBound",
++      "__pendingDomainInvalidations",
++      "__pendingDomainInvalidations",
++      "__readScaleMetrics",
++      "__receiptSettingsAuthority",
++      "__receiptSettingsAuthority",
++      "__runtimeRecoveryState",
++      "__runtimeRecoveryState",
++      "__scaleConfig",
++      "__settingsSnapshotReady",
++      "__settingsSnapshotReady",
++      "__sparkReadMetrics",
++      "__store",
++      "__txListenerMetrics",
++      "__verifiedAuthContextState",
++      "_activePage",
++      "_activePage",
++      "_activePage",
++      "_clearLoginError",
++      "_currentAchievements",
++      "_currentAchievements",
++      "_debtPage",
++      "_debtPage",
++      "_debtPage",
++      "_firebaseApp",
++      "_legacySwitchTab",
++      "_liveInvMap",
++      "_liveInvMap",
++      "_loadMore",
++      "_miClickOutsideRegistered",
++      "_miRefreshingBadges",
++      "_miRefreshingBadges",
++      "_notifUnsubscribe",
++      "_notifUnsubscribe",
++      "_notifUnsubscribe",
++      "_notifUnsubscribe",
++      "_notifUnsubscribe",
++      "_pendingNotifIds",
++      "_pendingNotifIds",
++      "_pendingNotifIds",
++      "_pendingNotifIds",
++      "_ppBankList",
++      "_ppIsIOS",
++      "_ppSelIdx",
++      "_ppSelIdx",
++      "_ppTransferData",
++      "_quitPage",
++      "_quitPage",
++      "_quitPage",
++      "_refreshMiHistoryBadges",
++      "_renderSAClubRows",
++      "_resetListPages",
++      "_saCfgOutside",
++      "_secondaryAuth",
++      "_setupMiAutocomplete",
++      "_syncAllProfilesLegacy",
++      "_toggleSAConfig",
++      "acceptCoachAclSignal",
++      "activateLegacyRootFallback",
++      "addAchievementRow",
++      "addInvCategory",
++      "addMonthsForMultiItem",
++      "addNewStudent",
++      "allInventory",
++      "applyClubConfigUI",
++      "bindMultiItemTuitionPackageGuard",
++      "buildAdmissionTuitionPackage",
++      "buildCanonicalExamBranchLedger",
++      "buildCanonicalExamPaymentLedger",
++      "buildMultiItemTuitionPackageMonths",
++      "buildPaymentBundleTransaction",
++      "buildStudentSearchIndex",
++      "calcInv",
++      "calcMiInvTotal",
++      "cancelExamPayment",
++      "checkAdminNotifications",
++      "closeAddModal",
++      "closeBulkZaloModal",
++      "closeEditInvModal",
++      "closeManageCatModal",
++      "coachBranch",
++      "coachBranch",
++      "coachBranch",
++      "computeExamRegistrationStats",
++      "copyAndOpenZalo",
++      "copyParentCode",
++      "createCoachAccount",
++      "createNewClubSystem",
++      "currentClubId",
++      "currentClubId",
++      "debtBranchMatchesFilter",
++      "debugActiveQuitLeak",
++      "debugAdmissionTuitionPackage",
++      "debugAdmissionTuitionTypeNormalization",
++      "debugBundleDisplay",
++      "debugBundleTransactions",
++      "debugDebtCoverage",
++      "debugExamAutoSelectPaid",
++      "debugExamBranchRegistrationMismatch",
++      "debugExamCancelState",
++      "debugExamCanonicalLedger",
++      "debugExamDuplicatePayments",
++      "debugExamPaymentIdentity",
++      "debugExamRegistrationCount",
++      "debugExcelImportVtfUpsert",
++      "debugMultiItemSkippedMonth",
++      "debugMultiItemTuitionPackageCoverage",
++      "deleteCoachAccount",
++      "deleteInvCategory",
++      "deleteProfile",
++      "deleteTx",
++      "dismissAdminNotifications",
++      "dispatchAppContextReady",
++      "downloadExcelTemplate",
++      "editClubName",
++      "ensureDebtProfilesReady",
++      "ensureInventoryHistoryLoaded",
++      "expandTransactionComponentsForAccounting",
++      "exportReceipt",
++      "extractExamStudentName",
++      "fetchAllPagesForExport",
++      "fetchQueryPages",
++      "filterSAClubs",
++      "finishExamSession",
++      "flushOrQueueDomainInvalidation",
++      "forceReplaceAdmin",
++      "formatTuitionMonthList",
++      "generateMultiMonthPaymentRequest",
++      "getAccountingComponents",
++      "getAppContext",
++      "getBeltBadge",
++      "getBranchNameDisplay",
++      "getBundleAccountingTypeFromComponents",
++      "getBundleDetailSummary",
++      "getBundleSummaryLine",
++      "getBundleTypeLabel",
++      "getCanonicalStudentName",
++      "getCategoryOptionHtml",
++      "getChargeableTuitionMonths",
++      "getCompleteInventoryDebtsForStudent",
++      "getExamTargetBeltFromTx",
++      "getFinanceTransactionDisplayType",
++      "getInvCategories",
++      "getInventoryDebtsForStudent",
++      "getInventoryHistoryPaginationState",
++      "getPaymentComponentDisplayName",
++      "getSelectedMultiItemTuitionPackageState",
++      "handleImportExcel",
++      "handleLogin",
++      "handleLogout",
++      "handleQuitOption",
++      "invCustomCategories",
++      "invCustomCategories",
++      "invCustomCategories",
++      "invCustomCategories",
++      "invCustomCategories",
++      "invalidateCoachBranchAuthority",
++      "isAdmissionTuitionType",
++      "isExamStudentPaidCanonical",
++      "isNewlyUpgradedExamStudent",
++      "isSuperAdminRole",
++      "isTuitionFinanceTransaction",
++      "listenToData",
++      "loadAllSessionNotes",
++      "loadCoachAccounts",
++      "loadInvCategories",
++      "loadLoginHistory",
++      "loadMiPaymentHistory",
++      "loadMoreInventoryHistory",
++      "loadSARevenue",
++      "loadSessionNote",
++      "loadSuperAdminData",
++      "lockClubAccount",
++      "markInvPaid",
++      "markInventoryHistoryStale",
++      "markLoginPerf",
++      "markManualMultiItemTuitionPackage",
++      "mergeInventoryIntoRuntimeStore",
++      "migrateCoachAccounts",
++      "normalizeFinanceTransactionType",
++      "normalizeTuitionMonth",
++      "normalizeTuitionMonthForMultiItem",
++      "notifyInventoryMutation",
++      "openAddModal",
++      "openBranchUpgradeModal",
++      "openBulkZaloModal",
++      "openChangePasswordModal",
++      "openCoachAccountsModal",
++      "openEditExpense",
++      "openEditInv",
++      "openExpiryModal",
++      "openManageCatModal",
++      "openMultiItemModal",
++      "openNewClubModal",
++      "openProfile",
++      "openQuickPayModal",
++      "openSettingsModal",
++      "populateInvCategorySelects",
++      "ppLookupLogin",
++      "ppOpenTransferSheet",
++      "ppOpenWallet",
++      "ppSelectBank",
++      "ppTryBank",
++      "printInventoryReadMetrics",
++      "printLoginPerfMetrics",
++      "printPaymentAccountMapping",
++      "printReadScaleMetrics",
++      "printScaleReadiness",
++      "printTxListenerMetrics",
++      "processBatchUpgrade",
++      "processCombo",
++      "processMultiItem",
++      "queueDomainInvalidation",
++      "quickCollectExam",
++      "quickPay",
++      "recalcMiInvDebt",
++      "recordReadMetric",
++      "refreshInventoryHistory",
++      "removeAchievement",
++      "removeInventoryFromRuntimeStore",
++      "removeSkip",
++      "renderExamList",
++      "renderManageCatList",
++      "replaceInventoryRuntimeStore",
++      "resetCoachPassword",
++      "resetMultiItemTuitionPackageManualState",
++      "resolveActiveDataSource",
++      "resolveInventoryDebtIdentity",
++      "runIdle",
++      "runRuntimeDataRecovery",
++      "saDeleteTransactions",
++      "saDownloadObfuscated",
++      "saDownloadOriginal",
++      "saOpenDeleteTxModal",
++      "saResetAdminPassword",
++      "saveBranchUpgrade",
++      "saveClubExpiry",
++      "saveClubSettings",
++      "saveEditExpense",
++      "saveEditInv",
++      "saveSessionNote",
++      "scheduleRender",
++      "selectBranchCard",
++      "selectCoachBranch",
++      "selectPaidStudents",
++      "sendBulkZaloOne",
++      "setupNotifListener",
++      "skipMonth",
++      "startSequentialBulkZalo",
++      "submitChangePassword",
++      "switchLoginTab",
++      "switchSATab",
++      "switchTab",
++      "testPaymentAccountForBranch",
++      "toggleAddUniformGift",
++      "toggleAllExam",
++      "toggleBank2Fields",
++      "toggleEditInvSize",
++      "toggleExamFeature",
++      "toggleInvCategory",
++      "toggleInvType",
++      "toggleMiHistory",
++      "toggleMiInvCategory",
++      "toggleMiTuitionSection",
++      "toggleMultiItemExam",
++      "toggleMultiItemInv",
++      "toggleMultiItemOther",
++      "toggleTxFormType",
++      "unlockClubAccount",
++      "updateAddPackageAmount",
++      "updateAmountByPackage",
++      "updateComboTotal",
++      "updateExamComboQuarter",
++      "updateMultiItemAutoFee",
++      "updateMultiItemTotal",
++      "updateNextBeltPreview",
++      "updateProfile",
++      "userRole",
++      "userRole",
++      "userRole"
++    ]
++  },
++  "approved": {
++    "bytes": 703994,
++    "SHA256": "5bb96e3c2beeca629f595108ce7ca948869e7a7317f5fed505a5a8c10b79401d",
++    "outsideProcessMultiItemAST_SHA256": "37fdabafc63ad8bb1ce0a88d15e5123691ca3b674a6ed6794716de5674d55996",
++    "ownerBodySHA256": {
++      "processMultiItem": "903417cf1fc3f2640a102b0d11bf6d9fc57de41765e3f935a44954fb68dd4812"
++    },
++    "windowAssignments": [
++      "APP_PATCH_VERSION",
++      "BELT_NEXT",
++      "COACH_BRANCH_RUNTIME_VERSION",
++      "SUPERADMIN_AUTH_PATCH_VERSION",
++      "__appContextReadyState",
++      "__appContextReadyState",
++      "__appLoaded",
++      "__canonicalTxSettingsWait",
++      "__completeInventoryDebts",
++      "__completeInventoryDebts",
++      "__completeInventoryDebts",
++      "__dataHydrationMetrics",
++      "__dbReadyEventDispatched",
++      "__editingExpenseOriginal",
++      "__editingInventoryOriginal",
++      "__examUpgradeInFlight",
++      "__examUpgradeInFlight",
++      "__firestoreDataSourceMetrics",
++      "__inventoryDebtCompleteness",
++      "__inventoryDebtCompleteness",
++      "__inventoryDebtCompleteness",
++      "__inventoryDebtCompleteness",
++      "__inventoryReadMetrics",
++      "__inventoryStockHydration",
++      "__inventoryStockHydration",
++      "__liveInvMapSource",
++      "__loginPerfMetrics",
++      "__loginPerfMetrics",
++      "__miLastManualTuitionPackage",
++      "__miLastManualTuitionPackage",
++      "__miLastManualTuitionPackage",
++      "__miLastPackageCoverage",
++      "__miLastPackageCoverage",
++      "__miLastPackageCoverage",
++      "__miLastPackageMonths",
++      "__miLastPackageMonths",
++      "__miLastPackageMonths",
++      "__miManualTuitionPackage",
++      "__miManualTuitionPackage",
++      "__miManualTuitionPackage",
++      "__miManualTuitionPackage",
++      "__miManualTuitionPackage",
++      "__miReadOnlyTotalDelegating",
++      "__miReadOnlyTotalDelegating",
++      "__miTuitionPackageGuardBound",
++      "__pendingDomainInvalidations",
++      "__pendingDomainInvalidations",
++      "__readScaleMetrics",
++      "__receiptSettingsAuthority",
++      "__receiptSettingsAuthority",
++      "__runtimeRecoveryState",
++      "__runtimeRecoveryState",
++      "__scaleConfig",
++      "__settingsSnapshotReady",
++      "__settingsSnapshotReady",
++      "__sparkReadMetrics",
++      "__store",
++      "__txListenerMetrics",
++      "__verifiedAuthContextState",
++      "_activePage",
++      "_activePage",
++      "_activePage",
++      "_clearLoginError",
++      "_currentAchievements",
++      "_currentAchievements",
++      "_debtPage",
++      "_debtPage",
++      "_debtPage",
++      "_firebaseApp",
++      "_legacySwitchTab",
++      "_liveInvMap",
++      "_liveInvMap",
++      "_loadMore",
++      "_miClickOutsideRegistered",
++      "_miRefreshingBadges",
++      "_miRefreshingBadges",
++      "_notifUnsubscribe",
++      "_notifUnsubscribe",
++      "_notifUnsubscribe",
++      "_notifUnsubscribe",
++      "_notifUnsubscribe",
++      "_pendingNotifIds",
++      "_pendingNotifIds",
++      "_pendingNotifIds",
++      "_pendingNotifIds",
++      "_ppBankList",
++      "_ppIsIOS",
++      "_ppSelIdx",
++      "_ppSelIdx",
++      "_ppTransferData",
++      "_quitPage",
++      "_quitPage",
++      "_quitPage",
++      "_refreshMiHistoryBadges",
++      "_renderSAClubRows",
++      "_resetListPages",
++      "_saCfgOutside",
++      "_secondaryAuth",
++      "_setupMiAutocomplete",
++      "_syncAllProfilesLegacy",
++      "_toggleSAConfig",
++      "acceptCoachAclSignal",
++      "activateLegacyRootFallback",
++      "addAchievementRow",
++      "addInvCategory",
++      "addMonthsForMultiItem",
++      "addNewStudent",
++      "allInventory",
++      "applyClubConfigUI",
++      "bindMultiItemTuitionPackageGuard",
++      "buildAdmissionTuitionPackage",
++      "buildCanonicalExamBranchLedger",
++      "buildCanonicalExamPaymentLedger",
++      "buildMultiItemTuitionPackageMonths",
++      "buildPaymentBundleTransaction",
++      "buildStudentSearchIndex",
++      "calcInv",
++      "calcMiInvTotal",
++      "cancelExamPayment",
++      "checkAdminNotifications",
++      "closeAddModal",
++      "closeBulkZaloModal",
++      "closeEditInvModal",
++      "closeManageCatModal",
++      "coachBranch",
++      "coachBranch",
++      "coachBranch",
++      "computeExamRegistrationStats",
++      "copyAndOpenZalo",
++      "copyParentCode",
++      "createCoachAccount",
++      "createNewClubSystem",
++      "currentClubId",
++      "currentClubId",
++      "debtBranchMatchesFilter",
++      "debugActiveQuitLeak",
++      "debugAdmissionTuitionPackage",
++      "debugAdmissionTuitionTypeNormalization",
++      "debugBundleDisplay",
++      "debugBundleTransactions",
++      "debugDebtCoverage",
++      "debugExamAutoSelectPaid",
++      "debugExamBranchRegistrationMismatch",
++      "debugExamCancelState",
++      "debugExamCanonicalLedger",
++      "debugExamDuplicatePayments",
++      "debugExamPaymentIdentity",
++      "debugExamRegistrationCount",
++      "debugExcelImportVtfUpsert",
++      "debugMultiItemSkippedMonth",
++      "debugMultiItemTuitionPackageCoverage",
++      "deleteCoachAccount",
++      "deleteInvCategory",
++      "deleteProfile",
++      "deleteTx",
++      "dismissAdminNotifications",
++      "dispatchAppContextReady",
++      "downloadExcelTemplate",
++      "editClubName",
++      "ensureDebtProfilesReady",
++      "ensureInventoryHistoryLoaded",
++      "expandTransactionComponentsForAccounting",
++      "exportReceipt",
++      "extractExamStudentName",
++      "fetchAllPagesForExport",
++      "fetchQueryPages",
++      "filterSAClubs",
++      "finishExamSession",
++      "flushOrQueueDomainInvalidation",
++      "forceReplaceAdmin",
++      "formatTuitionMonthList",
++      "generateMultiMonthPaymentRequest",
++      "getAccountingComponents",
++      "getAppContext",
++      "getBeltBadge",
++      "getBranchNameDisplay",
++      "getBundleAccountingTypeFromComponents",
++      "getBundleDetailSummary",
++      "getBundleSummaryLine",
++      "getBundleTypeLabel",
++      "getCanonicalStudentName",
++      "getCategoryOptionHtml",
++      "getChargeableTuitionMonths",
++      "getCompleteInventoryDebtsForStudent",
++      "getExamTargetBeltFromTx",
++      "getFinanceTransactionDisplayType",
++      "getInvCategories",
++      "getInventoryDebtsForStudent",
++      "getInventoryHistoryPaginationState",
++      "getPaymentComponentDisplayName",
++      "getSelectedMultiItemTuitionPackageState",
++      "handleImportExcel",
++      "handleLogin",
++      "handleLogout",
++      "handleQuitOption",
++      "invCustomCategories",
++      "invCustomCategories",
++      "invCustomCategories",
++      "invCustomCategories",
++      "invCustomCategories",
++      "invalidateCoachBranchAuthority",
++      "isAdmissionTuitionType",
++      "isExamStudentPaidCanonical",
++      "isNewlyUpgradedExamStudent",
++      "isSuperAdminRole",
++      "isTuitionFinanceTransaction",
++      "listenToData",
++      "loadAllSessionNotes",
++      "loadCoachAccounts",
++      "loadInvCategories",
++      "loadLoginHistory",
++      "loadMiPaymentHistory",
++      "loadMoreInventoryHistory",
++      "loadSARevenue",
++      "loadSessionNote",
++      "loadSuperAdminData",
++      "lockClubAccount",
++      "markInvPaid",
++      "markInventoryHistoryStale",
++      "markLoginPerf",
++      "markManualMultiItemTuitionPackage",
++      "mergeInventoryIntoRuntimeStore",
++      "migrateCoachAccounts",
++      "normalizeFinanceTransactionType",
++      "normalizeTuitionMonth",
++      "normalizeTuitionMonthForMultiItem",
++      "notifyInventoryMutation",
++      "openAddModal",
++      "openBranchUpgradeModal",
++      "openBulkZaloModal",
++      "openChangePasswordModal",
++      "openCoachAccountsModal",
++      "openEditExpense",
++      "openEditInv",
++      "openExpiryModal",
++      "openManageCatModal",
++      "openMultiItemModal",
++      "openNewClubModal",
++      "openProfile",
++      "openQuickPayModal",
++      "openSettingsModal",
++      "populateInvCategorySelects",
++      "ppLookupLogin",
++      "ppOpenTransferSheet",
++      "ppOpenWallet",
++      "ppSelectBank",
++      "ppTryBank",
++      "printInventoryReadMetrics",
++      "printLoginPerfMetrics",
++      "printPaymentAccountMapping",
++      "printReadScaleMetrics",
++      "printScaleReadiness",
++      "printTxListenerMetrics",
++      "processBatchUpgrade",
++      "processCombo",
++      "processMultiItem",
++      "queueDomainInvalidation",
++      "quickCollectExam",
++      "quickPay",
++      "recalcMiInvDebt",
++      "recordReadMetric",
++      "refreshInventoryHistory",
++      "removeAchievement",
++      "removeInventoryFromRuntimeStore",
++      "removeSkip",
++      "renderExamList",
++      "renderManageCatList",
++      "replaceInventoryRuntimeStore",
++      "resetCoachPassword",
++      "resetMultiItemTuitionPackageManualState",
++      "resolveActiveDataSource",
++      "resolveInventoryDebtIdentity",
++      "runIdle",
++      "runRuntimeDataRecovery",
++      "saDeleteTransactions",
++      "saDownloadObfuscated",
++      "saDownloadOriginal",
++      "saOpenDeleteTxModal",
++      "saResetAdminPassword",
++      "saveBranchUpgrade",
++      "saveClubExpiry",
++      "saveClubSettings",
++      "saveEditExpense",
++      "saveEditInv",
++      "saveSessionNote",
++      "scheduleRender",
++      "selectBranchCard",
++      "selectCoachBranch",
++      "selectPaidStudents",
++      "sendBulkZaloOne",
++      "setupNotifListener",
++      "skipMonth",
++      "startSequentialBulkZalo",
++      "submitChangePassword",
++      "switchLoginTab",
++      "switchSATab",
++      "switchTab",
++      "testPaymentAccountForBranch",
++      "toggleAddUniformGift",
++      "toggleAllExam",
++      "toggleBank2Fields",
++      "toggleEditInvSize",
++      "toggleExamFeature",
++      "toggleInvCategory",
++      "toggleInvType",
++      "toggleMiHistory",
++      "toggleMiInvCategory",
++      "toggleMiTuitionSection",
++      "toggleMultiItemExam",
++      "toggleMultiItemInv",
++      "toggleMultiItemOther",
++      "toggleTxFormType",
++      "unlockClubAccount",
++      "updateAddPackageAmount",
++      "updateAmountByPackage",
++      "updateComboTotal",
++      "updateExamComboQuarter",
++      "updateMultiItemAutoFee",
++      "updateMultiItemTotal",
++      "updateNextBeltPreview",
++      "updateProfile",
++      "userRole",
++      "userRole",
++      "userRole"
++    ]
++  }
++}
+--- a/tools/v11r2/manifests/V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1.json
++++ b/tools/v11r2/manifests/V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1.json
+@@ -0,0 +1,246 @@
++{
++  "kind": "A9R18_FINANCE_WRITE_EVIDENCE_R1_1_SOURCE_IDENTITY_TEST_CANDIDATE",
++  "parentRuntimeSHA256": "8dc0ff78ece749202db1189bce4ddccd4f1cd755cafa21118e6fd5d75d926dc6",
++  "parentZIP_SHA256": "4564e5f26e59ec660f8c6831e26315584a246f13f9a6a1f8e2dcf5d155797000",
++  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++  "runtimeSHA256": "bc30abc33c7f738136584eedf110b94a4e5c55bb0ce2c9c19bd2be2b1c2a0c64",
++  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
++  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
++  "canonicalRuntimeFiles": {
++    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
++    "app.js": "5bb96e3c2beeca629f595108ce7ca948869e7a7317f5fed505a5a8c10b79401d",
++    "css/tailwind-static.css": "7e8aa3849956a0a1bcf758fbb8528b2fe5ddeda39290aad9971f30256b30699c",
++    "css/ui-mobile-shell.css": "e560807a9298a6a1acc40e12c54687da3109198b4ba0ba281f725d6209d71c1e",
++    "index.html": "97327ece3a00cea9b455b1e79094babbe191f039f9869fa571bdaf7b1eebde75",
++    "js/core/actionGuard.js": "7c95650fc992cbf01b0ca5526e1656cfbf55d5f22bc1e9fe67351bc3a916178c",
++    "js/core/attendanceContract.js": "b96b04eccda4738b190b5cbb3e1d05664d422dff17b84a64cfd66bccbbc68239",
++    "js/core/branchIdentity.js": "db050656a9adaac5873887f2e9a3e80482e3e3982e5252635621f494ed020337",
++    "js/core/canonicalDomainCommandBoundary.js": "32f7d040519a84e84eb76467d65ce8c93f5551e7d6b1e9deba4eac17692a9689",
++    "js/core/clubStatsAutoCache.js": "e77bd219e9d8608676d0b0fda086fb6c41c630d93a5014b2064afc4225cada20",
++    "js/core/coachBranchRuntimeRepair.js": "3c5d5d7a95390ce8438552d48947b293a2878dd480c399c4964effce82012068",
++    "js/core/debtProfileReadBoundary.js": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08",
++    "js/core/financialActionAuditGuard.js": "97680a8717f02e1b9776a24c808d97b64b413031a1ad06a8a0696038771dd82c",
++    "js/core/financialFlowMap.js": "10c9cb1e754aa4253505617b7e81c24ee09e9b2d5dc7b6550dcb0652e33b8568",
++    "js/core/globalOwnershipRegistry.js": "40ebfab400b3a575d1aac2daa6db73c246be731a84a2906674fcea3c211bd133",
++    "js/core/inlineHandlerAudit.js": "4a9edc949162cb146638fb326a3eeda428c1443ab8bfa99787723a37d70ff193",
++    "js/core/inventoryMultiItemReadOnlyUI.js": "c6a50375859d78d8e732436a454fa6d157c62bafa5a9729e3986798401dd893b",
++    "js/core/lazyAssetsBootstrap.js": "b60af66ef280f3ee0d806b94d351cfd7f75cd49641f847ff9546f1cb7e5cab4c",
++    "js/core/legacyAppAudit.js": "38c05474191672096370fda3bd677cb6894e4ce1bd85054ec99f0aa65baa8455",
++    "js/core/legacyRenderEntrypoints.js": "5ae877bc1b7ff96d5c78136f408f2390e09944412cea545bdb71617a7081e1ec",
++    "js/core/listenerOwnershipBoundary.js": "7425a0a3be681f6f905955b0bff834763a0af367cad942e1419c59304adfa5b3",
++    "js/core/mobileStartupPerformance.js": "e730e61a6fb8ffd87abd18522e96ea2ca9f9a95002e60d1d4636f115b09cf284",
++    "js/core/multiItemInventorySafety.js": "295ce786e25fed3c4337e4e9af164b6b63b18da9d09e241fa977262eb3b6038f",
++    "js/core/performanceMonitor.js": "8cec791af4edc1b48502156044eddde66d0c915b5af1ba927b18b7a508968cce",
++    "js/core/productionAuthorityPolicy.js": "4a202b36ce75ce611815d97b38c71d49fe8846fa551f5dce82865b28db97b6bd",
++    "js/core/productionStabilityGate.js": "7f54d756de6ee26a39e80953df3b2fc092cb3039db2a18d73d23281128ceac40",
++    "js/core/profileCanonicalStore.js": "195e10c0f9aa28d43193130597e3a73b833be5e628409c2f1633d76358005a41",
++    "js/core/roleReadBoundary.js": "47f789c19b72d126c2a6e8245d39ddaff2d6a23c8bb66bd9513ee2c793e7c67e",
++    "js/core/securityPosture.js": "3ce6fe7b516f138205635dbef81208c0a0dcf6621170c989ef648706772dd6d7",
++    "js/core/staticCssBuildHealth.js": "e0e87c489e5bb1548c2a060bb5a82f23b64c3806c00a410731e61bcf500ffc3e",
++    "js/core/studentSearchIndex.js": "5d22ee419d8f56394ef6a04909ff073be390f14aee057d56940ece743a7ef29a",
++    "js/core/studentStatusCommandBoundary.js": "1d6f756286254eed7381b3f8ab7d063a45c3abc6c5d1e30f997021e5badf0288",
++    "js/core/superAdminQuotaGuard.js": "5640900910f77d231620683c9417b55305f3741250ab85807b2afd0ba8ef86e6",
++    "js/core/superAdminServerRefresh.js": "bf4896cf108fd4420456b577b81e203cd117ddfc2f636b4d2342a657e9c0f366",
++    "js/core/trainingRegistration.js": "61756f420172b06e7ff640c7c2fdc36533e1653a680c2676f0661278a7536df4",
++    "js/core/transactionCanonicalBoundary.js": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
++    "js/core/transactionDeleteIntegrity.js": "32bad07e037860da4543c3aa064fcf1eb99fb8869dc2a6451a75bf1d97510a4f",
++    "js/core/tuitionCommandBoundary.js": "eb40a2f522c6979b1c4b209146c7282c12819eea43446fb749d06ab02c708a40",
++    "js/core/tuitionDebtCanonical.js": "3755b877d8e0be7cc72aa986eca3b3e723d493717fa6631de4fe1d367327e92e",
++    "js/data/attendanceJournal.js": "0f493addd96591dce9776148b43c7625cdcf6abcd7962f1cccceb70f237646ee",
++    "js/data/inventoryStore.js": "39c1008f1803d62ba353ac04f079118ba4ec62112e2c7ffbecd50742fd910390",
++    "js/data/profileStatusConfig.js": "108a09f6811bb749c7ca2bc9170e769ee94378debfe3d276f7352fb7dcdfa934",
++    "js/data/quitProfileBoundary.js": "a1f83492ae482ca3c7d0c0eedc736823aae051d335f9224fa1835fd7a5401097",
++    "js/data/studentProfileStore.js": "83cd8875463085d67d73966284b6c65ba1a7887adee788f90380eb4c23a6aa61",
++    "js/diagnostics/legacyDiagnostics.js": "dcc6d26c51efe1777268f46820a9efa2809319bd43f099bb8ddd9b652d012689",
++    "js/diagnostics/onboardingDiagnostics.js": "4a09db1ccc93e1005075c696f477bbf68ae8d71ee6fa2241169ca3427f5c3724",
++    "js/diagnostics/runtimeReadinessDiagnostics.js": "0ade23e3657bfddde45cbefa598127b490664b0a1ccfb94e2cf378c78169e56b",
++    "js/diagnostics/superAdminAuditDiagnostics.js": "d09987a65275422c4bc1b3f2db0eaf7fa893b3ce8a6fc882c8435a5ca9b48657",
++    "js/events/attendance.events.js": "e94081b5f5def17db437098ae3a33808cb15c4243416feebd9b18460a294b6b3",
++    "js/events/finance.events.js": "d6d18e8400529a865112894c23e03963f016c665db4307b284d12c0349399e81",
++    "js/events/inventory.events.js": "f8f079375fe733d7fef915ed3db41b761bf0a2a6a2dcaf25248b25ff1b7cda7b",
++    "js/events/students.events.js": "d83cc9582b1c5c9e4107685578a2a7bbbd6a0ac85de960d41dd7e5163a53ef59",
++    "js/firebase/config.js": "745a895328c557b6d2a863c8f71dfbdb0bb44b9adecf70740e94921a63d8a876",
++    "js/firebase/paginatedQuery.js": "6895e483951509528983fa7429db79bcf12c8b06dc206e492bbec3091abfcae9",
++    "js/legacy/legacyAttendanceFallbacks.js": "622cab7f9a2453fa2a78a0685429b21fdc277b6d3cb8cb072c9b0c2cff9f1b15",
++    "js/legacy/legacyUiFallbacks.js": "4a1773ae305467bbf057cabc0ffda7e36cccc0d6525520f96416ee3b695fc852",
++    "js/listeners/attendance.listeners.js": "f9fc2834a0f34ab2c59f8a714b3de89e961e5c2d8fdca6e127d3f769dfa5b3d6",
++    "js/listeners/dashboard.listeners.js": "b46a70d81b3abafc680dfe096e2a0e93c923bcde359af59e4f35ab86a4d221bb",
++    "js/listeners/exam.listeners.js": "eae546eb6a369ff652c4f3abb0dc69e56cf80604a405a7d575e660c0ed911009",
++    "js/listeners/finance.listeners.js": "d06f1ab4773c3b9b861ee92a304bde7a760ae9d7db65998424aab12f58d59ac5",
++    "js/listeners/global.listeners.js": "8bcabd108fddeb6da9a58bedf1c7086aeec2665156883b6bc37e75673711d974",
++    "js/listeners/inventory.listeners.js": "1b733bd5f3423b0ab6b5e85396bc936211d92a7e012d8ca65d0a06c0a312e154",
++    "js/listeners/profiles.listeners.js": "a63cac438c0dbe94fee97e8f828baab8ee7abce0a5420eda593b043a14d8bac5",
++    "js/listeners/students.listeners.js": "a3d8f8c286a48d8e2a37fe7043c520ee46d32d2d295676873771394a2cecf231",
++    "js/main.js": "7cea5116e0f8c871a68bf2878a3654307df4a6a245344cd36f6e20120665ce90",
++    "js/migrations/migrate-legacy-to-primary.js": "a5ac866f3cad2a893300e733c82b68ea73bafbda7709ba5031f5cbb8184974d1",
++    "js/modules/attendance.js": "fe39a6da8a7a21db571bfc7e2fee604b63e850cce1c8a75c7f14615cf427d7d9",
++    "js/modules/dashboard.js": "999320d13bd4867097bd2bbca38c5481cfb5a8701cb1aacbad8853f3b96457bf",
++    "js/modules/exam.js": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed",
++    "js/modules/finance.js": "7bce6d3bd16b6d81bbd4098d2403313797a4ba322064102340178417996ac298",
++    "js/modules/finance/finance.controller.js": "7fe2ba28150942c264ae85fe871635c8b61dc23a2c7a1d1e2054a5d1b5192b71",
++    "js/modules/finance/finance.excel.js": "e4a4a23af165decaa1f422dcbb5939e5f06b35027c7ee928716d851c654d130e",
++    "js/modules/finance/finance.pagination.js": "e59354cf8db07e149f4a779a3d5484ecce9f731caa693f807f174abb03608736",
++    "js/modules/finance/finance.receipt.js": "a18ebf9ebdf6cba177788c4cdd078ae51c8f41318a476446d91c08435f3ec5f8",
++    "js/modules/finance/index.js": "a8ab32dfcd576ac15f6f038b85d171966033127f3707794f25ac1b79d0d72dea",
++    "js/modules/inventory.js": "84ccedf11100da8c5c55b0551bcfdd8d8d34a686d4045c467f09382ea25a6423",
++    "js/modules/qrBankingHelpers.js": "8fa10f05f306f5fe6384ef2898d77ad8f9c8e200cb50c9af126173dc2d935a0c",
++    "js/modules/receiptHelpers.js": "8abe96afb78dae32cbffd8bdb08492e808de01753a0b817748da4d32975d44e9",
++    "js/modules/reports.js": "ce9567d07b2d06233711ee1ddcf16e66a1a258faa58a7e46624c02e4f563f94a",
++    "js/modules/reports/attendanceExcelReport.js": "d02b9b450670e34c6a5027cb1b9e798498d484d8f72fc5fbabfff3ab7b164037",
++    "js/modules/reports/reportExportFacade.js": "ae42947277d7e587214f2803366b8b0c55a26254f60f4945d2b7c7492cbb841b",
++    "js/modules/searchRuntime.js": "489cfce41aafe0147cfebf37e3e879830549465b8cae444e062cdf727ae813d8",
++    "js/modules/students.js": "3793d4607c9e14a8e2228f7b6c109fa7f7f84de7b8c8c5590562f055915b863a",
++    "js/modules/students/index.js": "11fffcc2cfc877d6186898cc555d379945ba1223b248aa06e6709eeacc73efe1",
++    "js/modules/students/students.controller.js": "499f7b0acb3bc6e5ed950c904406352fc7c9f370742611440366aebc3a41a266",
++    "js/modules/students/students.modal.js": "a09e9a1dfe84916b28d5849311996871f593c83ff069c6fa4d721db9410c50d7",
++    "js/modules/students/students.pagination.js": "e848769cddd3c3213c9c5459c5269724d9ceeebdd38c89ed41a89238469c61d6",
++    "js/modules/students/students.render.js": "4a345e0b5983794c68f6ac5b9521c0235f9d302081ca6fd2cb6503d2dd09c233",
++    "js/modules/students/students.search.js": "2cae282651e695cc3ab4f4cea9e827f5337cf12ad9544e20f23ef1a6a386f867",
++    "js/modules/superadmin.js": "2c039e8e972ca2312095e3431ba02ff767a4efe146ba2caf8ec947c8a4ea8111",
++    "js/services/attendance.service.js": "ed5b7d4fb5a0be3c1ea416ac01648a3d2b5033db324022441a1af4735b2c9aa6",
++    "js/services/finance.service.js": "7831309a926641b9d9d87873c489e6b88db972420bacf8602f00fac906f98149",
++    "js/services/inventory.service.js": "be9308420fd1b97804e46eed64fa476abebba8df1471a1ecf13361a29c1430e6",
++    "js/services/students.service.js": "191c6adad0694f64b69200e989be82a5b9bda0bfb825db8ddbbd6c65331f0261",
++    "js/store.js": "5050d6380e1115d68e2acf2faa7e7c3ef88cd8f58d3298bcff7e26074fbdfcf0",
++    "js/ui/eventActionBridge.js": "15e4c01c17daee5677c8ba766f73ff17807265fba7204103e2e248040cbe2416",
++    "js/ui/legacyUiShell.js": "0f5dfcc8e11ce115bd7c123b0fe9d37766ba786e50cd49787cfea902522cd2df",
++    "js/ui/loading.js": "8ec3655bd2579a73dd31a4553c7793f439a57c872b103fc63b0152468a169e5a",
++    "js/ui/modal.js": "16f9978a2780c78f93a91a53411e18fe6961ea892bd3613839a597705dc6e0ec",
++    "js/ui/render.js": "b2cd0efafaaf4bad19c487b4f3026e57adf10c80a19de7fae7aabc9f0da2f208",
++    "js/ui/render/computation/dashboardRenderer.js": "beccf91e83bce18b7a84a2e1f2e512af616a31d1ef6511814afb50c06ecfec9b",
++    "js/ui/render/computation/financeRenderer.js": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
++    "js/ui/render/computation/inventoryRenderer.js": "11f00002cb914a71ac0db280c9079040a6fca3a5e8a036e22d80da2e9e4ab1db",
++    "js/ui/render/computation/studentsRenderer.js": "43c26234d2eca584b02b5c2e51a3d651a526e4d4bada81316d8ca773c22b58db",
++    "js/ui/render/listComputationRefresh.js": "fb0b6d7595a87d31a68aa9dbea90bdc29e160fd96532915df1057b5f7840061e",
++    "js/ui/render/renderAttendance.js": "30cac7c5f41fffc6f137d76fbde76f8ebf58283101a5b9577b23097c22b424a1",
++    "js/ui/render/renderDashboard.js": "1f45da7e769e46f110e179a7a1686f0f561c78429f1900ed409e215827213da3",
++    "js/ui/render/renderFinance.js": "492f01b7a45661c5f91acc30932d77e039d24c76bfa6a5a4464bd474ccc8994c",
++    "js/ui/render/renderInvalidation.js": "4592fbe5a799441547de3ee17acbcb40a2db76551e0c877e84cdad660d4032e2",
++    "js/ui/render/renderInventory.js": "d0a1039752004b58144884a6200e024952c22e28f169dd87860c66863cf3193c",
++    "js/ui/render/renderRegistry.js": "fd90c79f3fc0d95ddf195e0204b1e16b577454139d82170b1aa2e24d034a7cac",
++    "js/ui/render/renderScheduler.js": "775d8b58ce34e8b9352d7d6b0ad77125bdf5fd22275169218176cba0b0af7e60",
++    "js/ui/render/renderStudents.js": "6c53dfb122cbbce1ebf71ae1fdb1efb383b013f4795b2fef1ed976a2436dd063",
++    "js/ui/tabs.js": "e9d27932fd0ca35e99fe4724ea3bba8e1eb23ee25090b076d38441bb0a7a9457",
++    "js/ui/toast.js": "0371bb50b96f4e6b52c73901cdc401f0cb05d644d5754cf464292e9232678b76",
++    "js/utils/constants.js": "908b51067faf4ddcee93290f476e16c2ac37a2b2599a4ea36085843b737eb481",
++    "js/utils/event-guard.js": "6300daf65b516b9957148f0bd38f52c261078b31c860bbe3dac83fca98f3ced7",
++    "js/utils/firestore-guard.js": "8dcf5507d5d03fa05241a1c5e9db6c93212610ea3256390f6bc46f5114a4c74f",
++    "js/utils/format.js": "0e0112247c55f0436d64f7e1d0d3584dd388b39bdf761b4e6c0b598c1ecbb3ca",
++    "js/utils/formatters.js": "a8fa8fb6a4724bf821018959a074b6fcbd5a82fd521bc1029ccbc7a011e72271",
++    "js/utils/helpers.js": "846f33061619280d7525013b355afbadb4a1584b0b6befdf3eeee7a9a37533c8",
++    "js/utils/idb-cache.js": "b0570146b42c8268a48578b1640890a9eb58922fda5dd9302eaf4dbe31616409",
++    "js/utils/listeners.js": "bd572fda452100e79b3eb1ead383efaeb9a48b460db44f75d1d9926e5fffb4cb",
++    "js/utils/monthlyHelpers.js": "c918eed1780a14c40fd3708c8e3e187fcb10a5d8fb8aa797e86d467867c1a358",
++    "js/utils/offline-queue.js": "8e58ab4ea60f237d7b0698e44ff8a7e9cfb0857b9d45a31f59a9a2c7e25f1d5e",
++    "js/utils/pagination.js": "ccf55c82f00805d9e8ab27075e06adbe40fc7debd980431402bfa2b381c2e003",
++    "js/vendor/jsqr-1.4.0.esm.js": "0c1f462afd313d07b47756c492145659d59c68f03aa340ec26fe668d062ca401",
++    "js/vendor/jsqr-LICENSE.txt": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
++    "style.css": "ef74e7128a16991596ea696a2a6b655b69de6dcc17266d31c2a78db248ca71be"
++  },
++  "canonicalModuleURLs": {
++    "js/legacy/legacyUiFallbacks.js": "/js/legacy/legacyUiFallbacks.js?v=global-ownership-adoption-cleanup-20260615",
++    "js/legacy/legacyAttendanceFallbacks.js": "/js/legacy/legacyAttendanceFallbacks.js?v=attendance-canonical-ownership-20260616",
++    "js/core/lazyAssetsBootstrap.js": "/js/core/lazyAssetsBootstrap.js?v=tailwind-static-build-20260608",
++    "js/core/branchIdentity.js": "/js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1",
++    "js/core/coachBranchRuntimeRepair.js": "/js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/core/roleReadBoundary.js": "/js/core/roleReadBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/core/transactionCanonicalBoundary.js": "/js/core/transactionCanonicalBoundary.js?v=fin-canon-r1-2-20261031",
++    "js/core/debtProfileReadBoundary.js": "/js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s",
++    "js/core/tuitionDebtCanonical.js": "/js/core/tuitionDebtCanonical.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/core/profileCanonicalStore.js": "/js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1",
++    "app.js": "/app.js?v=a9r18-fin-write-r1-1-20261101",
++    "js/main.js": "/js/main.js?v=a9r18-fin-write-r1-1-20261101",
++    "js/core/performanceMonitor.js": "/js/core/performanceMonitor.js",
++    "js/services/students.service.js": "/js/services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/services/finance.service.js": "/js/services/finance.service.js?v=a9r18-fin-write-r1-1-20261101",
++    "js/utils/format.js": "/js/utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h",
++    "js/core/attendanceContract.js": "/js/core/attendanceContract.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/data/profileStatusConfig.js": "/js/data/profileStatusConfig.js",
++    "js/core/studentSearchIndex.js": "/js/core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1",
++    "js/diagnostics/runtimeReadinessDiagnostics.js": "/js/diagnostics/runtimeReadinessDiagnostics.js",
++    "js/diagnostics/onboardingDiagnostics.js": "/js/diagnostics/onboardingDiagnostics.js",
++    "js/diagnostics/superAdminAuditDiagnostics.js": "/js/diagnostics/superAdminAuditDiagnostics.js",
++    "js/store.js": "/js/store.js",
++    "js/utils/listeners.js": "/js/utils/listeners.js",
++    "js/data/studentProfileStore.js": "/js/data/studentProfileStore.js",
++    "js/core/superAdminQuotaGuard.js": "/js/core/superAdminQuotaGuard.js",
++    "js/core/productionAuthorityPolicy.js": "/js/core/productionAuthorityPolicy.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/clubStatsAutoCache.js": "/js/core/clubStatsAutoCache.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029",
++    "js/core/superAdminServerRefresh.js": "/js/core/superAdminServerRefresh.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/productionStabilityGate.js": "/js/core/productionStabilityGate.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/listenerOwnershipBoundary.js": "/js/core/listenerOwnershipBoundary.js",
++    "js/core/financialActionAuditGuard.js": "/js/core/financialActionAuditGuard.js",
++    "js/core/mobileStartupPerformance.js": "/js/core/mobileStartupPerformance.js",
++    "js/core/staticCssBuildHealth.js": "/js/core/staticCssBuildHealth.js",
++    "js/core/globalOwnershipRegistry.js": "/js/core/globalOwnershipRegistry.js",
++    "js/core/legacyRenderEntrypoints.js": "/js/core/legacyRenderEntrypoints.js",
++    "js/core/inlineHandlerAudit.js": "/js/core/inlineHandlerAudit.js",
++    "js/ui/eventActionBridge.js": "/js/ui/eventActionBridge.js",
++    "js/ui/legacyUiShell.js": "/js/ui/legacyUiShell.js",
++    "js/modules/reports/reportExportFacade.js": "/js/modules/reports/reportExportFacade.js?v=att-history-r1-1-20261031",
++    "js/firebase/config.js": "/js/firebase/config.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/ui/toast.js": "/js/ui/toast.js",
++    "js/ui/modal.js": "/js/ui/modal.js",
++    "js/ui/tabs.js": "/js/ui/tabs.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/ui/render.js": "/js/ui/render.js?v=a9r18-bstats-r1-1-20261031",
++    "js/ui/render/renderFinance.js": "/js/ui/render/renderFinance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderStudents.js": "/js/ui/render/renderStudents.js?v=a9r18-bstats-r1-1-20261031",
++    "js/ui/render/renderInventory.js": "/js/ui/render/renderInventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderAttendance.js": "/js/ui/render/renderAttendance.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d",
++    "js/ui/render/renderDashboard.js": "/js/ui/render/renderDashboard.js?v=a9r18-bstats-r1-1-20261031",
++    "js/ui/render/renderInvalidation.js": "/js/ui/render/renderInvalidation.js?v=a9r18-bstats-r1-1-20261031",
++    "js/ui/loading.js": "/js/ui/loading.js",
++    "js/utils/helpers.js": "/js/utils/helpers.js",
++    "js/utils/formatters.js": "/js/utils/formatters.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/receiptHelpers.js": "/js/modules/receiptHelpers.js?v=qr-v11r6-a9r18-stability-r2-redo-s4-20261027",
++    "js/modules/qrBankingHelpers.js": "/js/modules/qrBankingHelpers.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/utils/monthlyHelpers.js": "/js/utils/monthlyHelpers.js",
++    "js/utils/constants.js": "/js/utils/constants.js",
++    "js/utils/event-guard.js": "/js/utils/event-guard.js",
++    "js/core/financialFlowMap.js": "/js/core/financialFlowMap.js",
++    "js/core/securityPosture.js": "/js/core/securityPosture.js",
++    "js/core/actionGuard.js": "/js/core/actionGuard.js",
++    "js/core/canonicalDomainCommandBoundary.js": "/js/core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2",
++    "js/core/studentStatusCommandBoundary.js": "/js/core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/core/tuitionCommandBoundary.js": "/js/core/tuitionCommandBoundary.js?v=a9r18-fin-write-r1-1-20261101",
++    "js/core/transactionDeleteIntegrity.js": "/js/core/transactionDeleteIntegrity.js",
++    "js/core/legacyAppAudit.js": "/js/core/legacyAppAudit.js",
++    "js/diagnostics/legacyDiagnostics.js": "/js/diagnostics/legacyDiagnostics.js",
++    "js/core/multiItemInventorySafety.js": "/js/core/multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c",
++    "js/core/inventoryMultiItemReadOnlyUI.js": "/js/core/inventoryMultiItemReadOnlyUI.js?v=inventory-ledger-reconciliation-20260616-v2c",
++    "js/utils/firestore-guard.js": "/js/utils/firestore-guard.js",
++    "js/listeners/profiles.listeners.js": "/js/listeners/profiles.listeners.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/data/quitProfileBoundary.js": "/js/data/quitProfileBoundary.js?v=student-given-name-priority-20260811-v5u3",
++    "js/data/inventoryStore.js": "/js/data/inventoryStore.js",
++    "js/firebase/paginatedQuery.js": "/js/firebase/paginatedQuery.js",
++    "js/modules/students.js": "/js/modules/students.js?v=a9r18-fin-write-r1-1-20261101",
++    "js/modules/searchRuntime.js": "/js/modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3",
++    "js/modules/finance.js": "/js/modules/finance.js?v=a9r18-fin-write-r1-1-20261101",
++    "js/modules/inventory.js": "/js/modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/attendance.js": "/js/modules/attendance.js?v=att-history-r1-1-20261031",
++    "js/modules/dashboard.js": "/js/modules/dashboard.js?v=a9r18-bstats-r1-1-20261031",
++    "js/modules/superadmin.js": "/js/modules/superadmin.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h",
++    "js/events/students.events.js": "/js/events/students.events.js",
++    "js/events/finance.events.js": "/js/events/finance.events.js",
++    "js/events/attendance.events.js": "/js/events/attendance.events.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/modules/exam.js": "/js/modules/exam.js",
++    "js/services/attendance.service.js": "/js/services/attendance.service.js?v=att-history-r1-1-20261031",
++    "js/data/attendanceJournal.js": "/js/data/attendanceJournal.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/core/trainingRegistration.js": "/js/core/trainingRegistration.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++    "js/modules/finance/finance.pagination.js": "/js/modules/finance/finance.pagination.js?v=qr-v11r6-review-20261021",
++    "js/utils/pagination.js": "/js/utils/pagination.js",
++    "js/services/inventory.service.js": "/js/services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1",
++    "js/vendor/jsqr-1.4.0.esm.js": "/js/vendor/jsqr-1.4.0.esm.js",
++    "js/modules/reports.js": "/js/modules/reports.js?v=qr-v11r6-a9r18-mobile-perf-r2-h0-20261028",
++    "js/modules/reports/attendanceExcelReport.js": "/js/modules/reports/attendanceExcelReport.js?v=att-history-r1-1-20261031",
++    "js/ui/render/renderRegistry.js": "/js/ui/render/renderRegistry.js",
++    "js/ui/render/computation/financeRenderer.js": "/js/ui/render/computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/computation/studentsRenderer.js": "/js/ui/render/computation/studentsRenderer.js?v=a9r18-bstats-r1-1-20261031",
++    "js/ui/render/computation/inventoryRenderer.js": "/js/ui/render/computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/computation/dashboardRenderer.js": "/js/ui/render/computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031",
++    "js/ui/render/listComputationRefresh.js": "/js/ui/render/listComputationRefresh.js?v=a9r18-bstats-r1-1-20261031",
++    "js/ui/render/renderScheduler.js": "/js/ui/render/renderScheduler.js",
++    "js/listeners/attendance.listeners.js": "/js/listeners/attendance.listeners.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/listeners/exam.listeners.js": "/js/listeners/exam.listeners.js"
++  }
++}
+--- a/tools/v11r2/source-identity.mjs
++++ b/tools/v11r2/source-identity.mjs
+@@ -524,6 +524,87 @@
+ 
+ 
+ 
++const V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1 = Object.freeze({
++  "id": "V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1",
++  "canonicalFileCount": 129,
++  "coachAssignmentContract": "server-verified-multi-branch-v1",
++  "inputZIP_SHA256": "4564e5f26e59ec660f8c6831e26315584a246f13f9a6a1f8e2dcf5d155797000",
++  "manifest": "tools/v11r2/manifests/V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1.json",
++  "manifestSHA256": "02307b8272a516f412efef4085cbb5bf86d462c4de194e865e08ab36a9402cea",
++  "runtimeSHA256": "bc30abc33c7f738136584eedf110b94a4e5c55bb0ce2c9c19bd2be2b1c2a0c64",
++  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
++  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
++  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++  "cacheLineageScopes": [
++    {
++      "token": "a9r18-fin-write-r1-1-20261101",
++      "edges": [
++        [
++          "index.html",
++          "app.js"
++        ],
++        [
++          "index.html",
++          "js/main.js"
++        ],
++        [
++          "js/main.js",
++          "app.js"
++        ],
++        [
++          "js/main.js",
++          "js/core/tuitionCommandBoundary.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/finance.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/students.js"
++        ],
++        [
++          "js/core/tuitionCommandBoundary.js",
++          "js/services/finance.service.js"
++        ],
++        [
++          "js/modules/finance.js",
++          "js/services/finance.service.js"
++        ],
++        [
++          "js/modules/students.js",
++          "js/services/finance.service.js"
++        ],
++        [
++          "js/modules/students.js",
++          "js/modules/students.js"
++        ]
++      ]
++    },
++    {
++      "token": "att-history-r1-1-20261031",
++      "edges": [
++        [
++          "js/main.js",
++          "js/modules/attendance.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/reports/reportExportFacade.js"
++        ],
++        [
++          "js/modules/attendance.js",
++          "js/services/attendance.service.js"
++        ],
++        [
++          "js/modules/reports/reportExportFacade.js",
++          "js/modules/reports/attendanceExcelReport.js"
++        ]
++      ]
++    }
++  ]
++});
++
+ const V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1 = Object.freeze({
+   id:'V11R6_A9R18_USABILITY_PERF_R2R4_COMPAT_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1',
+   canonicalFileCount:129,
+@@ -634,7 +715,7 @@
+ });
+ 
+ export function verifySourceIdentity(root, actualRuntimeSHA256) {
+- const pinned=[V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1,V11R6_A9R18_FINANCE_CANONICAL_POLICY_R1_2,V11R6_A9R18_ATTENDANCE_HISTORY_R1_1,V11R6_A9R18_ATTENDANCE_HISTORY_R1,V11R6_A9R18_USABILITY_PERF_R2R5_2B,V11R6_A9R18_USABILITY_PERF_R2R5_2,V11R6_A9R18_USABILITY_PERF_R2R5_1_SYNC,V11R6_A9R18_USABILITY_PERF_R2R5,V11R6_A9R18_USABILITY_PERF_R2R4_R6,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE,V11R6_A9R18_USABILITY_PERF_R2R2_C1,V11R6_A9R18_USABILITY_PERF_R2_RCACHE,V11R6_A9R18_USABILITY_SYNC_R1_U2,V11R6_A9R18_USABILITY_SYNC_R1_U1,V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
++ const pinned=[V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1,V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1,V11R6_A9R18_FINANCE_CANONICAL_POLICY_R1_2,V11R6_A9R18_ATTENDANCE_HISTORY_R1_1,V11R6_A9R18_ATTENDANCE_HISTORY_R1,V11R6_A9R18_USABILITY_PERF_R2R5_2B,V11R6_A9R18_USABILITY_PERF_R2R5_2,V11R6_A9R18_USABILITY_PERF_R2R5_1_SYNC,V11R6_A9R18_USABILITY_PERF_R2R5,V11R6_A9R18_USABILITY_PERF_R2R4_R6,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE,V11R6_A9R18_USABILITY_PERF_R2R2_C1,V11R6_A9R18_USABILITY_PERF_R2_RCACHE,V11R6_A9R18_USABILITY_SYNC_R1_U2,V11R6_A9R18_USABILITY_SYNC_R1_U1,V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
+  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
+  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);
+--- a/js/core/tuitionCommandBoundary.js
++++ b/js/core/tuitionCommandBoundary.js
+@@ -11,7 +11,7 @@
+  *   - no inventory, family-pay, multi-item, admission or exam-fee ownership;
+  *   - one single-flight key, one local commit and one invalidation map per success.
+  */
+-import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-write-r1-1-20261101";
+ import { getLocalToday, normalizeYYYYMM, formatMonthCompact } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ 
+ const BUILD = 'tuition-command-cutover-20260730-v5u2';
+--- a/public/js/core/tuitionCommandBoundary.js
++++ b/public/js/core/tuitionCommandBoundary.js
+@@ -11,7 +11,7 @@
+  *   - no inventory, family-pay, multi-item, admission or exam-fee ownership;
+  *   - one single-flight key, one local commit and one invalidation map per success.
+  */
+-import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-write-r1-1-20261101";
+ import { getLocalToday, normalizeYYYYMM, formatMonthCompact } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ 
+ const BUILD = 'tuition-command-cutover-20260730-v5u2';
+--- a/js/modules/finance.js
++++ b/js/modules/finance.js
+@@ -8,7 +7,7 @@
+     normalizeYYYYMM,
+     formatMonthCompact,
+ } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+-import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-write-r1-1-20261101";
+ import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+@@ -686,7 +682,7 @@
+         prepareNextPage, preparePreviousPage,
+         renderPaginationControls, PAGE_SIZE,
+     }) => {
+-        import("../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(({ FinanceService }) => {
++        import("../services/finance.service.js?v=a9r18-fin-write-r1-1-20261101").then(({ FinanceService }) => {
+ 
+             const store = window.__store;
+             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }
+--- a/public/js/modules/finance.js
++++ b/public/js/modules/finance.js
+@@ -8,7 +7,7 @@
+     normalizeYYYYMM,
+     formatMonthCompact,
+ } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+-import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-write-r1-1-20261101";
+ import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+ import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+@@ -686,7 +682,7 @@
+         prepareNextPage, preparePreviousPage,
+         renderPaginationControls, PAGE_SIZE,
+     }) => {
+-        import("../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(({ FinanceService }) => {
++        import("../services/finance.service.js?v=a9r18-fin-write-r1-1-20261101").then(({ FinanceService }) => {
+ 
+             const store = window.__store;
+             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

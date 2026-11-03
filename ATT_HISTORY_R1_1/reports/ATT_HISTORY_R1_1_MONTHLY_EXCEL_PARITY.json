@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "architecture": "R1 canonical monthly owner retained",
+  "monthlyAuthorityScopeAdmin": "RECORDED",
+  "coach": "CURRENT_AUTHORITY_ONLY",
+  "excelSeparateFirestoreReader": false,
+  "eligibleSetParity": true,
+  "R1_1RuntimeBusinessChangeToMonthlyOrExcel": false
+}

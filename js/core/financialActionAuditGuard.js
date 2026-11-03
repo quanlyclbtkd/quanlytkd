@@ -194,10 +194,16 @@ async function _persistAuditRecord(record) {
   }
 }
 
+function _isTrustedGuardIntent(intent) {
+  return !!intent && typeof intent === 'object' && state.guards.includes(intent);
+}
+
 function recordFinancialActionAudit(action, stage, payload = {}, options = {}) {
-  const clubId = _getClubId();
-  const user = _getUserInfo();
-  const guard = options.intent || state.lastGuard || null;
+  const explicitIntent = options.intent || null;
+  const trustedExplicitIntent = _isTrustedGuardIntent(explicitIntent) ? explicitIntent : null;
+  const guard = trustedExplicitIntent || (!explicitIntent ? state.lastGuard : null);
+  const clubId = trustedExplicitIntent ? trustedExplicitIntent.clubId : _getClubId();
+  const user = trustedExplicitIntent ? trustedExplicitIntent.user : _getUserInfo();
   const record = {
     phase: PHASE,
     build: BUILD,
@@ -216,10 +222,17 @@ function recordFinancialActionAudit(action, stage, payload = {}, options = {}) {
   state.lastAudit = record;
   _pushLimited(state.auditTrail, record);
 
-  // best-effort async persistence; never block payment flow
-  _persistAuditRecord(record).catch((err) => {
-    state.errors.push({ time: _nowIso(), stage: 'audit-record', message: err && err.message || String(err) });
-  });
+  // best-effort async persistence; never block payment flow. An explicit
+  // intent is trusted only when it is the exact guard object held by this
+  // module; spoofed objects may be kept as diagnostics but are never persisted.
+  if (!explicitIntent || trustedExplicitIntent) {
+    _persistAuditRecord(record).catch((err) => {
+      state.errors.push({ time: _nowIso(), stage: 'audit-record', message: err && err.message || String(err) });
+    });
+  } else {
+    state.skippedPersist++;
+    state.errors.push({ time: _nowIso(), stage: 'audit-untrusted-intent', message: 'Explicit financial audit intent was not produced by the active guard registry.' });
+  }
 
   if (options.log !== false) {
     console.info('[financial-audit]', { action: record.action, stage: record.stage, intentId: record.intentId });

@@ -1,0 +1,14 @@
+{
+  "baseline": {
+    "AUTO_OPTIMIZE_DELAY_MS": 2200,
+    "safeOverlapSchedulesMutationCapableTimer": true,
+    "retryTimerPossible": true
+  },
+  "candidate": {
+    "safeOverlapSchedulesMutationCapableTimer": false,
+    "scheduleBridgeReturnsFalse": true,
+    "automaticRunnerBlockedBeforeRetry": true,
+    "mutationCapableTimerCount": 0
+  },
+  "nonMutationTimers": "Other unrelated UI/settings timers are outside this policy and not counted as mutation-capable."
+}

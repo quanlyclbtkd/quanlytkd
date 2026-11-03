@@ -82,7 +82,7 @@ check('quickCollectExam still exists as separate payment action', Boolean(quickB
 const canonicalQuick = financeJs.slice(financeJs.indexOf('window.quickCollectExam ='), financeJs.indexOf('window.processCombo ='));
 check('legacy exam writer blocks until the canonical Finance owner loads',
   quickBlock.includes('return false') && !quickBlock.includes('addDoc')
-  && canonicalQuick.includes("type:'Lệ phí thi'") && canonicalQuick.includes('FinanceService.addTransaction'));
+  && /type\s*:\s*["']Lệ phí thi["']/.test(canonicalQuick) && canonicalQuick.includes('FinanceService.addTransaction'));
 
 // Dynamic behavior test with a deferred commit to exercise double-click protection.
 if (block) {

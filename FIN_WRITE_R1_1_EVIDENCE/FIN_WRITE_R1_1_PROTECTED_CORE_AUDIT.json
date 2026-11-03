@@ -1,0 +1,33 @@
+{
+  "protected": {
+    "js/core/transactionCanonicalBoundary.js": {
+      "expected": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
+      "actual": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
+      "unchanged": true
+    },
+    "js/core/debtProfileReadBoundary.js": {
+      "expected": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08",
+      "actual": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08",
+      "unchanged": true
+    },
+    "js/ui/render/computation/financeRenderer.js": {
+      "expected": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
+      "actual": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
+      "unchanged": true
+    },
+    "firestore.rules": {
+      "expected": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "actual": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "unchanged": true
+    },
+    "firestore.indexes.json": {
+      "expected": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+      "actual": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+      "unchanged": true
+    }
+  },
+  "R1_2_no_migration": "PASS",
+  "bStats_R1_1": "PASS",
+  "DebtProfileAuthority": "UNCHANGED",
+  "Attendance": "REGRESSION_PASS"
+}

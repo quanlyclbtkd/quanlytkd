@@ -1,0 +1,12 @@
+{
+  "symbol": "refreshDashboardBranchStatsFullMonth",
+  "normalRuntimeCallerFound": false,
+  "classification": "DIAGNOSTIC_ONLY",
+  "runtimeDefinition": "js/modules/dashboard.js:2001",
+  "runtimeExport": "js/modules/dashboard.js:2241",
+  "testReferences": [
+    "tools/check-dashboard-exam-registration-branch.mjs"
+  ],
+  "businessLogicChanged": false,
+  "decision": "NO PATCH"
+}

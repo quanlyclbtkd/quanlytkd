@@ -1,0 +1,72 @@
+{
+  "classification": "GREEN",
+  "tests": [
+    {
+      "gate": "QUICKPAY_EXISTING_SERVER_TX_BLOCKS_DUPLICATE",
+      "result": "PASS",
+      "new_write": 0
+    },
+    {
+      "gate": "COMBO_EXISTING_SERVER_TX_BLOCKS_DUPLICATE",
+      "result": "PASS",
+      "new_write": 0
+    },
+    {
+      "gate": "FORM_EXISTING_SERVER_TX_BLOCKS_DUPLICATE",
+      "result": "PASS",
+      "new_write": 0
+    },
+    {
+      "gate": "MULTIITEM_EXISTING_SERVER_TX_BLOCKS_DUPLICATE",
+      "result": "PASS",
+      "new_write": 0
+    },
+    {
+      "gate": "PROFILE_PROVEN_PAID_CAUSES_ZERO_READ",
+      "result": "PASS",
+      "extra_reads": 0
+    },
+    {
+      "gate": "STRICT_COMPLETE_CURRENT_COVERAGE_CAUSES_ZERO_EXTRA_READ",
+      "result": "PASS",
+      "extra_reads": 0
+    },
+    {
+      "gate": "SERVER_EVIDENCE_FAILURE_CAUSES_ZERO_WRITE",
+      "result": "PASS",
+      "new_write": 0
+    }
+  ],
+  "multi_month": [
+    {
+      "months": 1,
+      "gate": "MULTIMONTH_1_PROFILE_PROVEN_ZERO_READ",
+      "result": "PASS",
+      "extra_reads": 0
+    },
+    {
+      "months": 3,
+      "gate": "MULTIMONTH_3_PROFILE_PROVEN_ZERO_READ",
+      "result": "PASS",
+      "extra_reads": 0
+    },
+    {
+      "months": 6,
+      "gate": "MULTIMONTH_6_PROFILE_PROVEN_ZERO_READ",
+      "result": "PASS",
+      "extra_reads": 0
+    },
+    {
+      "months": 9,
+      "gate": "MULTIMONTH_9_PROFILE_PROVEN_ZERO_READ",
+      "result": "PASS",
+      "extra_reads": 0
+    },
+    {
+      "months": 12,
+      "gate": "MULTIMONTH_12_PROFILE_PROVEN_ZERO_READ",
+      "result": "PASS",
+      "extra_reads": 0
+    }
+  ]
+}

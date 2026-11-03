@@ -1,0 +1,57 @@
+{
+  "files": [
+    {
+      "file": "app.js",
+      "baselineSHA256": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+      "candidateSHA256": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+      "byteIdentical": true
+    },
+    {
+      "file": "firestore.rules",
+      "baselineSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "candidateSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "byteIdentical": true
+    },
+    {
+      "file": "firestore.indexes.json",
+      "baselineSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+      "candidateSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+      "byteIdentical": true
+    },
+    {
+      "file": "js/core/tuitionDebtCanonical.js",
+      "baselineSHA256": "3755b877d8e0be7cc72aa986eca3b3e723d493717fa6631de4fe1d367327e92e",
+      "candidateSHA256": "3755b877d8e0be7cc72aa986eca3b3e723d493717fa6631de4fe1d367327e92e",
+      "byteIdentical": true
+    },
+    {
+      "file": "js/services/finance.service.js",
+      "baselineSHA256": "2868b09d2c01fc2306893f3dc7c4865b6f460bacc080f12717349205af8c9a4c",
+      "candidateSHA256": "2868b09d2c01fc2306893f3dc7c4865b6f460bacc080f12717349205af8c9a4c",
+      "byteIdentical": true
+    },
+    {
+      "file": "js/services/attendance.service.js",
+      "baselineSHA256": "ed5b7d4fb5a0be3c1ea416ac01648a3d2b5033db324022441a1af4735b2c9aa6",
+      "candidateSHA256": "ed5b7d4fb5a0be3c1ea416ac01648a3d2b5033db324022441a1af4735b2c9aa6",
+      "byteIdentical": true
+    },
+    {
+      "file": "js/data/attendanceJournal.js",
+      "baselineSHA256": "0f493addd96591dce9776148b43c7625cdcf6abcd7962f1cccceb70f237646ee",
+      "candidateSHA256": "0f493addd96591dce9776148b43c7625cdcf6abcd7962f1cccceb70f237646ee",
+      "byteIdentical": true
+    },
+    {
+      "file": "js/modules/inventory.js",
+      "baselineSHA256": "84ccedf11100da8c5c55b0551bcfdd8d8d34a686d4045c467f09382ea25a6423",
+      "candidateSHA256": "84ccedf11100da8c5c55b0551bcfdd8d8d34a686d4045c467f09382ea25a6423",
+      "byteIdentical": true
+    }
+  ],
+  "attendanceR1Gate": "45/45 PASS",
+  "attendanceR1_1Gate": "31/31 PASS",
+  "rulesChanged": false,
+  "indexesChanged": false,
+  "appJsBusinessBytesChanged": false
+}

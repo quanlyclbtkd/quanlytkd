@@ -1,0 +1,27 @@
+{
+  "classification": "PASS_WITH_MONOLITHIC_RUNNER_TIMEOUT_DISCLOSED",
+  "baseline": {
+    "npm_run_check": "PASS",
+    "npm_run_check_all": "started; runner timeout; no baseline business changes were made before RED reproduction"
+  },
+  "final": {
+    "npm_run_check": "PASS",
+    "log": "logs/final_check_after_matrix.log",
+    "npm_run_check_all_monolithic": "TIMEOUT at runner ceiling before process completion; no FAIL observed before timeout",
+    "monolithic_log": "logs/final_check_all_complete.log",
+    "remaining_suite_segment": "PASS",
+    "tail_log": "logs/final_check_all_tail.log",
+    "suite_coverage": "PASS via segmented execution"
+  },
+  "targeted": {
+    "transaction-delete-integrity": "PASS 22/22",
+    "exam-finance-separation": "PASS 41/41",
+    "canonical-R1.2": "PASS 26/26",
+    "debt-profile-authority": "PASS 23/23",
+    "bStats-R1.1": "PASS 40/40",
+    "attendance-history-R1": "PASS 45/45",
+    "attendance-history-R1.1": "PASS 31/31",
+    "legacy-global-freeze": "PASS 20/20",
+    "finance-write-evidence-R1.1": "PASS incl writer matrix"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "dryRunTrue": {
+    "historicalWrites": 0,
+    "settingsWrites": 0,
+    "listenerDetach": 0,
+    "listenerAttach": 0,
+    "persistedAuthorityChange": 0,
+    "planAllowed": true
+  },
+  "dryRunFalseProductionBridge": {
+    "blocked": true,
+    "error": "FINANCE_HISTORICAL_MUTATION_POLICY_BLOCKED",
+    "sideEffectsBeforeBlock": 0
+  }
+}

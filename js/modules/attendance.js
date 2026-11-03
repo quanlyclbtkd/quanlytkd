@@ -16,7 +16,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService, AttendanceHistoryReadOwner } from "../services/attendance.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+import { AttendanceService, AttendanceHistoryReadOwner } from "../services/attendance.service.js?v=att-history-r1-1-20261031";
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
@@ -58,6 +58,7 @@ let _attCurrentDate     = '';
 let _attendanceCache    = {};
 let _attendanceServerVersions = {};
 let _attendanceServerContext = '';
+let _attendanceLegacyNoShiftEvidence = { key: '', rows: [] };
 // Owned intents actually shown in this view. Their IDs express causality;
 // pending/inflight entries never imply a server ACK.
 let _attendanceIntentStates = new Map();
@@ -446,6 +447,7 @@ function _resetAttendanceModuleState(nextClubId) {
     _attendanceCache = {};
     _attendanceServerVersions = {};
     _attendanceServerContext = '';
+    _attendanceLegacyNoShiftEvidence = { key: '', rows: [] };
     _attendanceIntentStates.clear();
     _attendanceDerivedStats.clear();
     _attendanceSavingEdits.clear();
@@ -738,7 +740,13 @@ function _renderAttCards() {
         const k = _attStripSuffix(n);
         _attNCount[k] = (_attNCount[k] || 0) + 1;
     });
-    let html = _coachRosterWarning;
+    const currentDailyContextKey = _captureAttendanceDailyContext().key;
+    const legacyNoShiftCount = _attendanceLegacyNoShiftEvidence.key === currentDailyContextKey
+        ? _attendanceLegacyNoShiftEvidence.rows.length : 0;
+    const _legacyNoShiftWarning = legacyNoShiftCount > 0
+        ? '<div role="status" aria-live="polite" style="grid-column:1/-1;padding:9px 11px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:0.78rem;line-height:1.4;">ℹ️ Có ' + legacyNoShiftCount + ' bản ghi lịch sử cũ chưa xác định ca tập. Các bản ghi này chỉ để tra cứu, không được gán vào ca đang chọn và không tham gia thao tác sửa.</div>'
+        : '';
+    let html = _coachRosterWarning + _legacyNoShiftWarning;
     const savingProjection = _attendanceSavingProjection();
     window.currentAttendanceData = {};
     _attCurrentProfiles.forEach(([name]) => {
@@ -1716,14 +1724,33 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             _recordAttendanceDailyStale(token);
             return { stale: true, key: token.key };
         }
-        const nextCache = {};
-        attList.forEach(({ id, data }) => {
-            const docShift = data.shiftId || '';
+        const historicalAdminReopen = token.date < _getLocalToday() &&
+            _attendanceCanonicalRole(window.__verifiedAuthContextState?.role) !== 'coach';
+        const legacyNoShiftRows = historicalAdminReopen
+            ? attList.filter(({data}) => !String(data.shiftId || '').trim() && [1,2,3].includes(Number(data.status)))
+            : [];
+        _attendanceLegacyNoShiftEvidence = {
+            key: token.key,
+            rows: legacyNoShiftRows.map(({id,data}) => ({
+                id, name: String(data.profileId || data.name || ''), date: String(data.date || ''),
+                status: Number(data.status || 0), branch: String(data.branch || '')
+            }))
+        };
+        // Only the explicitly selected shift may enter editable/CAS state.
+        // Other explicit shifts and legacy no-shift rows remain read evidence.
+        const selectedShiftRows = [];
+        attList.forEach(({id,data}) => {
+            const docShift = String(data.shiftId || '').trim();
             if (token.shiftId && docShift !== token.shiftId) return;
+            if (!token.shiftId && docShift) return;
+            selectedShiftRows.push({id,data});
+        });
+        const nextCache = {};
+        selectedShiftRows.forEach(({ id, data }) => {
             nextCache[id] = _mapLegacyStatus(data.status || 0);
         });
         const nextServerVersions = attList.serverConfirmed === true
-            ? Object.fromEntries(attList.map(({id,data}) => [id,attendanceServerVersion(data)])) : null;
+            ? Object.fromEntries(selectedShiftRows.map(({id,data}) => [id,attendanceServerVersion(data)])) : null;
         // Overlay unresolved durable intents; never present a pending mark as ACK.
         let pending=[];
         try {pending=await AttendanceJournal.list(_captureOfflineAttendanceSyncContext());}
@@ -2028,8 +2055,11 @@ export function initAttendance() {
         }
         const historyOwner = _captureOfflineAttendanceSyncContext();
         const historyAuthoritySnapshot = _memberHistoryAuthoritySnapshot();
-        const historyBranchSelector = document.getElementById(overrideMonth ? 'att_month_branch' : 'att_branch');
-        const requestedHistoryBranch = overrideBranch || historyBranchSelector?.value || '';
+        // R1.1: member-history branch scope belongs to the caller intent, not
+        // the current Daily/Monthly selector DOM. A normal Admin Daily click
+        // passes no branch and therefore means complete recorded history across
+        // historical branches. Explicit Monthly callers continue to pass branch.
+        const requestedHistoryBranch = typeof overrideBranch === 'string' ? overrideBranch.trim() : '';
         const historyBranch = historyOwner.role === 'coach' ? historyOwner.coachBranch
             : (requestedHistoryBranch && requestedHistoryBranch !== 'all' ? _canonicalAttendanceBranch(requestedHistoryBranch, '') : '');
         const historyAuthorityScope = historyOwner.role === 'coach' ? 'current' : 'recorded';
@@ -2071,17 +2101,26 @@ export function initAttendance() {
             });
             if (!isCurrent()) return;
             const snapQ = { forEach: (fn) => histList.forEach(item => fn({ data: () => item.data, id: item.id })) };
-            const dayMap = {};
+            const daySessions = {};
             let present = 0, excused = 0, absent = 0, qPresent = 0, qExcused = 0, qAbsent = 0;
             snapQ.forEach(d => {
                 const data = d.data(); const s = data.status || 0;
                 if (s === 1) qPresent++; else if (s === 2) qAbsent++; else if (s === 3) qExcused++;
                 if (data.month === month) {
                     const dateStr = data.date || ''; const day = parseInt((dateStr.split('-')[2] || '0'), 10);
-                    if (day) dayMap[day] = s;
+                    if (day) {
+                        if (!daySessions[day]) daySessions[day] = [];
+                        daySessions[day].push({status:s,shiftId:String(data.shiftId || ''),date:dateStr});
+                    }
                     if (s === 1) present++; else if (s === 2) absent++; else if (s === 3) excused++;
                 }
             });
+            const _shiftOrder = new Map((_clubShifts || []).map((shift,index)=>[String(shift?.id || ''),index]));
+            Object.values(daySessions).forEach((sessions) => sessions.sort((a,b) => {
+                const ai = _shiftOrder.has(a.shiftId) ? _shiftOrder.get(a.shiftId) : Number.MAX_SAFE_INTEGER;
+                const bi = _shiftOrder.has(b.shiftId) ? _shiftOrder.get(b.shiftId) : Number.MAX_SAFE_INTEGER;
+                return ai - bi || a.shiftId.localeCompare(b.shiftId);
+            }));
             const orderedHistory = histList.map(x=>x.data).sort((a,b)=>String(b.date).localeCompare(String(a.date)) || String(b.shiftId||'').localeCompare(String(a.shiftId||'')));
             let consecutiveAbsences=0;
             for (const row of orderedHistory) {if (Number(row.status)!==2) break;consecutiveAbsences++;}
@@ -2122,19 +2161,33 @@ export function initAttendance() {
             calHtml += '</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">';
             for (let i = 0; i < firstDow; i++) calHtml += '<div></div>';
             for (let day = 1; day <= daysInMonth; day++) {
-                const st = dayMap[day]; const _dow = new Date(yr, mo - 1, day).getDay();
+                const sessions = daySessions[day] || [];
+                const st = sessions.length === 1 ? Number(sessions[0].status || 0) : 0;
+                const _dow = new Date(yr, mo - 1, day).getDay();
                 const _isSchDay = !_hasSched || p.trainingDays.includes(_dow);
-                const _isMakeup = (st === 1) && _hasSched && !p.trainingDays.includes(_dow);
+                const _isMakeup = sessions.some(session => Number(session.status) === 1) && _hasSched && !p.trainingDays.includes(_dow);
                 let bg, col, icon;
-                if (_isMakeup)     { bg='#f3e8ff';col='#7c3aed';icon='🔄'; }
+                if (sessions.length > 1) { bg='#f8fafc';col='#334155';icon=''; }
+                else if (_isMakeup) { bg='#f3e8ff';col='#7c3aed';icon='🔄'; }
                 else if (st===1)   { bg='#dcfce7';col='#166534';icon='✅'; }
                 else if (st===2)   { bg='#fee2e2';col='#991b1b';icon='❌'; }
                 else if (st===3)   { bg='#dbeafe';col='#1e40af';icon='📝'; }
                 else if (_isSchDay){ bg='#f0f9ff';col='#93c5fd';icon='·'; }
                 else               { bg='#f8fafc';col='#cbd5e1';icon=''; }
-                calHtml += '<div title="' + day + '/' + monthDisplay + (_isMakeup?' – Học bù':'') + '" style="background:'+bg+';color:'+col+';border-radius:6px;padding:4px 2px;text-align:center;min-height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;">'
+                const _statusIcon = {1:'✅',2:'❌',3:'📝'};
+                const _statusText = {1:'Có mặt',2:'Vắng',3:'Có phép'};
+                const sessionDetails = sessions.map((session,index) => {
+                    const shift = resolveTrainingShift(session.shiftId,_clubShifts);
+                    const shiftName = shift?.name || session.shiftId || 'Chưa xác định ca';
+                    return 'Buổi ' + (index + 1) + ': ' + shiftName + ' – ' + (_statusText[Number(session.status)] || 'Chưa điểm danh');
+                });
+                const _cellLabel = day + '/' + monthDisplay + (sessionDetails.length ? ' – ' + sessionDetails.join('; ') : (_isMakeup ? ' – Học bù' : ''));
+                const _sessionBadges = sessions.length > 1
+                    ? '<div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;line-height:1;">' + sessions.map((session) => '<span style="font-size:0.67rem;">' + (_statusIcon[Number(session.status)] || '·') + '</span>').join('') + '</div><div style="font-size:0.5rem;font-weight:800;margin-top:1px;">' + sessions.length + ' buổi</div>'
+                    : '<div style="font-size:0.78rem;line-height:1;">' + icon + '</div>';
+                calHtml += '<div title="' + escapeHtml(_cellLabel) + '" aria-label="' + escapeHtml(_cellLabel) + '" style="background:'+bg+';color:'+col+';border-radius:6px;padding:4px 2px;text-align:center;min-height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;">'
                     + '<div style="font-size:0.72rem;font-weight:700;">' + day + '</div>'
-                    + '<div style="font-size:0.78rem;line-height:1;">' + icon + '</div></div>';
+                    + _sessionBadges + '</div>';
             }
             calHtml += '</div>';
             bodyEl.innerHTML =

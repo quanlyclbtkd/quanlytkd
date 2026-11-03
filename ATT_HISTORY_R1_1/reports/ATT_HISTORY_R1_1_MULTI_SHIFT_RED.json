@@ -1,0 +1,21 @@
+{
+  "status": "RED_REPRODUCED",
+  "fixture": {
+    "profile": "P1",
+    "date": "2026-10-10",
+    "sessions": [
+      {
+        "shiftId": "S1",
+        "status": 1
+      },
+      {
+        "shiftId": "S2",
+        "status": 2
+      }
+    ]
+  },
+  "baselineSummarySessionCount": 2,
+  "baselinePresentation": "dayMap[day] = status; later session overwrote earlier session",
+  "baselineVisibleSessionStatuses": 1,
+  "rootCause": "calendar view model keyed a day to a single status instead of an array of sessions."
+}

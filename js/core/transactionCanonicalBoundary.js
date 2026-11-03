@@ -215,9 +215,8 @@
             updatedAt: Date.now(),
         };
         metrics.transactionOverlap[String(month || '')] = report;
-        if (report.safeForBackfill && typeof scheduleAutomaticCutover === 'function') {
-            scheduleAutomaticCutover(month, 'legacy-snapshots-ready');
-        }
+        // FIN-CANON-R1.2: overlap/parity is diagnostic evidence only.
+        // Production runtime must never turn safe overlap into historical mutation or persisted authority.
         return report;
     }
 
@@ -393,6 +392,11 @@
         const ctx = getContext();
         const key = ctx.clubId + ':' + month;
         clearAutoTimer(key);
+        // FIN-CANON-R1.2 policy: automatic historical migration/persisted promotion is disabled.
+        // Keep this bridge for compatibility/diagnostics, but block before any timer retry,
+        // Finance listener transition, historical write, local authority change, or settings write.
+        return { ok: false, blocked: true, reason: 'automatic-historical-mutation-policy', month: month, trigger: String(trigger || '') };
+        /* istanbul ignore next -- retained unreachable compatibility body for rollback archaeology */
         const blocked = automaticCutoverBlockedReason(month);
         if (blocked) {
             const transient = blocked === 'financial-action-in-flight' || blocked === 'offline' || blocked === 'context-not-ready';
@@ -438,7 +442,12 @@
     function scheduleAutomaticCutover(monthInput, trigger) {
         const month = normalizeMonth(monthInput);
         const ctx = getContext();
+        // FIN-CANON-R1.2: no mutation-capable automatic timer in production.
+        // Overlap/parity diagnostics remain available through recordTransactionOverlap/runParityAudit.
         if (!month || !ctx.clubId) return false;
+        global.__canonicalTxAutoState = { version: '4K-6V3BC1', clubId: ctx.clubId, month: month, status: 'policy-blocked', trigger: String(trigger || ''), blockedAt: Date.now() };
+        return false;
+        /* istanbul ignore next -- retained unreachable compatibility body for rollback archaeology */
         if (getReadMode(ctx.clubId, month) === 'canonical') return false;
         const key = ctx.clubId + ':' + month;
         if (_autoTimers.has(key) || global.__canonicalTxCutoverInFlight) return false;
@@ -639,6 +648,11 @@
     async function executeCanonicalCutover(monthInput, options) {
         const opts = options && typeof options === 'object' ? options : {};
         const month = normalizeMonth(monthInput || ((document.getElementById('filterMonth') || {}).value));
+        // FIN-CANON-R1.2: production bundle may audit/dry-run, but it may not mutate
+        // historical transaction documents or persist new canonical authority.
+        if (opts.dryRun === false) {
+            throw new Error('FINANCE_HISTORICAL_MUTATION_POLICY_BLOCKED');
+        }
         if (global.__canonicalTxCutoverInFlight) throw new Error('[V3B/C] Một tiến trình tối ưu giao dịch đang chạy.');
         const plan = buildBackfillPlan(month, opts);
         if (!plan.ok) throw new Error('[V3B/C] Chưa thể chuyển đổi: ' + plan.blockedReasons.join(' '));

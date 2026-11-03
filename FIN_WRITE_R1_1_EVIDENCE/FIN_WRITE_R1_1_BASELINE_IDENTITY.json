@@ -1,0 +1,19 @@
+{
+  "phase": "A9R18-FINANCE-WRITE-EVIDENCE-R1.1",
+  "status": "PASS",
+  "input": "A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1_FULL_SOURCE_TEST_CANDIDATE.zip",
+  "zip_sha256": "4564e5f26e59ec660f8c6831e26315584a246f13f9a6a1f8e2dcf5d155797000",
+  "runtime_sha256": "8dc0ff78ece749202db1189bce4ddccd4f1cd755cafa21118e6fd5d75d926dc6",
+  "protected": {
+    "app.js": {
+      "bytes": 702900,
+      "sha256": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13"
+    },
+    "js/ui/render/computation/financeRenderer.js": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
+    "js/core/transactionCanonicalBoundary.js": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
+    "js/core/debtProfileReadBoundary.js": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08",
+    "firestore.rules": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+    "firestore.indexes.json": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2"
+  },
+  "mismatch": false
+}

@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "normalAdmin": {
+    "profileScope": "same stable profile key",
+    "quarterBranchScope": "all recorded branches",
+    "allTimeBranchScope": "all recorded branches",
+    "authorityScope": "RECORDED",
+    "scopeMatch": true
+  },
+  "explicitMonthly": {
+    "quarterBranchScope": "caller branch",
+    "allTimeBranchScope": "same captured caller branch",
+    "scopeMatch": true
+  },
+  "coach": {
+    "quarterBranchScope": "assigned branch",
+    "allTimeBranchScope": "assigned branch",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY",
+    "scopeMatch": true
+  },
+  "domRereadDuringPagination": false
+}

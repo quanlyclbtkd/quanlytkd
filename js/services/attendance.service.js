@@ -309,7 +309,10 @@ export const AttendanceService = {
             if (canonicalBranch === 'CS1') baseConstraints.push(where('branch', 'in', ['CS1', 'Mặc định']));
             else if (canonicalBranch) baseConstraints.push(where('branch', '==', canonicalBranch));
         }
-        if (shiftId) baseConstraints.push(where('shiftId', '==', shiftId));
+        // R1.1: an Admin historical reopen must also observe legacy rows
+        // that predate shiftId. Keep current-day and Coach operational reads
+        // shift-exact; historical Admin reads partition shift evidence in RAM.
+        if (shiftId && !historicalReopen) baseConstraints.push(where('shiftId', '==', shiftId));
 
         const results = [];
         let cursor = null;
@@ -375,7 +378,7 @@ export const AttendanceService = {
 
         window.__attendanceDailyLoadMetrics = {
             date,
-            shiftFiltered: !!shiftId,
+            shiftFiltered: !!shiftId && !historicalReopen,
             branchFiltered: !!branch && branch !== 'all',
             branch,
             docs: results.length,

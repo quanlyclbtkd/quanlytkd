@@ -1,0 +1,9 @@
+{
+  "fixture": "M2 absent from persisted canonicalTransactionReadMonths + safe overlap",
+  "establishedCurrentContract": "persisted-settings-only read authority",
+  "beforeReadMode": "legacy",
+  "afterReadMode": "legacy",
+  "historicalWrites": 0,
+  "settingsPromotion": 0,
+  "result": "PASS"
+}

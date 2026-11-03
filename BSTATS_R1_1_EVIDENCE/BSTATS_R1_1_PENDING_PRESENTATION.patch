@@ -1,0 +1,36 @@
+--- a/js/modules/dashboard.js
++++ b/js/modules/dashboard.js
+@@ -216,8 +216,13 @@
+         const feeBreakdown  = hasFees
+             ? `<div class="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100">${tuitionBadges}${examBadges}</div>`
+             : '';
+-        const debtHtml = bd.debt > 0
+-            ? `<div class="text-xs mt-1" style="color:#dc2626;font-weight:700;">⚠️ ${bd.debt} võ sinh nợ học phí</div>` : '';
++        const debtHtml = bd.debtPending === true
++            ? `<div class="text-xs mt-1" style="color:#64748b;font-weight:700;">Đang đồng bộ dữ liệu nợ…</div>`
++            : (bd.debt > 0
++                ? `<div class="text-xs mt-1" style="color:#dc2626;font-weight:700;">⚠️ ${bd.debt} võ sinh nợ học phí${bd.debtUpdating === true ? ' · Đang cập nhật…' : ''}</div>`
++                : (bd.debtUpdating === true
++                    ? `<div class="text-xs mt-1" style="color:#64748b;font-weight:700;">Đang cập nhật dữ liệu nợ…</div>`
++                    : ''));
+         html += `<div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+             <div class="flex items-center gap-4">
+                 <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-xl flex-shrink-0">🏢</div>
+--- a/public/js/modules/dashboard.js
++++ b/public/js/modules/dashboard.js
+@@ -216,8 +216,13 @@
+         const feeBreakdown  = hasFees
+             ? `<div class="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100">${tuitionBadges}${examBadges}</div>`
+             : '';
+-        const debtHtml = bd.debt > 0
+-            ? `<div class="text-xs mt-1" style="color:#dc2626;font-weight:700;">⚠️ ${bd.debt} võ sinh nợ học phí</div>` : '';
++        const debtHtml = bd.debtPending === true
++            ? `<div class="text-xs mt-1" style="color:#64748b;font-weight:700;">Đang đồng bộ dữ liệu nợ…</div>`
++            : (bd.debt > 0
++                ? `<div class="text-xs mt-1" style="color:#dc2626;font-weight:700;">⚠️ ${bd.debt} võ sinh nợ học phí${bd.debtUpdating === true ? ' · Đang cập nhật…' : ''}</div>`
++                : (bd.debtUpdating === true
++                    ? `<div class="text-xs mt-1" style="color:#64748b;font-weight:700;">Đang cập nhật dữ liệu nợ…</div>`
++                    : ''));
+         html += `<div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+             <div class="flex items-center gap-4">
+                 <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-xl flex-shrink-0">🏢</div>

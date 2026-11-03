@@ -1,0 +1,51 @@
+{
+  "before": {
+    "getDoc": 24,
+    "getDocs": 57,
+    "onSnapshot": 35,
+    "setDoc": 25,
+    "updateDoc": 19,
+    "addDoc": 18,
+    "deleteDoc": 7,
+    "writeBatch": 31,
+    "runTransaction": 4
+  },
+  "after": {
+    "getDoc": 24,
+    "getDocs": 58,
+    "onSnapshot": 35,
+    "setDoc": 25,
+    "updateDoc": 19,
+    "addDoc": 18,
+    "deleteDoc": 7,
+    "writeBatch": 31,
+    "runTransaction": 4
+  },
+  "delta": {
+    "getDoc": 0,
+    "getDocs": 1,
+    "onSnapshot": 0,
+    "setDoc": 0,
+    "updateDoc": 0,
+    "addDoc": 0,
+    "deleteDoc": 0,
+    "writeBatch": 0,
+    "runTransaction": 0
+  },
+  "classification": {
+    "new_listener_owner": 0,
+    "new_writer_owner": 0,
+    "new_parallel_finance_reader_owner": 0,
+    "new_read_callsite": 1
+  },
+  "new_read_callsite": {
+    "file": "js/services/finance.service.js",
+    "primitive": "getDocs",
+    "before": 8,
+    "after": 9,
+    "owner": "FinanceService",
+    "reason": "server-complete negative financial evidence",
+    "scope": "club/month/readMode; fully paginated required sources",
+    "single_flight": true
+  }
+}

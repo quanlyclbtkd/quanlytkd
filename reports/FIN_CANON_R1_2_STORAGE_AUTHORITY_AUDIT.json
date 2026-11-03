@@ -1,0 +1,19 @@
+{
+  "localStorage": {
+    "prefix": "tkd:canonical-tx-auto:v1:",
+    "purpose": "automatic-run status/cooldown only",
+    "usedByGetReadMode": false,
+    "candidateSafeOverlapWritesStatus": false
+  },
+  "sessionStorage": {
+    "canonicalAuthorityFound": false
+  },
+  "indexedDBHelper": {
+    "canonicalAuthorityFound": false
+  },
+  "windowStore": {
+    "authorityMirror": "clubConfig.canonicalTransactionReadMonths",
+    "source": "settings snapshot/persisted authority"
+  },
+  "hiddenPersistedAuthorityFound": false
+}

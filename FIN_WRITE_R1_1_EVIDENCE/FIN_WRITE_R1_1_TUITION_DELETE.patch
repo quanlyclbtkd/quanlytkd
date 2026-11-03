@@ -1,0 +1,207 @@
+# Logical PATCH C — tuition delete remaining-payment evidence; removes normal legacy reconcile authority and keeps one profile reconciliation writer.
+--- a/js/core/tuitionCommandBoundary.js
++++ b/js/core/tuitionCommandBoundary.js
+@@ -481,33 +560,38 @@
+         // transaction that no longer exists on the server.
+         _removeLocalTransaction(id);
+         completedReplayInvalidated = _invalidateCompletedReplayForTransaction(id);
+-        if (analyzed?.requiresProfileReconcile && analyzed.studentName && typeof window.reconcileStudentTuitionAfterDeletedTransaction === 'function') {
+-          const reconcileResult = await window.reconcileStudentTuitionAfterDeletedTransaction(
+-            analyzed.studentName,
+-            tx,
+-            { reason: 'v5u2-delete-tuition', skipInvalidate: true }
+-          );
+-          if (reconcileResult?.ok === false) {
+-            const reconcileError = new Error('[TuitionCommandBoundary] Transaction đã xóa nhưng profile học phí chưa reconcile thành công.');
+-            reconcileError.code = 'tuition/delete-reconcile-failed';
+-            throw reconcileError;
++        const studentName = String(analyzed?.studentName || tx.studentName || tx.description || '').trim();
++        const deletedMonths = _normalizeMonths(Array.isArray(tx.packageMonths) ? tx.packageMonths : (tx.txMonth ? [tx.txMonth] : []));
++        let profileReconcileVerified = true;
++        let monthsToRemove = [];
++        if (analyzed?.requiresProfileReconcile && studentName && deletedMonths.length) {
++          const rowsById = new Map();
++          for (const month of deletedMonths) {
++            const evidence = await _service().getCompleteMonthEvidence({ month, reason: 'tuition-delete-remaining-payment:' + month });
++            if (!evidence?.serverComplete || evidence?.contextStillCurrent !== true) { profileReconcileVerified = false; break; }
++            (evidence.rows || []).forEach((row, i) => { if (String(row?.id || '') !== id) rowsById.set(String(row?.id || row?.txId || month + ':' + i), row); });
+           }
+-        } else {
+-          const studentName = String(tx.description || tx.studentName || '').trim();
+-          if (studentName) {
+-            const docs = await _service().getStudentTuitionTxs(studentName);
+-            const remaining = [];
+-            docs.forEach(({ id: otherId, data }) => {
+-              if (otherId === id) return;
+-              if (data.type !== 'Học phí' && data.type !== 'Học phí + Lệ phí thi') return;
+-              if (Array.isArray(data.packageMonths)) remaining.push(...data.packageMonths);
+-              else if (data.txMonth) remaining.push(data.txMonth);
+-            });
+-            const sorted = Array.from(new Set(remaining.map(String))).sort();
+-            const paidUntil = sorted.length ? sorted[sorted.length - 1] : '';
+-            const deletedMonths = Array.isArray(tx.packageMonths) ? tx.packageMonths : (tx.txMonth ? [tx.txMonth] : []);
+-            await _service().updateProfileAfterTxDelete(studentName, paidUntil, deletedMonths);
++          if (profileReconcileVerified) {
++            const canonical = window.TuitionDebtCanonical;
++            if (!canonical?.extractTuitionTransactionMonths || !canonical?.reconcilePaidUntilFromMonthEvidence) throw new Error('[TuitionCommandBoundary] Canonical delete reconciliation helper chưa sẵn sàng.');
++            const latestProfile = _profiles()[studentName] || deleteProfile;
++            if (_profileIdentity(latestProfile, studentName) !== deleteProfileId) profileReconcileVerified = false;
++            else {
++              const remainingTxMonths = canonical.extractTuitionTransactionMonths(latestProfile, studentName, { transactions: Array.from(rowsById.values()) });
++              monthsToRemove = deletedMonths.filter(month => !remainingTxMonths.includes(month));
++              if (monthsToRemove.length) {
++                const currentPaidMonths = _normalizeMonths(latestProfile.paidMonths || []);
++                const remainingProfilePaidMonths = currentPaidMonths.filter(month => !monthsToRemove.includes(month));
++                const paidUntil = canonical.reconcilePaidUntilFromMonthEvidence(latestProfile, remainingProfilePaidMonths, { allowRegression: true, removedMonths: monthsToRemove });
++                await _service().updateProfileAfterTxDelete(studentName, paidUntil, monthsToRemove);
++              }
++            }
+           }
++        }
++        if (!profileReconcileVerified) {
++          _invalidateTuition('v5u2-delete-tuition-unverified-reconcile', { examRefresh: analyzed?.requiresExamRefresh === true });
++          _audit('transaction.delete', 'after', { ...auditPayload, completedReplayInvalidated, transactionDeleted: true, profileReconcileVerified: false });
++          return { ok: true, txId: id, transactionDeleted: true, profileReconcileVerified: false, warning: 'TUITION_DELETE_RECONCILE_UNVERIFIED', studentName, impact: analyzed || null, completedReplayInvalidated };
+         }
+         _invalidateTuition('v5u2-delete-tuition', { examRefresh: analyzed?.requiresExamRefresh === true });
+         _audit('transaction.delete', 'after', { ...auditPayload, completedReplayInvalidated });
+--- a/public/js/core/tuitionCommandBoundary.js
++++ b/public/js/core/tuitionCommandBoundary.js
+@@ -481,33 +560,38 @@
+         // transaction that no longer exists on the server.
+         _removeLocalTransaction(id);
+         completedReplayInvalidated = _invalidateCompletedReplayForTransaction(id);
+-        if (analyzed?.requiresProfileReconcile && analyzed.studentName && typeof window.reconcileStudentTuitionAfterDeletedTransaction === 'function') {
+-          const reconcileResult = await window.reconcileStudentTuitionAfterDeletedTransaction(
+-            analyzed.studentName,
+-            tx,
+-            { reason: 'v5u2-delete-tuition', skipInvalidate: true }
+-          );
+-          if (reconcileResult?.ok === false) {
+-            const reconcileError = new Error('[TuitionCommandBoundary] Transaction đã xóa nhưng profile học phí chưa reconcile thành công.');
+-            reconcileError.code = 'tuition/delete-reconcile-failed';
+-            throw reconcileError;
++        const studentName = String(analyzed?.studentName || tx.studentName || tx.description || '').trim();
++        const deletedMonths = _normalizeMonths(Array.isArray(tx.packageMonths) ? tx.packageMonths : (tx.txMonth ? [tx.txMonth] : []));
++        let profileReconcileVerified = true;
++        let monthsToRemove = [];
++        if (analyzed?.requiresProfileReconcile && studentName && deletedMonths.length) {
++          const rowsById = new Map();
++          for (const month of deletedMonths) {
++            const evidence = await _service().getCompleteMonthEvidence({ month, reason: 'tuition-delete-remaining-payment:' + month });
++            if (!evidence?.serverComplete || evidence?.contextStillCurrent !== true) { profileReconcileVerified = false; break; }
++            (evidence.rows || []).forEach((row, i) => { if (String(row?.id || '') !== id) rowsById.set(String(row?.id || row?.txId || month + ':' + i), row); });
+           }
+-        } else {
+-          const studentName = String(tx.description || tx.studentName || '').trim();
+-          if (studentName) {
+-            const docs = await _service().getStudentTuitionTxs(studentName);
+-            const remaining = [];
+-            docs.forEach(({ id: otherId, data }) => {
+-              if (otherId === id) return;
+-              if (data.type !== 'Học phí' && data.type !== 'Học phí + Lệ phí thi') return;
+-              if (Array.isArray(data.packageMonths)) remaining.push(...data.packageMonths);
+-              else if (data.txMonth) remaining.push(data.txMonth);
+-            });
+-            const sorted = Array.from(new Set(remaining.map(String))).sort();
+-            const paidUntil = sorted.length ? sorted[sorted.length - 1] : '';
+-            const deletedMonths = Array.isArray(tx.packageMonths) ? tx.packageMonths : (tx.txMonth ? [tx.txMonth] : []);
+-            await _service().updateProfileAfterTxDelete(studentName, paidUntil, deletedMonths);
++          if (profileReconcileVerified) {
++            const canonical = window.TuitionDebtCanonical;
++            if (!canonical?.extractTuitionTransactionMonths || !canonical?.reconcilePaidUntilFromMonthEvidence) throw new Error('[TuitionCommandBoundary] Canonical delete reconciliation helper chưa sẵn sàng.');
++            const latestProfile = _profiles()[studentName] || deleteProfile;
++            if (_profileIdentity(latestProfile, studentName) !== deleteProfileId) profileReconcileVerified = false;
++            else {
++              const remainingTxMonths = canonical.extractTuitionTransactionMonths(latestProfile, studentName, { transactions: Array.from(rowsById.values()) });
++              monthsToRemove = deletedMonths.filter(month => !remainingTxMonths.includes(month));
++              if (monthsToRemove.length) {
++                const currentPaidMonths = _normalizeMonths(latestProfile.paidMonths || []);
++                const remainingProfilePaidMonths = currentPaidMonths.filter(month => !monthsToRemove.includes(month));
++                const paidUntil = canonical.reconcilePaidUntilFromMonthEvidence(latestProfile, remainingProfilePaidMonths, { allowRegression: true, removedMonths: monthsToRemove });
++                await _service().updateProfileAfterTxDelete(studentName, paidUntil, monthsToRemove);
++              }
++            }
+           }
++        }
++        if (!profileReconcileVerified) {
++          _invalidateTuition('v5u2-delete-tuition-unverified-reconcile', { examRefresh: analyzed?.requiresExamRefresh === true });
++          _audit('transaction.delete', 'after', { ...auditPayload, completedReplayInvalidated, transactionDeleted: true, profileReconcileVerified: false });
++          return { ok: true, txId: id, transactionDeleted: true, profileReconcileVerified: false, warning: 'TUITION_DELETE_RECONCILE_UNVERIFIED', studentName, impact: analyzed || null, completedReplayInvalidated };
+         }
+         _invalidateTuition('v5u2-delete-tuition', { examRefresh: analyzed?.requiresExamRefresh === true });
+         _audit('transaction.delete', 'after', { ...auditPayload, completedReplayInvalidated });
+--- a/js/modules/finance.js
++++ b/js/modules/finance.js
+@@ -189,11 +186,12 @@
+             } catch (_) { return false; }
+         }
+         if (!isTuitionOnly) window.recordFinancialActionAudit?.('transaction.delete', 'before', genericAuditPayload);
++        let tuitionDeleteResult = null;
+         try {
+             if (isTuitionOnly) {
+                 if (!window.TuitionCommandBoundary?.deleteTuitionTransaction) throw new Error('[V5U-2] TuitionCommandBoundary chưa sẵn sàng.');
+-                const result = await window.TuitionCommandBoundary.deleteTuitionTransaction({ txId: txId, transaction: txToDelete, impact, source: 'finance.deleteTx' });
+-                if (result?.cancelled) return false;
++                tuitionDeleteResult = await window.TuitionCommandBoundary.deleteTuitionTransaction({ txId: txId, transaction: txToDelete, impact, source: 'finance.deleteTx' });
++                if (tuitionDeleteResult?.cancelled) return false;
+             } else if(impact?.isPureInventory===true){
+                 if(refs.length!==1)throw new Error('[F1D1] Inventory ref không an toàn.');
+                 const invId=refs[0], previous=((window.__store||{}).inventory||window.allInventory||[]).find(r=>String(r?.id||'')===invId);
+@@ -202,8 +200,8 @@
+                 window.invalidateDashboard?.('delete-pure-inventory-existing-owner');window.invalidateList?.('tx.txList','delete-pure-inventory-existing-owner');window.recordFinancialActionAudit?.('transaction.delete','after',genericAuditPayload);
+             } else {
+                 const runGenericDelete = async () => {
++                    if (impact?.requiresProfileReconcile && impact.studentName) throw Object.assign(new Error('Giao dịch có ảnh hưởng học phí phải đi qua Tuition delete owner.'),{code:'tuition/delete-owner-required'});
+                     await FinanceService.deleteTransaction(txId);
+-                    if (impact?.requiresProfileReconcile && impact.studentName) await window.reconcileStudentTuitionAfterDeletedTransaction(impact.studentName, txToDelete, { reason: 'delete-transaction-non-tuition-owner' });
+                 };
+                 if(impact?.hasInventory)throw new Error('[F1D1] Inventory delete chưa có atomic owner.');
+                 if (impact?.requiresProfileReconcile && impact.studentName) {
+@@ -217,7 +215,8 @@
+                 window.invalidateList?.('students.debtList', 'delete-transaction-existing-owner');
+                 window.recordFinancialActionAudit?.('transaction.delete', 'after', genericAuditPayload);
+             }
+-            window.showToast('✅ Đã xóa!');
++            if(tuitionDeleteResult?.transactionDeleted===true&&tuitionDeleteResult?.profileReconcileVerified===false)window.showToast?.('⚠️ Giao dịch đã được xóa. Hệ thống chưa hạ trạng thái học phí vì chưa xác minh đủ các giao dịch còn lại. Không cần xóa lại giao dịch.','error');
++            else window.showToast('✅ Đã xóa!');
+             if (activeTabBeforeDelete === 'tx' && typeof window.getCurrentActiveTabId === 'function'
+                 && window.getCurrentActiveTabId() === 'debt' && typeof window.switchTab === 'function') {
+                 window.switchTab('tx');
+--- a/public/js/modules/finance.js
++++ b/public/js/modules/finance.js
+@@ -189,11 +186,12 @@
+             } catch (_) { return false; }
+         }
+         if (!isTuitionOnly) window.recordFinancialActionAudit?.('transaction.delete', 'before', genericAuditPayload);
++        let tuitionDeleteResult = null;
+         try {
+             if (isTuitionOnly) {
+                 if (!window.TuitionCommandBoundary?.deleteTuitionTransaction) throw new Error('[V5U-2] TuitionCommandBoundary chưa sẵn sàng.');
+-                const result = await window.TuitionCommandBoundary.deleteTuitionTransaction({ txId: txId, transaction: txToDelete, impact, source: 'finance.deleteTx' });
+-                if (result?.cancelled) return false;
++                tuitionDeleteResult = await window.TuitionCommandBoundary.deleteTuitionTransaction({ txId: txId, transaction: txToDelete, impact, source: 'finance.deleteTx' });
++                if (tuitionDeleteResult?.cancelled) return false;
+             } else if(impact?.isPureInventory===true){
+                 if(refs.length!==1)throw new Error('[F1D1] Inventory ref không an toàn.');
+                 const invId=refs[0], previous=((window.__store||{}).inventory||window.allInventory||[]).find(r=>String(r?.id||'')===invId);
+@@ -202,8 +200,8 @@
+                 window.invalidateDashboard?.('delete-pure-inventory-existing-owner');window.invalidateList?.('tx.txList','delete-pure-inventory-existing-owner');window.recordFinancialActionAudit?.('transaction.delete','after',genericAuditPayload);
+             } else {
+                 const runGenericDelete = async () => {
++                    if (impact?.requiresProfileReconcile && impact.studentName) throw Object.assign(new Error('Giao dịch có ảnh hưởng học phí phải đi qua Tuition delete owner.'),{code:'tuition/delete-owner-required'});
+                     await FinanceService.deleteTransaction(txId);
+-                    if (impact?.requiresProfileReconcile && impact.studentName) await window.reconcileStudentTuitionAfterDeletedTransaction(impact.studentName, txToDelete, { reason: 'delete-transaction-non-tuition-owner' });
+                 };
+                 if(impact?.hasInventory)throw new Error('[F1D1] Inventory delete chưa có atomic owner.');
+                 if (impact?.requiresProfileReconcile && impact.studentName) {
+@@ -217,7 +215,8 @@
+                 window.invalidateList?.('students.debtList', 'delete-transaction-existing-owner');
+                 window.recordFinancialActionAudit?.('transaction.delete', 'after', genericAuditPayload);
+             }
+-            window.showToast('✅ Đã xóa!');
++            if(tuitionDeleteResult?.transactionDeleted===true&&tuitionDeleteResult?.profileReconcileVerified===false)window.showToast?.('⚠️ Giao dịch đã được xóa. Hệ thống chưa hạ trạng thái học phí vì chưa xác minh đủ các giao dịch còn lại. Không cần xóa lại giao dịch.','error');
++            else window.showToast('✅ Đã xóa!');
+             if (activeTabBeforeDelete === 'tx' && typeof window.getCurrentActiveTabId === 'function'
+                 && window.getCurrentActiveTabId() === 'debt' && typeof window.switchTab === 'function') {
+                 window.switchTab('tx');

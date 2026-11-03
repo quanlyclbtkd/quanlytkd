@@ -30,8 +30,8 @@
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { escapeHtml } from '../utils/helpers.js';
 import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
-import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
-import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { InventoryService } from "../services/inventory.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
+import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
 import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 
 const _registrationForms = new Map();
@@ -407,6 +407,13 @@ export function initStudents() {
         if (!['admin', 'super_admin'].includes(window.userRole)) return;
         if (_addStudentInProgress) return;
 
+        const admissionContext = FinanceService.captureFinancialWriteContext();
+        if (!FinanceService.isFinancialWriteContextCurrent(admissionContext)) {
+            window.showToast?.('⚠️ Phiên CLB đã thay đổi. Chưa có dữ liệu nhập học nào được ghi.', 5000);
+            return;
+        }
+        const admissionFormInstance = _registrationForms.get('add') || null;
+
         const profiles = _profiles();
         const config   = _config();
 
@@ -530,7 +537,15 @@ export function initStudents() {
                     || _preflightBundle.components.some(c => !c || !Number.isSafeInteger(Number(c.amount)) || Number(c.amount) <= 0)) throw new Error('Dữ liệu khoản thu nhập học không hợp lệ.');
             }
 
+            if (!FinanceService.isFinancialWriteContextCurrent(admissionContext)) {
+                window.showToast?.('⚠️ Phiên CLB đã thay đổi. Chưa có dữ liệu nhập học nào được ghi.', 5000);
+                return;
+            }
             await _prepareRegistrationSave('add');
+            if (!FinanceService.isFinancialWriteContextCurrent(admissionContext)) {
+                window.showToast?.('⚠️ Phiên CLB đã thay đổi. Chưa có dữ liệu nhập học nào được ghi.', 5000);
+                return;
+            }
             const profilePlan = StudentService.prepareProfileMutation(_saveKey, {
                 status:          'active',
                 memberId,
@@ -620,6 +635,13 @@ export function initStudents() {
             }
             if (giftPlan) batch.set(giftPlan.ref, giftPlan.payload);
             if (feePlan) batch.set(feePlan.ref, feePlan.payload);
+
+            // Final no-yield authority check before the canonical Debt sync row and
+            // the one atomic Admission batch are invoked under the original context.
+            if (!FinanceService.isFinancialWriteContextCurrent(admissionContext)) {
+                window.showToast?.('⚠️ Phiên CLB đã thay đổi. Chưa có dữ liệu nhập học nào được ghi.', 5000);
+                return;
+            }
             try {
                 syncOperationId = window.DebtProfileReadBoundary?.beginSyncOperation?.({
                     action: hasFinancialPayment ? 'student.addWithPayment' : 'student.add',
@@ -633,6 +655,17 @@ export function initStudents() {
             primaryCommitted = true;
             committedTxId = feePlan ? feePlan.ref.id : '';
             try { if (syncOperationId) window.DebtProfileReadBoundary?.markSyncStage?.(syncOperationId, 'primaryWriteAckAt'); } catch (_) {}
+
+            // A confirmed primary commit is immutable. If the active club/auth/session
+            // changed while the batch was in flight, do not project A into B. The
+            // canonical A readers will hydrate the committed data when A is active again.
+            if (!FinanceService.isFinancialWriteContextCurrent(admissionContext)) {
+                window.showToast?.(
+                    '✅ Thao tác tại CLB trước đã được ghi nhận. Phiên hiện tại đã thay đổi nên màn hình này không được cập nhật từ thao tác đó. Không thực hiện lại thao tác.',
+                    7000
+                );
+                return;
+            }
 
             // Primary write succeeded. UI/cache and receipt failures are secondary.
             try {
@@ -651,7 +684,7 @@ export function initStudents() {
             }
 
             try {
-                window.closeAddModal();
+                if (_registrationForms.get('add') === admissionFormInstance) window.closeAddModal();
                 window.showToast(hasTuitionPayment
                     ? '🎉 Đã thêm võ sinh ' + _saveKey + ' thành công!'
                     : '✅ Đã thêm võ sinh ' + _saveKey + '. Học phí tháng nhập học chưa thu và đang được tính nợ.', 4000);
@@ -675,7 +708,8 @@ export function initStudents() {
 
             // ── Tạo biên lai nếu có thanh toán ────────────────────────────
             const totalPayment = fee + (isGift ? 0 : uniformFee);
-            if (totalPayment > 0 && window.exportReceipt) {
+            if (totalPayment > 0 && window.exportReceipt
+                && FinanceService.isFinancialWriteContextCurrent(admissionContext)) {
                 const breakdown = [];
                 const tuitionLabel = tuitionPkg.packageCount > 1
                     ? `Học phí gói ${tuitionPkg.packageCount} tháng (${tuitionPkg.label})`
@@ -694,7 +728,9 @@ export function initStudents() {
                     if (receipt && receipt.ok === false) throw receipt.error || new Error(receipt.reason || 'Không thể hiển thị biên lai.');
                 } catch (receiptError) {
                     _recordStudentSecondaryFailure('admission-receipt', receiptError, { transactionId: committedTxId });
-                    window.showToast?.('✅ Đã ghi sổ. Chưa in được biên lai; in lại từ giao dịch ' + committedTxId + '.', 7000);
+                    if (FinanceService.isFinancialWriteContextCurrent(admissionContext)) {
+                        window.showToast?.('✅ Đã ghi sổ. Chưa in được biên lai; in lại từ giao dịch ' + committedTxId + '.', 7000);
+                    }
                 }
             }
         } catch (err) {
@@ -703,9 +739,13 @@ export function initStudents() {
             }
             if (primaryCommitted) {
                 console.error('[students.addNewStudent] secondary failure after commit', err);
-                window.showToast?.(committedTxId
-                    ? '✅ Đã ghi sổ giao dịch ' + committedTxId + '. Vui lòng tải lại để xem/in biên lai.'
-                    : '✅ Hồ sơ đã được lưu. Học phí tháng nhập học chưa thu; vui lòng tải lại nếu giao diện chưa cập nhật.', 7000);
+                if (FinanceService.isFinancialWriteContextCurrent(admissionContext)) {
+                    window.showToast?.(committedTxId
+                        ? '✅ Đã ghi sổ giao dịch ' + committedTxId + '. Vui lòng tải lại để xem/in biên lai.'
+                        : '✅ Hồ sơ đã được lưu. Học phí tháng nhập học chưa thu; vui lòng tải lại nếu giao diện chưa cập nhật.', 7000);
+                } else {
+                    window.showToast?.('✅ Thao tác tại CLB trước đã được ghi nhận. Phiên hiện tại đã thay đổi; không thực hiện lại thao tác.', 7000);
+                }
                 return;
             }
             console.error('[students.addNewStudent]', err);
@@ -1209,7 +1249,7 @@ export function initStudentPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import("./students.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029").then(() => {}); // no-op — chỉ để IDE không warn
+        import("./students.js?v=a9r18-fin-nontuition-r1-2b-20261103").then(() => {}); // no-op — chỉ để IDE không warn
         import("../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029").then(({ StudentService }) => {
 
             const store = window.__store;

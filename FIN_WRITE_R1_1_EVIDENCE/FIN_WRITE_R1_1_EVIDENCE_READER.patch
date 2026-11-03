@@ -1,0 +1,233 @@
+# Logical PATCH A — FinanceService server-complete evidence primitive. Review patch; cache-lineage import changes are isolated in PATCH E.
+--- a/js/services/finance.service.js
++++ b/js/services/finance.service.js
+@@ -58,6 +58,113 @@
+         && (data.type !== 'Chi phí kỳ thi' || data.txMonth === data.date.slice(0, 7));
+ }
+ 
++const _completeEvidenceFlights = new Map();
++const _evidenceMetrics = { requests: [], singleFlightHits: 0, reads: 0 };
++function _normalizeMonth(value) {
++    const m = String(value || '').trim().slice(0, 7);
++    return /^\d{4}-(0[1-9]|1[0-2])$/.test(m) ? m : '';
++}
++function _evidenceContext(monthInput) {
++    const st = window.__store || {};
++    const auth = window.__verifiedAuthContextState || {};
++    const month = _normalizeMonth(monthInput);
++    const clubId = String(st.clubId || window.currentClubId || '').trim();
++    const uid = String(auth.uid || st.auth?.currentUser?.uid || st.currentUser?.uid || window.currentUser?.uid || '').trim();
++    const readMode = typeof window['getCanonicalTransactionReadMode'] === 'function'
++        ? String(window.getCanonicalTransactionReadMode(clubId, month) || 'legacy') : String(st._activeTxReadMode || 'legacy');
++    return Object.freeze({
++        clubId, month, readMode, uid,
++        generation: Number(auth.generation || 0),
++        sessionEpoch: Number(auth.sessionEpoch || 0),
++        authGeneration: Number(auth.authGeneration || 0),
++    });
++}
++function _evidenceContextCurrent(ctx) {
++    if (!ctx || !ctx.clubId || !ctx.month) return false;
++    const now = _evidenceContext(ctx.month);
++    const auth = window.__verifiedAuthContextState || {};
++    return auth.ready === true
++        && now.clubId === ctx.clubId && now.month === ctx.month && now.readMode === ctx.readMode
++        && now.uid === ctx.uid && now.generation === ctx.generation
++        && now.sessionEpoch === ctx.sessionEpoch && now.authGeneration === ctx.authGeneration;
++}
++function _coverageCompleteForContext(ctx) {
++    const st = window.__store || {}, coverage = st.transactionCoverage || {};
++    return coverage.clubId === ctx.clubId && coverage.month === ctx.month
++        && coverage.ready === true && coverage.complete === true && coverage.pageServerComplete === true
++        && coverage.pageEvidence?.epoch === st._activeTxProjectionEpoch
++        && String(coverage.readMode || '') === ctx.readMode
++        && String(st._activeTxReadMode || coverage.readMode || '') === ctx.readMode
++        && _evidenceContextCurrent(ctx);
++}
++function _runtimeTransactionRows() {
++    const st = window.__store || {}, out = [], seen = new Set();
++    const sources = [st.allTransactions, window.allTransactions, st.transactions];
++    for (const rows of sources) for (const tx of (Array.isArray(rows) ? rows : [])) {
++        if (!tx) continue;
++        const id = String(tx.id || tx.txId || '');
++        const key = id || JSON.stringify([tx.type, tx.description, tx.amount, tx.date, tx.txMonth, tx.timestamp]);
++        if (seen.has(key)) continue;
++        seen.add(key); out.push(tx);
++    }
++    return out;
++}
++function _recordEvidenceAudit(row) {
++    const metrics = _evidenceMetrics;
++    metrics.requests.push({ ...row, at: Date.now() });
++    if (metrics.requests.length > 100) metrics.requests.shift();
++}
++async function _readCompleteQuerySource({ ctx, source, buildQuery, pageSize = 500, maxPages = 100 }) {
++    const { getDocs, startAfter } = _sdk();
++    let cursor = null, pageCount = 0, paginationComplete = false, allPagesServerConfirmed = true;
++    const rows = [];
++    for (let i = 0; i < maxPages; i++) {
++        const snap = await getDocs(buildQuery(cursor, pageSize, startAfter));
++        pageCount++;
++        const meta = snap && snap.metadata;
++        if (!meta || meta.fromCache !== false || meta.hasPendingWrites !== false) allPagesServerConfirmed = false;
++        for (const d of (snap?.docs || [])) rows.push({ id: d.id, ...d.data() });
++        if ((snap?.docs?.length || 0) < pageSize) { paginationComplete = true; break; }
++        cursor = snap.docs[snap.docs.length - 1];
++        if (!cursor) break;
++    }
++    return { source, rows, pageCount, documentCount: rows.length, paginationComplete, allPagesServerConfirmed };
++}
++async function _readServerCompleteMonth(ctx, reason) {
++    const sdk = _sdk();
++    const { query, collection, where, limit } = sdk;
++    if (![query, collection, where, limit, sdk.getDocs].every(fn => typeof fn === 'function')) throw new Error('[FinanceService] Firestore evidence SDK chưa sẵn sàng.');
++    const colRef = collection(_db(), 'clubs', ctx.clubId, 'transactions');
++    const pageSize = 500;
++    const sourceResults = [];
++    if (ctx.readMode === 'canonical') {
++        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'canonical', pageSize, buildQuery: (cursor, n, startAfter) =>
++            query(colRef, where('accountingMonths', 'array-contains', ctx.month), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
++    } else {
++        const start = ctx.month + '-01', end = ctx.month + '-31';
++        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'byTxMonth', pageSize, buildQuery: (cursor, n, startAfter) =>
++            query(colRef, where('txMonth', '==', ctx.month), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
++        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'byDate', pageSize, buildQuery: (cursor, n, startAfter) =>
++            query(colRef, where('date', '>=', start), where('date', '<=', end), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
++        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'byPackageMonth', pageSize, buildQuery: (cursor, n, startAfter) =>
++            query(colRef, where('packageMonths', 'array-contains', ctx.month), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
++    }
++    const byId = new Map();
++    for (const src of sourceResults) for (const tx of src.rows) byId.set(String(tx.id || ''), tx);
++    const contextStillCurrent = _evidenceContextCurrent(ctx);
++    const allRequiredSourcesComplete = sourceResults.every(r => r.paginationComplete === true);
++    const allPagesServerConfirmed = sourceResults.every(r => r.allPagesServerConfirmed === true);
++    const serverComplete = allRequiredSourcesComplete && allPagesServerConfirmed && contextStillCurrent;
++    const result = { ok: serverComplete, serverComplete, contextStillCurrent, rows: Array.from(byId.values()), context: ctx, reason: String(reason || ''), sources: sourceResults,
++        pageCount: sourceResults.reduce((n,r)=>n+r.pageCount,0), documentCount: Array.from(byId.values()).length };
++    const metrics = _evidenceMetrics;
++    metrics.reads += result.pageCount;
++    _recordEvidenceAudit({ reason: result.reason, club: ctx.clubId, month: ctx.month, readMode: ctx.readMode,
++        semanticSources: sourceResults.map(r=>r.source), pageCount: result.pageCount, documentCount: result.documentCount,
++        serverConfirmed: serverComplete, singleFlight: false });
++    return result;
++}
++
+ export const FinanceService = {
+ 
+     // ── TRANSACTIONS ────────────────────────────────────────────
+--- a/public/js/services/finance.service.js
++++ b/public/js/services/finance.service.js
+@@ -58,6 +58,113 @@
+         && (data.type !== 'Chi phí kỳ thi' || data.txMonth === data.date.slice(0, 7));
+ }
+ 
++const _completeEvidenceFlights = new Map();
++const _evidenceMetrics = { requests: [], singleFlightHits: 0, reads: 0 };
++function _normalizeMonth(value) {
++    const m = String(value || '').trim().slice(0, 7);
++    return /^\d{4}-(0[1-9]|1[0-2])$/.test(m) ? m : '';
++}
++function _evidenceContext(monthInput) {
++    const st = window.__store || {};
++    const auth = window.__verifiedAuthContextState || {};
++    const month = _normalizeMonth(monthInput);
++    const clubId = String(st.clubId || window.currentClubId || '').trim();
++    const uid = String(auth.uid || st.auth?.currentUser?.uid || st.currentUser?.uid || window.currentUser?.uid || '').trim();
++    const readMode = typeof window['getCanonicalTransactionReadMode'] === 'function'
++        ? String(window.getCanonicalTransactionReadMode(clubId, month) || 'legacy') : String(st._activeTxReadMode || 'legacy');
++    return Object.freeze({
++        clubId, month, readMode, uid,
++        generation: Number(auth.generation || 0),
++        sessionEpoch: Number(auth.sessionEpoch || 0),
++        authGeneration: Number(auth.authGeneration || 0),
++    });
++}
++function _evidenceContextCurrent(ctx) {
++    if (!ctx || !ctx.clubId || !ctx.month) return false;
++    const now = _evidenceContext(ctx.month);
++    const auth = window.__verifiedAuthContextState || {};
++    return auth.ready === true
++        && now.clubId === ctx.clubId && now.month === ctx.month && now.readMode === ctx.readMode
++        && now.uid === ctx.uid && now.generation === ctx.generation
++        && now.sessionEpoch === ctx.sessionEpoch && now.authGeneration === ctx.authGeneration;
++}
++function _coverageCompleteForContext(ctx) {
++    const st = window.__store || {}, coverage = st.transactionCoverage || {};
++    return coverage.clubId === ctx.clubId && coverage.month === ctx.month
++        && coverage.ready === true && coverage.complete === true && coverage.pageServerComplete === true
++        && coverage.pageEvidence?.epoch === st._activeTxProjectionEpoch
++        && String(coverage.readMode || '') === ctx.readMode
++        && String(st._activeTxReadMode || coverage.readMode || '') === ctx.readMode
++        && _evidenceContextCurrent(ctx);
++}
++function _runtimeTransactionRows() {
++    const st = window.__store || {}, out = [], seen = new Set();
++    const sources = [st.allTransactions, window.allTransactions, st.transactions];
++    for (const rows of sources) for (const tx of (Array.isArray(rows) ? rows : [])) {
++        if (!tx) continue;
++        const id = String(tx.id || tx.txId || '');
++        const key = id || JSON.stringify([tx.type, tx.description, tx.amount, tx.date, tx.txMonth, tx.timestamp]);
++        if (seen.has(key)) continue;
++        seen.add(key); out.push(tx);
++    }
++    return out;
++}
++function _recordEvidenceAudit(row) {
++    const metrics = _evidenceMetrics;
++    metrics.requests.push({ ...row, at: Date.now() });
++    if (metrics.requests.length > 100) metrics.requests.shift();
++}
++async function _readCompleteQuerySource({ ctx, source, buildQuery, pageSize = 500, maxPages = 100 }) {
++    const { getDocs, startAfter } = _sdk();
++    let cursor = null, pageCount = 0, paginationComplete = false, allPagesServerConfirmed = true;
++    const rows = [];
++    for (let i = 0; i < maxPages; i++) {
++        const snap = await getDocs(buildQuery(cursor, pageSize, startAfter));
++        pageCount++;
++        const meta = snap && snap.metadata;
++        if (!meta || meta.fromCache !== false || meta.hasPendingWrites !== false) allPagesServerConfirmed = false;
++        for (const d of (snap?.docs || [])) rows.push({ id: d.id, ...d.data() });
++        if ((snap?.docs?.length || 0) < pageSize) { paginationComplete = true; break; }
++        cursor = snap.docs[snap.docs.length - 1];
++        if (!cursor) break;
++    }
++    return { source, rows, pageCount, documentCount: rows.length, paginationComplete, allPagesServerConfirmed };
++}
++async function _readServerCompleteMonth(ctx, reason) {
++    const sdk = _sdk();
++    const { query, collection, where, limit } = sdk;
++    if (![query, collection, where, limit, sdk.getDocs].every(fn => typeof fn === 'function')) throw new Error('[FinanceService] Firestore evidence SDK chưa sẵn sàng.');
++    const colRef = collection(_db(), 'clubs', ctx.clubId, 'transactions');
++    const pageSize = 500;
++    const sourceResults = [];
++    if (ctx.readMode === 'canonical') {
++        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'canonical', pageSize, buildQuery: (cursor, n, startAfter) =>
++            query(colRef, where('accountingMonths', 'array-contains', ctx.month), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
++    } else {
++        const start = ctx.month + '-01', end = ctx.month + '-31';
++        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'byTxMonth', pageSize, buildQuery: (cursor, n, startAfter) =>
++            query(colRef, where('txMonth', '==', ctx.month), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
++        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'byDate', pageSize, buildQuery: (cursor, n, startAfter) =>
++            query(colRef, where('date', '>=', start), where('date', '<=', end), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
++        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'byPackageMonth', pageSize, buildQuery: (cursor, n, startAfter) =>
++            query(colRef, where('packageMonths', 'array-contains', ctx.month), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
++    }
++    const byId = new Map();
++    for (const src of sourceResults) for (const tx of src.rows) byId.set(String(tx.id || ''), tx);
++    const contextStillCurrent = _evidenceContextCurrent(ctx);
++    const allRequiredSourcesComplete = sourceResults.every(r => r.paginationComplete === true);
++    const allPagesServerConfirmed = sourceResults.every(r => r.allPagesServerConfirmed === true);
++    const serverComplete = allRequiredSourcesComplete && allPagesServerConfirmed && contextStillCurrent;
++    const result = { ok: serverComplete, serverComplete, contextStillCurrent, rows: Array.from(byId.values()), context: ctx, reason: String(reason || ''), sources: sourceResults,
++        pageCount: sourceResults.reduce((n,r)=>n+r.pageCount,0), documentCount: Array.from(byId.values()).length };
++    const metrics = _evidenceMetrics;
++    metrics.reads += result.pageCount;
++    _recordEvidenceAudit({ reason: result.reason, club: ctx.clubId, month: ctx.month, readMode: ctx.readMode,
++        semanticSources: sourceResults.map(r=>r.source), pageCount: result.pageCount, documentCount: result.documentCount,
++        serverConfirmed: serverComplete, singleFlight: false });
++    return result;
++}
++
+ export const FinanceService = {
+ 
+     // ── TRANSACTIONS ────────────────────────────────────────────

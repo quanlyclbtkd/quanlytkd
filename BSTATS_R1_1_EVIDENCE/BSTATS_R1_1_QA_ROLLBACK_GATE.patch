@@ -1,0 +1,15 @@
+--- a/tools/check-fin-canon-r1-2-policy.mjs
++++ b/tools/check-fin-canon-r1-2-policy.mjs
+@@ -88,6 +88,12 @@
+ check('Existing canonical month policy causes zero writes/restarts', cs.historicalSet===0 && cs.settingsWrites===0 && cs.detach===0 && cs.attach===0);
+ check('Reload authority derives from canonical settings, not auto localStorage', c.api.getReadMode('club1',c.month)==='canonical' && c.storage.size===0);
+ 
++// R1.1 QA only: explicit emergency rollback remains available for an already-canonical month.
++const rb=makeRuntime({canonicalMonths:['2026-10']});
++const rbResult=await rb.win.disableCanonicalTransactionRead(rb.month);
++const rbs=rb.stats();
++check('EXISTING_CANONICAL_MONTH_EXPLICIT_ROLLBACK_REMAINS_SAFE', rbResult?.ok===true && rbResult?.readMode==='legacy' && rb.api.getReadMode('club1',rb.month)==='legacy' && rbs.settingsWrites===1 && rbs.detach===1 && rbs.attach===1);
++
+ // New transaction canonical format remains intact.
+ const newTx=r.win.canonicalizeTransactionForWrite({date:'2026-10-31',txMonth:'2026-10',amount:123},'test');
+ check('NORMAL_TRANSACTION_WRITER_UNCHANGED: canonical fields still produced', newTx.accountingSchemaVersion===1 && newTx.primaryAccountingMonth==='2026-10' && Array.isArray(newTx.accountingMonths) && newTx.accountingMonths.includes('2026-10'));

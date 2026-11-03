@@ -7767,10 +7767,14 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     window.cancelExamPayment = async function(txId, studentName) {
         if (window.userRole === 'viewer') return;
         if (window.cancelExamPayment.__inFlight) return;
+        const financeOwner = window.FinanceService;
+        const expectedContext = financeOwner?.captureFinancialWriteContext?.() || null;
+        if (!expectedContext || financeOwner?.isFinancialWriteContextCurrent?.(expectedContext) !== true) return;
+        let auditIntent = null;
         try {
             if (typeof window.guardFinancialWriteIntent !== 'function'
                 || typeof window.isFinancialWriteAllowed !== 'function'
-                || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('exam.cancelPayment', { txId: txId, studentName: studentName || '' })) !== true) return;
+                || window.isFinancialWriteAllowed(auditIntent = window.guardFinancialWriteIntent('exam.cancelPayment', { txId: txId, studentName: studentName || '' })) !== true) return;
         } catch (_) { return; }
         if (!confirm('Hủy trạng thái đã nộp lệ phí thi cho võ sinh này?')) return;
 
@@ -7792,8 +7796,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             return;
         }
 
-        const financeOwner = window.FinanceService;
         if (typeof financeOwner?.cancelExamPayment !== 'function') return;
+        if (financeOwner.isFinancialWriteContextCurrent?.(expectedContext) !== true) return;
         window.cancelExamPayment.__inFlight = true;
         let cancelResult;
         try {
@@ -7802,18 +7806,29 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 studentName: studentName || '',
                 type: tx && tx.type || '',
                 amount: tx && tx.amount || 0
-            });
+            }, { intent: auditIntent });
             cancelResult = await financeOwner.cancelExamPayment(tx);
         } catch(err) {
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('exam.cancelPayment', 'error', {
                 txId: txId,
                 studentName: studentName || '',
                 error: err && err.message || String(err)
-            });
+            }, { intent: auditIntent });
             console.error('[exam-cancel] Firestore error:', err);
             alert('Lỗi khi hủy: ' + err.message);
             return;
         } finally { window.cancelExamPayment.__inFlight = false; }
+
+        if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('exam.cancelPayment', 'after', {
+            txId: txId,
+            studentName: studentName || '',
+            type: tx && tx.type || '',
+            amount: tx && tx.amount || 0
+        }, { intent: auditIntent });
+        if (financeOwner.isFinancialWriteContextCurrent?.(expectedContext) !== true) {
+            window.showToast?.('✅ Lệ phí thi đã được hủy tại CLB trước. Phiên hiện tại đã thay đổi nên màn hình này không được làm mới. Không thực hiện lại thao tác.', 7000);
+            return true;
+        }
 
         // Cập nhật local store ngay để UI phản ánh ngay
         const updateLocalExamLedger = rows => cancelResult.deleted
@@ -7833,13 +7848,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard('exam-payment-cancelled');
 
         if (typeof window.renderExamList === 'function') window.renderExamList();
-        if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('exam.cancelPayment', 'after', {
-            txId: txId,
-            studentName: studentName || '',
-            type: tx && tx.type || '',
-            amount: tx && tx.amount || 0
-        });
         window.showToast('✅ Đã hủy lệ phí thi!');
+        return true;
     };
 
     // ─── Phase 4K-4H: Debug helpers ─────────────────────────────────────────
@@ -9569,6 +9579,9 @@ window.processMultiItem = async (action) => {
         ? (_candidatePaidUntil > (_previousPaidUntil || '') ? _candidatePaidUntil : (_previousPaidUntil || _candidatePaidUntil))
         : _previousPaidUntil;
 
+    let _miExpectedContext = null;
+    let _miContextCurrent = () => action !== 'pay';
+    let _miAuditIntent = null;
     const _miAuditPayload = {
         studentName: name,
         branch: branch,
@@ -9596,23 +9609,36 @@ window.processMultiItem = async (action) => {
             }
             try {
                 if (typeof window.guardFinancialWriteIntent !== 'function'
-                    || typeof window.isFinancialWriteAllowed !== 'function'
-                    || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('multiitem.pay', _miAuditPayload)) !== true) return;
+                    || typeof window.isFinancialWriteAllowed !== 'function') return;
+                _miAuditIntent = window.guardFinancialWriteIntent('multiitem.pay', _miAuditPayload);
+                if (window.isFinancialWriteAllowed(_miAuditIntent) !== true) return;
             } catch (_) { return; }
-            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'before', _miAuditPayload);
+            _miExpectedContext=window.FinanceService?.captureFinancialWriteContext?.();
+            _miContextCurrent=()=>!!_miExpectedContext&&window.FinanceService?.isFinancialWriteContextCurrent?.(_miExpectedContext)===true;
+            const _miSameBranch=(a,b)=>window.BranchIdentity?.isSameBranch?window.BranchIdentity.isSameBranch(a,b):String(a||'').trim()===String(b||'').trim();
+            if(!_miContextCurrent()){const e=new Error('CLB hoặc phiên đăng nhập đã thay đổi. Vui lòng mở lại thao tác thu.');e.code='finance/write-context-stale';throw e;}
+            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'before', _miAuditPayload, { intent: _miAuditIntent });
             window.processMultiItem.__atomicInFlight = true;
             const today = getLocalToday();
             const _runMultiItemPrimary = async () => {
+                if(!_miContextCurrent()){const e=new Error('Financial write context stale');e.code='finance/write-context-stale';throw e;}
+                const _miProfileAtEntry=((window.__store&&window.__store.profiles)||window.allProfiles||allProfiles||{})[name]||profile;
+                if(!_miSameBranch(branch,_miProfileAtEntry.branch||branch)){const e=new Error('Cơ sở của võ sinh vừa thay đổi. Vui lòng xác nhận lại khoản thu.');e.code='multiitem/stale-profile-branch';throw e;}
                 if(hasTuition){
                     const latestProfiles=(window.__store&&window.__store.profiles)||window.allProfiles||allProfiles||{}, latestProfile=latestProfiles[name]||allProfiles[name]||profile, latestMonths=_resolveMiTuitionMonths(latestProfile); profile=latestProfile;
                     if(latestMonths.length!==packageMonths.length||!latestMonths.every((m,i)=>m===packageMonths[i])){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-tuition-package';throw e;}
                     const canonical=window.TuitionDebtCanonical; if(!canonical?.areTuitionMonthsSettled||!canonical?.reconcilePaidUntilFromMonthEvidence)throw new Error('Tuition canonical settlement helper chưa sẵn sàng.');
-                    const settlement=canonical.areTuitionMonthsSettled(latestProfile,latestMonths,{name}), settledCount=Array.isArray(settlement?.states)?settlement.states.filter(r=>r?.settled).length:0;
-                    if(settlement?.allSettled){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
-                    if(settledCount>0){const e=new Error('Dữ liệu học phí vừa thay đổi. Vui lòng tải lại/xác nhận lại khoản thu.');e.code='multiitem/partial-settlement-changed';throw e;}
-                    packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(latestProfile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
-                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(latestProfile,(Array.isArray(latestProfile.paidMonths)?latestProfile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
+                    const evidenceOwner=window.TuitionCommandBoundary;if(!evidenceOwner?.resolveTuitionSettlementForWrite)throw new Error('Tuition write-evidence owner chưa sẵn sàng.');
+                    const tuitionDecision=await evidenceOwner.resolveTuitionSettlementForWrite({profile:latestProfile,studentName:name,targetMonths:latestMonths,reason:'processMultiItem.tuition',expectedContext:_miExpectedContext});if(!_miContextCurrent()){const e=new Error('Financial write context stale');e.code='finance/write-context-stale';throw e;}
+                    if(tuitionDecision?.status==='UNKNOWN'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=tuitionDecision.code||'TUITION_SETTLEMENT_UNVERIFIED';throw e;}
+                    if(tuitionDecision?.status==='PARTIAL_SETTLED'){const e=new Error('Gói học phí đã được thanh toán một phần. Vui lòng chọn lại kỳ học phí hợp lệ.');e.code='multiitem/partial-settlement-changed';throw e;}
+                    if(tuitionDecision?.status==='NON_CHARGEABLE'){const e=new Error(tuitionDecision.reason==='FEE_EXEMPT'?'Võ sinh đang được miễn học phí.':'Gói học phí có tháng được bỏ qua. Vui lòng chọn lại kỳ học phí hợp lệ.');e.code=tuitionDecision.code||'multiitem/non-chargeable';throw e;}
+                    if(tuitionDecision?.status==='PAID'){if(hasExam||hasInv||hasInvDebt||hasOther){const e=new Error('Học phí đã được ghi nhận. Vui lòng tách khoản thu còn lại khỏi giao dịch này.');e.code='multiitem/stale-mixed-bundle';throw e;}return{alreadySettled:true,primaryWritePerformed:false};}
+                    if(tuitionDecision?.status!=='VERIFIED_UNPAID'){const e=new Error('Trạng thái học phí chưa cho phép ghi khoản thu.');e.code='multiitem/tuition-state-blocked';throw e;}
+                    profile=tuitionDecision.profile||latestProfile;if(!_miSameBranch(branch,profile.branch||branch)){const e=new Error('Cơ sở của võ sinh vừa thay đổi. Vui lòng xác nhận lại khoản thu.');e.code='multiitem/stale-profile-branch';throw e;}packageMonths=latestMonths;lastMonth=packageMonths.length?packageMonths[packageMonths.length-1]:refMonth;_previousPaidUntil=normalizeYYYYMM(profile.paidUntil||'');_candidatePaidUntil=packageMonths.length?normalizeYYYYMM(lastMonth):'';
+                    _resultPaidUntil=canonical.reconcilePaidUntilFromMonthEvidence(profile,(Array.isArray(profile.paidMonths)?profile.paidMonths:[]).concat(packageMonths),{allowRegression:false})||_previousPaidUntil;Object.assign(_miAuditPayload,{packageMonths:packageMonths.slice(),paidUntil:_resultPaidUntil,previousPaidUntil:_previousPaidUntil,candidatePaidUntil:_candidatePaidUntil,resultPaidUntil:_resultPaidUntil});
                 }
+                if(hasExam&&examFee>0){if(!_miContextCurrent()){const e=new Error('Financial write context stale');e.code='finance/write-context-stale';throw e;}const examOwner=window.FinanceService;if(!examOwner?.resolveExamPaymentForWrite)throw new Error('Exam write-evidence owner chưa sẵn sàng.');const examDecision=await examOwner.resolveExamPaymentForWrite({profile,studentName:name,month:refMonth,reason:'processMultiItem.exam'});if(!_miContextCurrent()){const e=new Error('Financial write context stale');e.code='finance/write-context-stale';throw e;}if(examDecision?.status==='PAID'){const e=new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng bỏ khoản Lệ phí thi khỏi giao dịch.');e.code='exam/already-paid';throw e;}if(examDecision?.status!=='VERIFIED_UNPAID'){const e=new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.');e.code=examDecision?.code||'EXAM_EVIDENCE_UNVERIFIED';throw e;}}
 
             // H8R2 C3 — PREPARE → VALIDATE → ONE ATOMIC COMMIT.
             // This remains inside the existing multi-item owner and reuses the
@@ -9627,9 +9653,10 @@ window.processMultiItem = async (action) => {
                 throw new Error('Inventory debt canonical owner chưa sẵn sàng. Chưa có dữ liệu nào được ghi.');
             }
 
-            // Pre-generate the canonical transaction id so inventory/debt links can
-            // participate in the same atomic Firestore batch.
-            const _bundleDocRef = doc(colRef);
+            // Bind the whole pay bundle to the original verified club context.
+            if(!_miContextCurrent()){const e=new Error('Financial write context stale');e.code='finance/write-context-stale';throw e;}
+            const _miClubId=_miExpectedContext.clubId;
+            const _bundleDocRef = doc(collection(db,'clubs',_miClubId,'transactions'));
             let _preparedInventory = null;
             let _invDocId = '';
             if(hasInv && invTotal > 0) {
@@ -9649,6 +9676,7 @@ window.processMultiItem = async (action) => {
                     paymentBundleId: _bundleDocRef.id,
                     paidTxId: _bundleDocRef.id
                 };
+                if(!_miContextCurrent()){const e=new Error('Financial write context stale');e.code='finance/write-context-stale';throw e;}
                 _preparedInventory = window.InventoryService.prepareAddItemMutation(_miInvPayload);
                 _invDocId = _preparedInventory.itemRef.id;
             }
@@ -9716,15 +9744,15 @@ window.processMultiItem = async (action) => {
 
             const _batch = writeBatch(db);
             if(hasTuition && packageMonths.length > 0) {
-                _batch.update(doc(db, 'clubs', currentClubId, 'profiles', name), {
+                _batch.update(doc(db, 'clubs', _miClubId, 'profiles', name), {
                     paidUntil: _resultPaidUntil,
                     paidMonths: arrayUnion(...packageMonths)
                 });
             }
             if (_preparedInventory) {
-                _batch.set(_preparedInventory.itemRef, _preparedInventory.payload);
+                _batch.set(doc(db,'clubs',_miClubId,'inventory',_preparedInventory.itemRef.id), _preparedInventory.payload);
                 if (_preparedInventory.summaryPatch && Object.keys(_preparedInventory.summaryPatch).length) {
-                    _batch.set(_preparedInventory.statsRef, _preparedInventory.summaryPatch, { merge: true });
+                    _batch.set(doc(db,'clubs',_miClubId,'settings','inventory_stats'), _preparedInventory.summaryPatch, { merge: true });
                 }
             }
             const _inventoryDebtPaidAt = Date.now();
@@ -9737,31 +9765,29 @@ window.processMultiItem = async (action) => {
                 })
                 : null;
             invDebtIds.forEach(function(id) {
-                _batch.update(doc(db, 'clubs', currentClubId, 'inventory', id), _inventoryDebtPaidPatch);
+                _batch.update(doc(db, 'clubs', _miClubId, 'inventory', id), _inventoryDebtPaidPatch);
             });
+            if(!_miContextCurrent()){const e=new Error('Financial write context stale');e.code='finance/write-context-stale';throw e;}
             _batch.set(_bundleDocRef, _canonicalTxPayload(_bundleTx, 'payment-bundle-atomic'));
             await _batch.commit();
-
-            // Runtime state updates happen only after canonical commit succeeds.
-            if (_preparedInventory && _preparedInventory.runtimeItem) {
-                window.mergeInventoryIntoRuntimeStore?.(_preparedInventory.runtimeItem, 'processMultiItem-atomic-inventory');
+            const _postCommitContextCurrent=_miContextCurrent();
+            if(_postCommitContextCurrent){
+                if (_preparedInventory && _preparedInventory.runtimeItem) window.mergeInventoryIntoRuntimeStore?.(_preparedInventory.runtimeItem, 'processMultiItem-atomic-inventory');
+                if (_preparedInventory || invDebtIds.length > 0) window.notifyInventoryMutation?.('processMultiItem-atomic', { writeThrough: true });
+                if(typeof window.mergeTransactionIntoRuntimeStore === 'function') window.mergeTransactionIntoRuntimeStore(Object.assign({ id: _bundleDocRef.id }, _bundleTx), 'processMultiItem-atomic-bundle');
+                if(hasTuition&&packageMonths.length>0){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[F1D1] Tuition local-state owner chưa sẵn sàng.');laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil:_resultPaidUntil,paidMonths:packageMonths,reason:'processMultiItem-atomic'});}
+                if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'after', _miAuditPayload, { intent: _miAuditIntent });
             }
-            if (_preparedInventory || invDebtIds.length > 0) {
-                window.notifyInventoryMutation?.('processMultiItem-atomic', { writeThrough: true });
-            }
-            if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
-                window.mergeTransactionIntoRuntimeStore(Object.assign({ id: _bundleDocRef.id }, _bundleTx), 'processMultiItem-atomic-bundle');
-            }
-            if(hasTuition&&packageMonths.length>0){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[F1D1] Tuition local-state owner chưa sẵn sàng.');laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil:_resultPaidUntil,paidMonths:packageMonths,reason:'processMultiItem-atomic'});}
-            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'after', _miAuditPayload);
-            return { committed: true, txId: _bundleDocRef.id };
+            return { committed: true, primaryCommitted:true, postCommitContextCurrent:_postCommitContextCurrent, commitClubId:_miClubId, txId: _bundleDocRef.id };
             };
             let _primaryResult;
             if(hasTuition){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLane)throw new Error('[F1D1] Tuition profile lane chưa sẵn sàng.');_primaryResult=await laneOwner.runInProfileTuitionMutationLane({studentName:name,profileId:profile.profileId||profile.id||profile.memberId||name,reason:'processMultiItem.tuition'},_runMultiItemPrimary);}
             else _primaryResult=await _runMultiItemPrimary();
             if(_primaryResult?.alreadySettled){window.showToast?.('ℹ️ Khoản học phí này đã được thu. Không tạo giao dịch trùng.');return;}
+            if(_primaryResult?.primaryCommitted&&_primaryResult.postCommitContextCurrent===false){window.showToast?.('✅ Khoản thu đã được ghi tại CLB trước. Phiên hiện tại đã thay đổi; không thu lại khoản tiền này.');return;}
             window.showToast('✅ Đã ghi sổ thành công!');
         }
+        if(action==='pay'&&!_miContextCurrent()){window.showToast?.('✅ Khoản thu đã được ghi tại CLB trước. Phiên hiện tại đã thay đổi nên biên lai chưa tự mở. Không thu lại khoản tiền này.');return;}
         const receiptTitle = action === 'report' ? 'PHIẾU BÁO HỌC PHÍ' : 'BIÊN LAI THU TIỀN';
         // Truyền refMonth thay vì tuitionMonth để tránh lỗi khi học phí bị tắt.
         const _miReceiptResult = await window.exportReceipt(name, total, receiptTypeLabel, getLocalToday(), refMonth, branch, examTitle, receiptTitle, breakdown, action === 'report' ? 'multiItemModal' : undefined);
@@ -9769,8 +9795,8 @@ window.processMultiItem = async (action) => {
         document.getElementById('multiItemModal').style.display = 'none';
         if (action === 'report') return _miReceiptResult;
     } catch(err) {
-        if (action === 'pay' && typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'error', Object.assign({}, _miAuditPayload, { error: err && err.message || String(err) }));
-        console.error(err); alert('Lỗi: ' + err.message);
+        if (action === 'pay' && typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'error', Object.assign({}, _miAuditPayload, { error: err && err.message || String(err) }), { intent: _miAuditIntent });
+        console.error(err); alert(err?.code==='finance/write-context-stale'||err?.code==='multiitem/stale-profile-branch'?'CLB hoặc dữ liệu thanh toán đã thay đổi. Khoản thu chưa được ghi. Vui lòng mở lại thao tác Thu.':'Lỗi: ' + err.message);
     } finally {
         if (action === 'pay') window.processMultiItem.__atomicInFlight = false;
     }

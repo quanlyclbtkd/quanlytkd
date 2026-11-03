@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "policy": "SERVER_REQUIRED + CURRENT_AUTHORITY_ONLY + assigned branch + selected shift where operationally applicable",
+  "cases": [
+    {
+      "requestedScope": "all branches",
+      "effectiveScope": "assigned branch",
+      "allowed": true
+    },
+    {
+      "row": "legacy/missing current HISTORY_AUTHORITY",
+      "visible": false
+    },
+    {
+      "row": "other branch",
+      "visible": false
+    },
+    {
+      "row": "legacy Mặc định used as CS1 history alias",
+      "promotedToCoachAuthority": false
+    },
+    {
+      "currentAuthorityAssignedBranch": true,
+      "visible": true
+    }
+  ],
+  "callerCanBroadenCoach": false,
+  "rulesChanged": false
+}

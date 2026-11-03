@@ -1,0 +1,13 @@
+{
+  "test": "EXISTING_CANONICAL_MONTH_EXPLICIT_ROLLBACK_REMAINS_SAFE",
+  "testOnlyChange": true,
+  "implementationChanged": false,
+  "observedContract": {
+    "disableCanonicalTransactionRead.ok": true,
+    "readModeAfter": "legacy",
+    "settingsWrites": 1,
+    "detach": 1,
+    "attach": 1
+  },
+  "finCanonPolicyGate": "PASS 26/26"
+}

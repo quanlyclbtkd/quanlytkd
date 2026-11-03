@@ -16,6 +16,20 @@ function _clubId()  { const id = (window.__store || {}).clubId; if (!id) throw n
 function _invRef()  { return (window.__store || {}).invRef; }
 function _colRef()  { return (window.__store || {}).colRef; }
 
+// Runtime projection scope only. This never authorizes a Firestore write;
+// it only prevents a confirmed operation from mutating a newly active UI.
+function _projectionScope() {
+    const st = window.__store || {}, auth = window.__verifiedAuthContextState || {};
+    return [
+        String(st.clubId || window.currentClubId || '').trim(),
+        String(auth.uid || st.auth?.currentUser?.uid || st.currentUser?.uid || '').trim(),
+        Number(auth.generation || 0),
+        Number(auth.sessionEpoch || 0),
+        Number(auth.authGeneration || 0),
+    ].join('|');
+}
+function _projectionScopeCurrent(scope) { return !!scope && scope === _projectionScope(); }
+
 
 
 // ════════════════════════════════════════════════════════════════
@@ -219,6 +233,8 @@ export const InventoryService = {
      */
     prepareAddItemMutation(data) {
         const { doc, increment } = _sdk();
+        const writeClubId = _clubId();
+        const projectionScope = _projectionScope();
         const invRef = _invRef();
         if (!invRef || typeof doc !== 'function' || typeof increment !== 'function') {
             throw new Error('[InventoryService] Không thể chuẩn bị inventory mutation.');
@@ -233,9 +249,9 @@ export const InventoryService = {
             if (!payload.studentName && identity.studentName) payload.studentName = identity.studentName;
         }
         const itemRef = doc(invRef);
-        const statsRef = doc(_db(), 'clubs', _clubId(), 'settings', 'inventory_stats');
+        const statsRef = doc(_db(), 'clubs', writeClubId, 'settings', 'inventory_stats');
         const summaryPatch = _buildLedgerIncrementPatch([{ item: payload, direction: 1 }], increment);
-        return { itemRef, statsRef, payload, summaryPatch, runtimeItem: { id: itemRef.id, ...payload } };
+        return { itemRef, statsRef, payload, summaryPatch, runtimeItem: { id: itemRef.id, ...payload }, writeClubId, projectionScope };
     },
 
 
@@ -282,8 +298,10 @@ export const InventoryService = {
         if (Object.keys(prepared.summaryPatch).length) batch.set(prepared.statsRef, prepared.summaryPatch, { merge: true });
         await batch.commit();
 
-        _mergeRuntimeInventory(prepared.runtimeItem, 'inventory-service-add-item');
-        window.notifyInventoryMutation?.('inventory-service-add-item', { writeThrough: true });
+        if (_projectionScopeCurrent(prepared.projectionScope || '')) {
+            _mergeRuntimeInventory(prepared.runtimeItem, 'inventory-service-add-item');
+            window.notifyInventoryMutation?.('inventory-service-add-item', { writeThrough: true });
+        }
         return prepared.itemRef.id;
     },
 
@@ -299,9 +317,11 @@ export const InventoryService = {
             batch.set(prepared.statsRef, prepared.summaryPatch, { merge: true });
         if (financeTx) batch.set(financeTx.ref, financeTx.payload);
         await batch.commit();
-        _mergeRuntimeInventory(prepared.runtimeItem, 'inventory-form-atomic');
-        if (financeTx) window.mergeTransactionIntoRuntimeStore?.(financeTx.runtimeTx, 'inventory-form-atomic');
-        window.notifyInventoryMutation?.('inventory-form-atomic', { writeThrough: true });
+        if (_projectionScopeCurrent(prepared.projectionScope || '')) {
+            _mergeRuntimeInventory(prepared.runtimeItem, 'inventory-form-atomic');
+            if (financeTx) window.mergeTransactionIntoRuntimeStore?.(financeTx.runtimeTx, 'inventory-form-atomic');
+            window.notifyInventoryMutation?.('inventory-form-atomic', { writeThrough: true });
+        }
         return { invId: prepared.itemRef.id, txId: financeTx?.ref?.id || '' };
     },
 
@@ -313,7 +333,9 @@ export const InventoryService = {
     async updateItem(invId, data, options = {}) {
         const { doc, getDoc, writeBatch, increment } = _sdk();
         const db = _db();
-        const itemRef = doc(db, 'clubs', _clubId(), 'inventory', invId);
+        const writeClubId = _clubId();
+        const projectionScope = _projectionScope();
+        const itemRef = doc(db, 'clubs', writeClubId, 'inventory', invId);
         let previous = options.previous && typeof options.previous === 'object' ? options.previous : null;
         if (!previous) {
             const snap = await getDoc(itemRef); // one read only when the caller has no local original
@@ -330,7 +352,7 @@ export const InventoryService = {
         const batch = writeBatch(db);
         batch.update(itemRef, data || {});
         if (Object.keys(summaryPatch).length) {
-            batch.set(doc(db, 'clubs', _clubId(), 'settings', 'inventory_stats'), summaryPatch, { merge: true });
+            batch.set(doc(db, 'clubs', writeClubId, 'settings', 'inventory_stats'), summaryPatch, { merge: true });
         }
         let relatedPatch = null;
         if (options.relatedTransaction && options.relatedTransaction.id) {
@@ -342,20 +364,22 @@ export const InventoryService = {
                 )
                 : (options.relatedTransaction.data || {});
             batch.update(
-                doc(db, 'clubs', _clubId(), 'transactions', options.relatedTransaction.id),
+                doc(db, 'clubs', writeClubId, 'transactions', options.relatedTransaction.id),
                 relatedPatch
             );
         }
         await batch.commit();
 
-        _mergeRuntimeInventory(next, 'inventory-service-update-item');
-        if (relatedPatch && options.relatedTransaction?.previous) {
-            window.mergeTransactionIntoRuntimeStore?.({
-                ...options.relatedTransaction.previous, ...relatedPatch,
-                id: options.relatedTransaction.id
-            }, 'inventory-service-update-related-transaction');
+        if (_projectionScopeCurrent(projectionScope)) {
+            _mergeRuntimeInventory(next, 'inventory-service-update-item');
+            if (relatedPatch && options.relatedTransaction?.previous) {
+                window.mergeTransactionIntoRuntimeStore?.({
+                    ...options.relatedTransaction.previous, ...relatedPatch,
+                    id: options.relatedTransaction.id
+                }, 'inventory-service-update-related-transaction');
+            }
+            window.notifyInventoryMutation?.('inventory-service-update-item', { writeThrough: true });
         }
-        window.notifyInventoryMutation?.('inventory-service-update-item', { writeThrough: true });
         return next;
     },
 
@@ -363,7 +387,9 @@ export const InventoryService = {
     async deleteItem(invId, options = {}) {
         const { doc, getDoc, writeBatch, increment } = _sdk();
         const db = _db();
-        const itemRef = doc(db, 'clubs', _clubId(), 'inventory', invId);
+        const writeClubId = _clubId();
+        const projectionScope = _projectionScope();
+        const itemRef = doc(db, 'clubs', writeClubId, 'inventory', invId);
         let previous = options.previous && typeof options.previous === 'object' ? options.previous : null;
         if (!previous) {
             const snap = await getDoc(itemRef); // fallback read only on explicit delete
@@ -374,15 +400,17 @@ export const InventoryService = {
         const batch = writeBatch(db);
         batch.delete(itemRef);
         if (Object.keys(summaryPatch).length) {
-            batch.set(doc(db, 'clubs', _clubId(), 'settings', 'inventory_stats'), summaryPatch, { merge: true });
+            batch.set(doc(db, 'clubs', writeClubId, 'settings', 'inventory_stats'), summaryPatch, { merge: true });
         }
         const relatedTxId = String(options.relatedTxId || '').trim();
         if (relatedTxId && relatedTxId !== 'undefined') {
-            batch.delete(doc(db, 'clubs', _clubId(), 'transactions', relatedTxId));
+            batch.delete(doc(db, 'clubs', writeClubId, 'transactions', relatedTxId));
         }
         await batch.commit();
-        _removeRuntimeInventory(invId, 'inventory-service-delete-item');
-        window.notifyInventoryMutation?.('inventory-service-delete-item', { writeThrough: true });
+        if (_projectionScopeCurrent(projectionScope)) {
+            _removeRuntimeInventory(invId, 'inventory-service-delete-item');
+            window.notifyInventoryMutation?.('inventory-service-delete-item', { writeThrough: true });
+        }
         return { deleted: true, previous };
     },
 
@@ -439,6 +467,7 @@ export const InventoryService = {
         const { doc, getDoc, updateDoc, addDoc, query, where, getDocs, collection, writeBatch } = _sdk();
         const db     = _db();
         const clubId = _clubId();
+        const projectionScope = _projectionScope();
 
         // Existing reads are retained only to resolve canonical current state/idempotency.
         const invRef = doc(db, 'clubs', clubId, 'inventory', invId);
@@ -493,9 +522,11 @@ export const InventoryService = {
         batch.update(invRef, invUpdate);
         await batch.commit();
 
-        _mergeRuntimeInventory({ ...inv, ...invUpdate }, 'inventory-service-mark-paid');
-        window.mergeTransactionIntoRuntimeStore?.({ id: txId, ...canonicalTxData }, 'inventory-service-mark-paid');
-        window.notifyInventoryMutation?.('inventory-service-mark-paid', { writeThrough: true });
+        if (_projectionScopeCurrent(projectionScope)) {
+            _mergeRuntimeInventory({ ...inv, ...invUpdate }, 'inventory-service-mark-paid');
+            window.mergeTransactionIntoRuntimeStore?.({ id: txId, ...canonicalTxData }, 'inventory-service-mark-paid');
+            window.notifyInventoryMutation?.('inventory-service-mark-paid', { writeThrough: true });
+        }
         return { alreadyPaid: false, inv: { ...inv, ...invUpdate }, txId };
     },
 

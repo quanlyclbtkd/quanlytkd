@@ -1,0 +1,17 @@
+{
+  "runtime": [
+    "index.html",
+    "public/index.html",
+    "js/core/transactionCanonicalBoundary.js",
+    "public/js/core/transactionCanonicalBoundary.js"
+  ],
+  "toolingMetadata": [
+    "package.json",
+    "tools/check-canonical-transaction-safe-cutover.mjs",
+    "tools/check-fin-canon-r1-2-policy.mjs",
+    "tools/v11r2/source-identity.mjs",
+    "tools/v11r2/manifests/V11R6_A9R18_FINANCE_CANONICAL_POLICY_R1_2.json"
+  ],
+  "businessRuntimePrimaryOwner": "js/core/transactionCanonicalBoundary.js",
+  "unexpectedBusinessModuleChanges": []
+}

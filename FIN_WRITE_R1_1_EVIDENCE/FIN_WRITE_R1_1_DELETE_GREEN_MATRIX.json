@@ -1,0 +1,41 @@
+{
+  "classification": "GREEN",
+  "tests": [
+    {
+      "gate": "ALTERNATIVE_PAYMENT_PRESERVES_PAIDMONTH",
+      "result": "PASS"
+    },
+    {
+      "gate": "ALTERNATIVE_PAYMENT_PRESERVES_PAIDUNTIL",
+      "result": "PASS"
+    },
+    {
+      "gate": "TRUE_UNCOVERED_MONTH_REMOVED",
+      "result": "PASS"
+    },
+    {
+      "gate": "TRUE_UNCOVERED_PAIDUNTIL_RECONCILED",
+      "result": "PASS"
+    },
+    {
+      "gate": "EVIDENCE_FAILURE_DOES_NOT_LOWER_PROFILE",
+      "result": "PASS"
+    },
+    {
+      "gate": "LEGACY_GLOBAL_RECONCILE_NORMAL_CALLERS_ZERO",
+      "result": "PASS"
+    },
+    {
+      "gate": "STUDENTSERVICE_DELETE_RECONCILE_WRITES_ZERO",
+      "result": "PASS"
+    },
+    {
+      "gate": "DIRECT_UPDATEDOC_DELETE_RECONCILE_WRITES_ZERO",
+      "result": "PASS"
+    },
+    {
+      "gate": "FINANCESERVICE_UPDATEPROFILEAFTERTXDELETE_IS_SINGLE_PROFILE_WRITER",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "authoritativeState": "FRESH",
+  "combinations": [
+    {
+      "finance": "MISS",
+      "students": "MISS",
+      "result": "PASS",
+      "memberCounts": "correct"
+    },
+    {
+      "finance": "HIT",
+      "students": "MISS",
+      "result": "PASS",
+      "memberCounts": "correct"
+    },
+    {
+      "finance": "MISS",
+      "students": "HIT",
+      "result": "PASS",
+      "memberCounts": "correct; closes Finance-refresh zero defect"
+    },
+    {
+      "finance": "HIT",
+      "students": "HIT",
+      "result": "PASS",
+      "memberCounts": "correct"
+    }
+  ],
+  "coverageCrossProduct": {
+    "FRESH": 4,
+    "TRANSIENT_LOCAL_WRITE": 4,
+    "NOT_READY": 4,
+    "total": 12,
+    "result": "PASS"
+  },
+  "financeOnlyUpdateMatrix": "PASS",
+  "searchMatrix": "PASS (blank → A → B → clear; Finance input unchanged; debt follows existing search qualification)",
+  "loadMoreMatrix": "PASS (active/debt/quit; runtime debtPage context synchronized; no Finance dependency)",
+  "profileUpdateMatrix": "PASS",
+  "rapidRaceMatrix": "PASS"
+}

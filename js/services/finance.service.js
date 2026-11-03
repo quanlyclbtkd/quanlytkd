@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from "./inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
+import { InventoryService } from "./inventory.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }
@@ -26,6 +26,24 @@ function _colRef() { return (window.__store || {}).colRef; }
 function _projectionScope() {
     const st = window.__store || {};
     return [st.clubId || '', st.auth?.currentUser?.uid || st.currentUser?.uid || '', window.userRole || st.userRole || '', Number(window.__verifiedAuthContextState?.generation || 0)].join('|');
+}
+function _financialWriteContext() {
+    const st = window.__store || {}, auth = window.__verifiedAuthContextState || {};
+    return Object.freeze({
+        clubId: String(st.clubId || window.currentClubId || '').trim(),
+        uid: String(auth.uid || st.auth?.currentUser?.uid || st.currentUser?.uid || window.currentUser?.uid || '').trim(),
+        generation: Number(auth.generation || 0), sessionEpoch: Number(auth.sessionEpoch || 0), authGeneration: Number(auth.authGeneration || 0),
+    });
+}
+function _financialWriteContextCurrent(ctx) {
+    if (!ctx || !ctx.clubId || !ctx.uid) return false;
+    const now = _financialWriteContext(), auth = window.__verifiedAuthContextState || {};
+    return auth.ready === true && now.clubId === ctx.clubId && now.uid === ctx.uid
+        && now.generation === ctx.generation && now.sessionEpoch === ctx.sessionEpoch && now.authGeneration === ctx.authGeneration;
+}
+function _financialWriteContextToken(ctx) {
+    const c = ctx || _financialWriteContext();
+    return [c.clubId || '', c.uid || '', Number(c.generation || 0), Number(c.sessionEpoch || 0), Number(c.authGeneration || 0)].join('|');
 }
 function _projectCommitted(rows, removedIds, scope, reason) {
     if (scope !== _projectionScope()) return;
@@ -56,6 +74,102 @@ function _expenseValid(data) {
         && Number.isFinite(Number(data?.amount)) && Number(data.amount) > 0
         && _expenseDateValid(data?.date)
         && (data.type !== 'Chi phí kỳ thi' || data.txMonth === data.date.slice(0, 7));
+}
+
+const _completeEvidenceFlights = new Map();
+const _evidenceMetrics = { requests: [], singleFlightHits: 0, reads: 0 };
+function _normalizeMonth(value) {
+    const m = String(value || '').trim().slice(0, 7);
+    return /^\d{4}-(0[1-9]|1[0-2])$/.test(m) ? m : '';
+}
+function _evidenceContext(monthInput, expectedOperationContext = null) {
+    const st = window.__store || {}, core = expectedOperationContext || _financialWriteContext(), month = _normalizeMonth(monthInput);
+    const readMode = typeof window['getCanonicalTransactionReadMode'] === 'function'
+        ? String(window.getCanonicalTransactionReadMode(core.clubId, month) || 'legacy') : String(st._activeTxReadMode || 'legacy');
+    return Object.freeze({ ...core, month, readMode });
+}
+function _evidenceContextCurrent(ctx) {
+    if (!ctx || !ctx.clubId || !ctx.month || !_financialWriteContextCurrent(ctx)) return false;
+    const now = _evidenceContext(ctx.month);
+    return now.clubId === ctx.clubId && now.month === ctx.month && now.readMode === ctx.readMode
+        && now.uid === ctx.uid && now.generation === ctx.generation
+        && now.sessionEpoch === ctx.sessionEpoch && now.authGeneration === ctx.authGeneration;
+}
+function _coverageCompleteForContext(ctx) {
+    const st = window.__store || {}, coverage = st.transactionCoverage || {};
+    return coverage.clubId === ctx.clubId && coverage.month === ctx.month
+        && coverage.ready === true && coverage.complete === true && coverage.pageServerComplete === true
+        && coverage.pageEvidence?.epoch === st._activeTxProjectionEpoch
+        && String(coverage.readMode || '') === ctx.readMode
+        && String(st._activeTxReadMode || coverage.readMode || '') === ctx.readMode
+        && _evidenceContextCurrent(ctx);
+}
+function _runtimeTransactionRows() {
+    const st = window.__store || {}, out = [], seen = new Set();
+    const sources = [st.allTransactions, window.allTransactions, st.transactions];
+    for (const rows of sources) for (const tx of (Array.isArray(rows) ? rows : [])) {
+        if (!tx) continue;
+        const id = String(tx.id || tx.txId || '');
+        const key = id || JSON.stringify([tx.type, tx.description, tx.amount, tx.date, tx.txMonth, tx.timestamp]);
+        if (seen.has(key)) continue;
+        seen.add(key); out.push(tx);
+    }
+    return out;
+}
+function _recordEvidenceAudit(row) {
+    const metrics = _evidenceMetrics;
+    metrics.requests.push({ ...row, at: Date.now() });
+    if (metrics.requests.length > 100) metrics.requests.shift();
+}
+async function _readCompleteQuerySource({ ctx, source, buildQuery, pageSize = 500, maxPages = 100 }) {
+    const { getDocs, startAfter } = _sdk();
+    let cursor = null, pageCount = 0, paginationComplete = false, allPagesServerConfirmed = true;
+    const rows = [];
+    for (let i = 0; i < maxPages; i++) {
+        const snap = await getDocs(buildQuery(cursor, pageSize, startAfter));
+        pageCount++;
+        const meta = snap && snap.metadata;
+        if (!meta || meta.fromCache !== false || meta.hasPendingWrites !== false) allPagesServerConfirmed = false;
+        for (const d of (snap?.docs || [])) rows.push({ id: d.id, ...d.data() });
+        if ((snap?.docs?.length || 0) < pageSize) { paginationComplete = true; break; }
+        cursor = snap.docs[snap.docs.length - 1];
+        if (!cursor) break;
+    }
+    return { source, rows, pageCount, documentCount: rows.length, paginationComplete, allPagesServerConfirmed };
+}
+async function _readServerCompleteMonth(ctx, reason) {
+    const sdk = _sdk();
+    const { query, collection, where, limit } = sdk;
+    if (![query, collection, where, limit, sdk.getDocs].every(fn => typeof fn === 'function')) throw new Error('[FinanceService] Firestore evidence SDK chưa sẵn sàng.');
+    const colRef = collection(_db(), 'clubs', ctx.clubId, 'transactions');
+    const pageSize = 500;
+    const sourceResults = [];
+    if (ctx.readMode === 'canonical') {
+        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'canonical', pageSize, buildQuery: (cursor, n, startAfter) =>
+            query(colRef, where('accountingMonths', 'array-contains', ctx.month), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
+    } else {
+        const start = ctx.month + '-01', end = ctx.month + '-31';
+        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'byTxMonth', pageSize, buildQuery: (cursor, n, startAfter) =>
+            query(colRef, where('txMonth', '==', ctx.month), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
+        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'byDate', pageSize, buildQuery: (cursor, n, startAfter) =>
+            query(colRef, where('date', '>=', start), where('date', '<=', end), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
+        sourceResults.push(await _readCompleteQuerySource({ ctx, source: 'byPackageMonth', pageSize, buildQuery: (cursor, n, startAfter) =>
+            query(colRef, where('packageMonths', 'array-contains', ctx.month), ...(cursor && typeof startAfter === 'function' ? [startAfter(cursor)] : []), limit(n)) }));
+    }
+    const byId = new Map();
+    for (const src of sourceResults) for (const tx of src.rows) byId.set(String(tx.id || ''), tx);
+    const contextStillCurrent = _evidenceContextCurrent(ctx);
+    const allRequiredSourcesComplete = sourceResults.every(r => r.paginationComplete === true);
+    const allPagesServerConfirmed = sourceResults.every(r => r.allPagesServerConfirmed === true);
+    const serverComplete = allRequiredSourcesComplete && allPagesServerConfirmed && contextStillCurrent;
+    const result = { ok: serverComplete, serverComplete, contextStillCurrent, rows: Array.from(byId.values()), context: ctx, reason: String(reason || ''), sources: sourceResults,
+        pageCount: sourceResults.reduce((n,r)=>n+r.pageCount,0), documentCount: Array.from(byId.values()).length };
+    const metrics = _evidenceMetrics;
+    metrics.reads += result.pageCount;
+    _recordEvidenceAudit({ reason: result.reason, club: ctx.clubId, month: ctx.month, readMode: ctx.readMode,
+        semanticSources: sourceResults.map(r=>r.source), pageCount: result.pageCount, documentCount: result.documentCount,
+        serverConfirmed: serverComplete, singleFlight: false });
+    return result;
 }
 
 export const FinanceService = {
@@ -121,13 +235,19 @@ export const FinanceService = {
      * Xóa một giao dịch.
      * @param {string} txId — Firestore transaction doc ID
      */
-    async deleteTransaction(txId) {
+    async deleteTransaction(txId, { expectedContext = null } = {}) {
         const id = String(txId || '').trim();
         if (!id || id === 'undefined' || id === 'null') throw new Error('[FinanceService] transaction id không hợp lệ');
+        if (expectedContext && !_financialWriteContextCurrent(expectedContext)) {
+            const error = new Error('[FinanceService] Financial write context stale.');
+            error.code = 'finance/write-context-stale';
+            throw error;
+        }
         const { doc, deleteDoc } = _sdk();
+        const clubId = expectedContext?.clubId || _clubId();
         const scope = _projectionScope();
         try {
-            await deleteDoc(doc(_db(), 'clubs', _clubId(), 'transactions', id));
+            await deleteDoc(doc(_db(), 'clubs', clubId, 'transactions', id));
         } catch (error) {
             if (error && (error.code === 'permission-denied' || /insufficient permissions/i.test(error.message || ''))) {
                 error.message = '[FinanceService] Tài khoản chưa được Firestore Rules cấp quyền xóa giao dịch: ' + (error.message || 'permission-denied');
@@ -185,6 +305,68 @@ export const FinanceService = {
         const results = [];
         snap.forEach(d => results.push({ id: d.id, data: d.data() }));
         return results;
+    },
+
+
+    /** Current bounded RAM is negative-authoritative only under the exact current coverage contract. */
+    getCurrentMonthEvidenceForWrite({ month, expectedContext = null } = {}) {
+        const ctx = expectedContext || _evidenceContext(month);
+        const complete = _coverageCompleteForContext(ctx);
+        return { ok: complete, serverComplete: complete, strictCurrentCoverageComplete: complete,
+            contextStillCurrent: _evidenceContextCurrent(ctx), context: ctx, rows: _runtimeTransactionRows(), source: 'current-coverage' };
+    },
+
+    /** Lazy, single-flight, server-confirmed complete month evidence for financial negative decisions. */
+    async getCompleteMonthEvidence({ month, reason = 'financial-write-evidence', expectedContext = null } = {}) {
+        const ctx = expectedContext || _evidenceContext(month);
+        if (!ctx.clubId || !ctx.month) return { ok: false, serverComplete: false, contextStillCurrent: false, rows: [], context: ctx, reason, code: 'SERVER_EVIDENCE_UNVERIFIED' };
+        if (!_evidenceContextCurrent(ctx)) return { ok: false, serverComplete: false, contextStillCurrent: false, rows: [], context: ctx, reason, code: 'FINANCE_EVIDENCE_CONTEXT_STALE' };
+        const fast = this.getCurrentMonthEvidenceForWrite({ month: ctx.month, expectedContext: ctx });
+        if (fast.strictCurrentCoverageComplete && fast.context?.readMode === ctx.readMode && fast.context?.clubId === ctx.clubId) {
+            return { ...fast, reason, source: 'strict-current-coverage' };
+        }
+        const key = [ctx.clubId, ctx.month, ctx.readMode, ctx.uid, ctx.generation, ctx.sessionEpoch, ctx.authGeneration].join('|');
+        if (_completeEvidenceFlights.has(key)) {
+            const metrics = _evidenceMetrics;
+            metrics.singleFlightHits++;
+            return _completeEvidenceFlights.get(key);
+        }
+        const flight = _readServerCompleteMonth(ctx, reason).catch(error => ({ ok: false, serverComplete: false, contextStillCurrent: _evidenceContextCurrent(ctx), rows: [], context: ctx, reason, code: error?.code || 'SERVER_EVIDENCE_UNVERIFIED', error }));
+        _completeEvidenceFlights.set(key, flight);
+        try { return await flight; }
+        finally { if (_completeEvidenceFlights.get(key) === flight) _completeEvidenceFlights.delete(key); }
+    },
+
+    captureFinancialWriteContext() { return _financialWriteContext(); },
+    isFinancialWriteContextCurrent(ctx) { return _financialWriteContextCurrent(ctx); },
+    financialWriteContextToken(ctx) { return _financialWriteContextToken(ctx); },
+    captureWriteEvidenceContext(month, expectedOperationContext = null) { return _evidenceContext(month, expectedOperationContext); },
+    isWriteEvidenceContextCurrent(ctx) { return _evidenceContextCurrent(ctx); },
+    getRuntimeTransactionRowsForEvidence() { return _runtimeTransactionRows(); },
+    getWriteEvidenceMetrics() { return { requests: _evidenceMetrics.requests.map(x => ({ ...x })), singleFlightHits: _evidenceMetrics.singleFlightHits, reads: _evidenceMetrics.reads }; },
+
+    async resolveExamPaymentForWrite({ profile, studentName, month, reason = 'exam-write' } = {}) {
+        const name = String(studentName || '').trim();
+        const ctx = _evidenceContext(month);
+        const build = window.buildCanonicalExamPaymentLedger;
+        if (!name || !ctx.month || typeof build !== 'function') return { status: 'UNKNOWN', code: 'EXAM_EVIDENCE_UNVERIFIED', context: ctx };
+        const canonicalName = typeof window.getCanonicalStudentName === 'function' ? window.getCanonicalStudentName(name, window.__store?.profiles || window.allProfiles || {}) : name;
+        const hasPayment = rows => !!build({ month: ctx.month, transactions: rows })?.byName?.[canonicalName];
+        const currentRows = _runtimeTransactionRows();
+        if (hasPayment(currentRows)) return { status: 'PAID', source: 'positive-current-evidence', rows: currentRows, context: ctx };
+        const current = this.getCurrentMonthEvidenceForWrite({ month: ctx.month });
+        if (current.strictCurrentCoverageComplete) return { status: 'VERIFIED_UNPAID', source: 'strict-current-coverage', rows: current.rows, context: ctx };
+        const complete = await this.getCompleteMonthEvidence({ month: ctx.month, reason, expectedContext: ctx });
+        if (!complete.serverComplete || !complete.contextStillCurrent || !_evidenceContextCurrent(ctx)) return { status: 'UNKNOWN', code: complete.code || 'EXAM_EVIDENCE_UNVERIFIED', context: ctx, evidence: complete };
+        return hasPayment(complete.rows)
+            ? { status: 'PAID', source: 'server-complete-evidence', rows: complete.rows, context: ctx }
+            : { status: 'VERIFIED_UNPAID', source: 'server-complete-evidence', rows: complete.rows, context: ctx };
+    },
+
+    async requireExamUnpaidForWrite(args = {}) {
+        const d = await this.resolveExamPaymentForWrite(args);
+        if (d?.status === 'UNKNOWN') { const e = new Error('Chưa xác minh đủ dữ liệu giao dịch. Khoản thu chưa được thực hiện. Vui lòng thử lại khi kết nối ổn định.'); e.code = d.code || 'EXAM_EVIDENCE_UNVERIFIED'; throw e; }
+        return d;
     },
 
     // ── PAGINATION (Phase 3.2A) ─────────────────────────────────
@@ -395,8 +577,11 @@ export const FinanceService = {
      */
     async commitAtomicWritePlan(plan = {}) {
         const { writeBatch, doc, collection } = _sdk();
-        const db = _db();
-        const clubId = _clubId();
+        const db = _db(), expectedContext = plan.expectedContext || null;
+        if (expectedContext && !_financialWriteContextCurrent(expectedContext)) {
+            const error = new Error('Financial write context đã thay đổi.'); error.code = 'finance/write-context-stale'; throw error;
+        }
+        const clubId = expectedContext ? expectedContext.clubId : _clubId();
         const scope = _projectionScope();
         if (typeof writeBatch !== 'function' || typeof doc !== 'function') {
             throw new Error('[FinanceService] Firestore atomic batch chưa sẵn sàng.');
@@ -414,6 +599,9 @@ export const FinanceService = {
             throw error;
         }
 
+        if (expectedContext && !_financialWriteContextCurrent(expectedContext)) {
+            const error = new Error('Financial write context đã thay đổi.'); error.code = 'finance/write-context-stale'; throw error;
+        }
         const batch = writeBatch(db);
         const txCol = collection(db, 'clubs', clubId, 'transactions');
         const txIds = [];
@@ -438,7 +626,8 @@ export const FinanceService = {
 
         await batch.commit();
         _projectCommitted(runtimeRows, [], scope, 'finance-service-atomic-plan');
-        return { committed: operationCount, txIds };
+        return { committed: operationCount, txIds, primaryCommitted: true, commitClubId: clubId,
+            postCommitContextCurrent: expectedContext ? _financialWriteContextCurrent(expectedContext) : true };
     },
 
     // ── PROFILES (payment fields only) ──────────────────────────
@@ -607,14 +796,20 @@ export const FinanceService = {
      * @param {string}   newPaidUntil  — YYYY-MM hoặc ''
      * @param {string[]} deletedMonths — mảng YYYY-MM cần xóa khỏi paidMonths
      */
-    async updateProfileAfterTxDelete(studentName, newPaidUntil, deletedMonths) {
+    async updateProfileAfterTxDelete(studentName, newPaidUntil, deletedMonths, { expectedContext = null } = {}) {
+        if (expectedContext && !_financialWriteContextCurrent(expectedContext)) {
+            const error = new Error('[FinanceService] Financial write context stale.');
+            error.code = 'finance/write-context-stale';
+            throw error;
+        }
         const { doc, updateDoc, arrayRemove } = _sdk();
+        const clubId = expectedContext?.clubId || _clubId();
         const profileUpdate = { paidUntil: newPaidUntil };
         if (deletedMonths.length > 0) {
             profileUpdate.paidMonths = arrayRemove(...deletedMonths);
         }
         await updateDoc(
-            doc(_db(), 'clubs', _clubId(), 'profiles', studentName),
+            doc(_db(), 'clubs', clubId, 'profiles', studentName),
             profileUpdate
         );
     },

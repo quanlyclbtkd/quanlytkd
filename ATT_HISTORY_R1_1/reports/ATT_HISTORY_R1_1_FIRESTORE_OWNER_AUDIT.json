@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "scannerScope": "same root scanner before/after, excluding public/tools/evidence",
+  "baseline": {
+    "getDoc": 24,
+    "getDocs": 57,
+    "onSnapshot": 35,
+    "setDoc": 25,
+    "updateDoc": 19,
+    "addDoc": 18,
+    "deleteDoc": 7,
+    "writeBatch": 31,
+    "runTransaction": 4
+  },
+  "candidate": {
+    "getDoc": 24,
+    "getDocs": 57,
+    "onSnapshot": 35,
+    "setDoc": 25,
+    "updateDoc": 19,
+    "addDoc": 18,
+    "deleteDoc": 7,
+    "writeBatch": 31,
+    "runTransaction": 4
+  },
+  "delta": {
+    "getDoc": 0,
+    "getDocs": 0,
+    "onSnapshot": 0,
+    "setDoc": 0,
+    "updateDoc": 0,
+    "addDoc": 0,
+    "deleteDoc": 0,
+    "writeBatch": 0,
+    "runTransaction": 0
+  },
+  "readerOwnerDelta": 0,
+  "listenerOwnerDelta": 0,
+  "writerOwnerDelta": 0,
+  "rulesChanged": false,
+  "indexesChanged": false
+}

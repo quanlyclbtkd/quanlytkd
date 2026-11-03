@@ -22,11 +22,10 @@
  *   Every <tr> carries data-student-id / data-debt-id / data-quit-id
  *   for future virtualization keying.
  *
- * Branch stats augmentation:
- *   computeAndCacheStudents() receives the bStats object produced by
- *   financeRenderer and adds active/debt counts to each branch entry.
- *   render.js passes finSummary.bStats here; after this call bStats
- *   is fully populated and can be passed to renderBranchStats().
+ * Branch member stats ownership (A9R18 R1.1):
+ *   computeAndCacheStudents() derives active/debt counts into its OWN cache.
+ *   Finance bStats is never accepted or mutated here. Dashboard composition
+ *   combines Finance financial fields with authority-aware Students counts.
  *
  * Load-more buttons:
  *   Appended to the end of each section's cached HTML so islands render
@@ -187,6 +186,9 @@ const _cache = {
     lastVerifiedDebtSummary: null,
     lastVerifiedDebtSummaryContextKey: '',
     lastVerifiedDebtSummaryAuthorityKey: '',
+    lastVerifiedBranchDebtStats: null,
+    lastVerifiedBranchDebtStatsContextKey: '',
+    lastVerifiedBranchDebtStatsAuthorityKey: '',
     paramsKey:   null,
     sourceKey:   null,   // R2R5 semantic source vector
     dataVersion: -1,     // diagnostic-only legacy snapshot
@@ -306,7 +308,6 @@ export function renderQuitRow(name, p, opts = {}) {
  * @param {string}   params.search
  * @param {boolean}  params.isSingleBranch
  * @param {boolean}  params.isAdmin
- * @param {Object}   params.bStats          — finance bStats to AUGMENT (active/debt)
  * @param {Object|null} params.pgStudents
  * @param {boolean}  params.pgStudentsActive
  * @param {number}   params.activePage
@@ -361,6 +362,60 @@ function _canReuseVerifiedDebtSummary(status) {
         && _cache.lastVerifiedDebtSummaryAuthorityKey === _debtAuthorityKey(status);
 }
 
+function _canReuseVerifiedBranchDebtStats(status) {
+    return _cache.lastVerifiedBranchDebtStats !== null
+        && _cache.lastVerifiedBranchDebtStatsContextKey === _debtPresentationContextKey()
+        && _cache.lastVerifiedBranchDebtStatsAuthorityKey === _debtAuthorityKey(status);
+}
+
+function _branchCountForStats() {
+    const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
+    return Math.max(1, Number(cfg.branchCount || 1));
+}
+
+function _normalizeBranchCodeForStats(rawBranch, branchCount) {
+    if (typeof window.normalizeBranchCodeForStats === 'function') {
+        return window.normalizeBranchCodeForStats(rawBranch, branchCount);
+    }
+    if (window.BranchIdentity && typeof window.BranchIdentity.normalize === 'function') {
+        return window.BranchIdentity.normalize(rawBranch, { fallback: 'CS1' }) || 'CS1';
+    }
+    return 'CS1';
+}
+
+function _newBranchMemberStats(branchCount) {
+    const out = {};
+    for (let i = 1; i <= branchCount; i++) out['CS' + i] = { active: 0, debt: 0 };
+    return out;
+}
+
+function _copyBranchMemberStats(input, options = {}) {
+    if (!input || typeof input !== 'object') return null;
+    const debtOverride = options.debtOverride || null;
+    const debtPending = options.debtPending === true;
+    const debtUpdating = options.debtUpdating === true;
+    const out = {};
+    Object.entries(input).forEach(([branch, value]) => {
+        const current = value || {};
+        const debtValue = debtOverride && Object.prototype.hasOwnProperty.call(debtOverride, branch)
+            ? debtOverride[branch]
+            : current.debt;
+        out[branch] = {
+            active: Number(current.active || 0),
+            debt: debtPending ? null : Number(debtValue || 0),
+            debtPending,
+            debtUpdating,
+        };
+    });
+    if (debtOverride) {
+        Object.entries(debtOverride).forEach(([branch, debt]) => {
+            if (out[branch]) return;
+            out[branch] = { active: 0, debt: debtPending ? null : Number(debt || 0), debtPending, debtUpdating };
+        });
+    }
+    return out;
+}
+
 function _currentStudentsSourceKey() {
     const st = window.__store || {};
     const profileVersion = Number(window.studentProfileStore?.version ?? st._profileDataVersion ?? 0);
@@ -386,7 +441,6 @@ export function computeAndCacheStudents(allProfiles, params) {
         search          = '',
         isSingleBranch  = true,
         isAdmin         = false,
-        bStats          = {},
         pgStudents      = null,
         pgStudentsActive = false,
         activePage      = 1,
@@ -442,6 +496,8 @@ export function computeAndCacheStudents(allProfiles, params) {
     let activeCount = 0, debtCount = 0;
     let m_active_theo = 0, m_new = 0, m_quit = 0, m_skipped = 0;
     let totalDebtEst  = 0;
+    const _branchCount = _branchCountForStats();
+    const branchMemberStats = _newBranchMemberStats(_branchCount);
 
     // ── Decide which HTML sections to build (hidden-tab skip) ──
     const buildActive = curTabId === 'active';
@@ -561,6 +617,8 @@ export function computeAndCacheStudents(allProfiles, params) {
         const isQuit  = _pKind === 'quit';
         const isActive = !isQuit;
         const safeBranch  = p.branch || 'CS1';
+        const statsBranch = _normalizeBranchCodeForStats(safeBranch, _branchCount);
+        if (!branchMemberStats[statsBranch]) branchMemberStats[statsBranch] = { active: 0, debt: 0 };
         const yrBadge     = _getYrBadge(name, p, nameNCount);
         const beltHTML    = getBeltBadge(p.belt);
         const branchTdHTML = isSingleBranch
@@ -569,7 +627,7 @@ export function computeAndCacheStudents(allProfiles, params) {
 
         if (isActive) {
             m_active_theo++;
-            if (bStats[safeBranch]) bStats[safeBranch].active++;
+            branchMemberStats[statsBranch].active++;
             activeCount++;
 
             const paidBadge = p.paidUntil
@@ -656,7 +714,7 @@ export function computeAndCacheStudents(allProfiles, params) {
                 const passDebtOverdueFilter = !_debtOverdueMin || unpaidMonthsCount >= _debtOverdueMin;
                 if (debtPassFilter && passDebtOverdueFilter) {
                     debtCount++;
-                    if (bStats[safeBranch] !== undefined) bStats[safeBranch].debt++;
+                    branchMemberStats[statsBranch].debt++;
                     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
                     totalDebtEst += totalDebtAmount;
                     _debtTotalCount++;
@@ -885,6 +943,7 @@ export function computeAndCacheStudents(allProfiles, params) {
         debtLimit:         _debtLimit,
         quitLimit:         _quitLimit,
         pgStudentsActive,
+        branchMemberStats,
     };
     _cache.summaryClubId = String(window.__store?.clubId || window.__store?.currentClubId || '');
     _cache.summaryMonth = String(selMonth || '');
@@ -895,6 +954,11 @@ export function computeAndCacheStudents(allProfiles, params) {
         _cache.lastVerifiedDebtSummary = { debtCount, totalDebtEst };
         _cache.lastVerifiedDebtSummaryContextKey = _cache.summaryDebtContextKey;
         _cache.lastVerifiedDebtSummaryAuthorityKey = _debtAuthorityKey(_verifiedCoverage);
+        _cache.lastVerifiedBranchDebtStats = Object.fromEntries(
+            Object.entries(branchMemberStats).map(([branch, value]) => [branch, Number(value?.debt || 0)])
+        );
+        _cache.lastVerifiedBranchDebtStatsContextKey = _cache.summaryDebtContextKey;
+        _cache.lastVerifiedBranchDebtStatsAuthorityKey = _debtAuthorityKey(_verifiedCoverage);
         if (buildDebt) {
             _cache.lastVerifiedDebtRows = debtRows;
             _cache.lastVerifiedDebtRowsContextKey = _cache.summaryDebtContextKey;
@@ -987,20 +1051,52 @@ export function getStudentsSummary() {
         || (!!month && _cache.summaryMonth !== month)
         || (!!_cache.summaryDebtContextKey && _cache.summaryDebtContextKey !== currentContextKey);
     const state = _coveragePresentationState(coverage);
-    if (state === 'TRANSIENT_LOCAL_WRITE' && !baseContextMismatch && _canReuseVerifiedDebtSummary(coverage)) {
+    const currentBranchStats = !baseContextMismatch ? (_cache.summary?.branchMemberStats || null) : null;
+
+    if (state === 'TRANSIENT_LOCAL_WRITE' && !baseContextMismatch
+        && _canReuseVerifiedDebtSummary(coverage) && _canReuseVerifiedBranchDebtStats(coverage)) {
         return {
             ...(_cache.summary || {}),
             debtCount: Number(_cache.lastVerifiedDebtSummary?.debtCount || 0),
             totalDebtEst: Number(_cache.lastVerifiedDebtSummary?.totalDebtEst || 0),
+            branchMemberStats: _copyBranchMemberStats(currentBranchStats, {
+                debtOverride: _cache.lastVerifiedBranchDebtStats,
+                debtPending: false,
+                debtUpdating: true,
+            }),
+            branchDebtPending: false,
+            branchDebtUpdating: true,
             debtSummaryPending: false,
             debtSummaryUpdating: true,
             debtSummaryFresh: false,
         };
     }
+
     const debtSummaryPending = !coverage || state !== 'FRESH' || coverage.sameClub !== true || baseContextMismatch;
-    if (debtSummaryPending) return { ...(_cache.summary || {}), debtCount: null,
-        totalDebtEst: null, debtSummaryPending: true, debtSummaryUpdating: false, debtSummaryFresh: false };
-    return _cache.summary ? { ..._cache.summary, debtSummaryPending: false, debtSummaryUpdating: false, debtSummaryFresh: true } : null;
+    if (debtSummaryPending) {
+        return {
+            ...(_cache.summary || {}),
+            debtCount: null,
+            totalDebtEst: null,
+            branchMemberStats: _copyBranchMemberStats(currentBranchStats, { debtPending: true, debtUpdating: false }),
+            branchDebtPending: true,
+            branchDebtUpdating: false,
+            debtSummaryPending: true,
+            debtSummaryUpdating: false,
+            debtSummaryFresh: false,
+        };
+    }
+
+    if (!_cache.summary) return null;
+    return {
+        ..._cache.summary,
+        branchMemberStats: _copyBranchMemberStats(currentBranchStats, { debtPending: false, debtUpdating: false }),
+        branchDebtPending: false,
+        branchDebtUpdating: false,
+        debtSummaryPending: false,
+        debtSummaryUpdating: false,
+        debtSummaryFresh: true,
+    };
 }
 
 /**

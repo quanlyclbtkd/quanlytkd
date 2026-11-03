@@ -1,0 +1,40 @@
+{
+  "scope": "129 canonical root runtime files (public mirror excluded from counts)",
+  "baseline": {
+    "getDoc": 24,
+    "getDocs": 57,
+    "onSnapshot": 35,
+    "setDoc": 25,
+    "updateDoc": 19,
+    "addDoc": 18,
+    "deleteDoc": 7,
+    "writeBatch": 31,
+    "runTransaction": 4
+  },
+  "final": {
+    "getDoc": 24,
+    "getDocs": 57,
+    "onSnapshot": 35,
+    "setDoc": 25,
+    "updateDoc": 19,
+    "addDoc": 18,
+    "deleteDoc": 7,
+    "writeBatch": 31,
+    "runTransaction": 4
+  },
+  "delta": {
+    "getDoc": 0,
+    "getDocs": 0,
+    "onSnapshot": 0,
+    "setDoc": 0,
+    "updateDoc": 0,
+    "addDoc": 0,
+    "deleteDoc": 0,
+    "writeBatch": 0,
+    "runTransaction": 0
+  },
+  "readerDelta": 0,
+  "listenerDelta": 0,
+  "writerDelta": 0,
+  "result": "NO_NEW_FIRESTORE_OWNER"
+}

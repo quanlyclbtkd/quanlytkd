@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "guard": "modal/request generation plus service context guards",
+  "cases": [
+    {
+      "race": "P1 open → P2 open → P1 resolves last",
+      "P1MayOverwriteP2": false
+    },
+    {
+      "race": "logout during read",
+      "oldResultApplied": false
+    },
+    {
+      "race": "club switch during read",
+      "oldResultApplied": false
+    },
+    {
+      "race": "role/Coach branch/session/auth generation change",
+      "oldResultApplied": false
+    }
+  ]
+}

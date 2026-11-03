@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "monthlyVsBranchReportEligibleSetParity": true,
+  "authorityPolicy": "R1 retained",
+  "R1_1RuntimeBusinessChangeToBranchReport": false
+}

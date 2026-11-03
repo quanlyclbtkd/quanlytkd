@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "serviceRowsMutated": false,
+  "viewModel": "daySessions[day][]",
+  "deterministicOrder": "configured shift order, then stable shiftId",
+  "twoSessionDayVisibleSessions": 2,
+  "cellPresentation": "separate status icons/badges plus “2 buổi” and readable title/aria-label",
+  "countsChanged": false,
+  "statusPriorityCollapse": false,
+  "preservedTotals": [
+    "present",
+    "excused",
+    "absent",
+    "qPresent",
+    "qExcused",
+    "qAbsent"
+  ]
+}

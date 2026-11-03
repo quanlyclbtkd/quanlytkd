@@ -30,7 +30,7 @@ import {
     getDashboardBranchStats,
     getDashboardExamStats,
     getDashboardSummaryNumbers,
-} from './computation/dashboardRenderer.js';
+} from './computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

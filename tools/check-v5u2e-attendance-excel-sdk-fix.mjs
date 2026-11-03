@@ -59,11 +59,12 @@ const mainFacadeImport = main.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0
 const publicMainFacadeImport = publicMain.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0] || '';
 check('main cache-busts report facade', /^reportExportFacade\.js\?v=.+/.test(mainFacadeImport));
 check('main source/public mirrors match for report import', mainFacadeImport !== '' && publicMainFacadeImport === mainFacadeImport);
-function coherentEntryHTML(html){try{const profile=verifyRuntimeProfile(root),m=JSON.parse(read(profile.identity.manifest)),g=buildImportGraph(root);return ['app.js','js/main.js'].every(f=>g.edges.some(e=>{if(e.from!=='index.html'||e.to!==f||!html.includes(e.url))return false;const u=new URL(e.url,'https://qa/');return u.pathname+u.search+u.hash===m.canonicalModuleURLs[f];}));}catch{return false;}}
+function coherentEntryHTML(html){try{const profile=verifyRuntimeProfile(root),g=buildImportGraph(root);const scopes=profile.identity.cacheLineageScopes||[];return ['app.js','js/main.js'].every(f=>{const edge=g.edges.find(e=>e.from==='index.html'&&e.to===f);if(!edge||!html.includes(edge.url))return false;const scope=scopes.find(s=>(s.edges||[]).some(x=>Array.isArray(x)&&x[0]==='index.html'&&x[1]===f));if(!scope)return false;const u=new URL(edge.url,'https://qa/');return u.searchParams.get('v')===scope.token;});}catch{return false;}}
 check('index cache-busts app/main with current pinned coherent lineage',coherentEntryHTML(index));
 check('public index cache-busts app/main with current pinned coherent lineage',coherentEntryHTML(publicIndex));
 const activeProfile=verifyRuntimeProfile(root);
-check('stale entrypoint token is rejected by coherence check',!coherentEntryHTML(index.replaceAll(activeProfile.identity.buildTag,'STALE_TEST_BUILD')));
+const activeAppUrl=buildImportGraph(root).edges.find(e=>e.from==='index.html'&&e.to==='app.js')?.url || '';
+check('stale entrypoint token is rejected by coherence check',!coherentEntryHTML(index.replace(activeAppUrl,activeAppUrl.replace(/v=[^&]+/,'v=STALE_TEST_BUILD'))));
 check('APP patch marker updated in app/main', app.includes(patch) && main.includes(patch));
 check('public APP patch marker updated', publicApp.includes(patch) && publicMain.includes(patch));
 check('report remains read-only', !/(?:setDoc|updateDoc|addDoc|deleteDoc|writeBatch|runTransaction|onSnapshot)\s*\(/.test(report));

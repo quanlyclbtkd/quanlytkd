@@ -54,7 +54,7 @@ if (!financeJs || !studentsJs || !mainJs) {
 // ── 1. finance.js import StudentService ──────────────────────────────────────
 check(
     '1. finance.js imports StudentService from students.service.js',
-    financeJs.includes("import { StudentService } from '../services/students.service.js'"),
+    /import\s*\{\s*StudentService\s*\}\s*from\s*['\"]\.\.\/services\/students\.service\.js(?:\?[^'\"]+)?['\"]/.test(financeJs),
     "Thêm: import { StudentService } from '../services/students.service.js'; vào đầu finance.js"
 );
 

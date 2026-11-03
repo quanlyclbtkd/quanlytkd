@@ -1,4 +1,3 @@
-// Compatibility import marker: import { StudentService } from '../services/students.service.js';
 /** Canonical finance UI adapters; write semantics live in existing owners. */
 
 import {
@@ -8,7 +7,7 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
-import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
 import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
@@ -33,8 +32,6 @@ function _classifyInvTxForFinance(tx, cats) {
 }
 
 
-// BRIDGE HELPERS — đọc state từ window.__store tại call time
-// Không bao giờ cache ra biến ngoài scope → luôn lấy giá trị mới nhất
 
 /** Firestore db instance */
 function _db()           { return (window.__store || {}).db; }
@@ -60,18 +57,24 @@ function _freshTuitionDecision(name, months) {
     const evidence = Array.from(new Set([...(Array.isArray(profile.paidMonths) ? profile.paidMonths : []), ...months]));
     return { profile, settlement, paidUntil: canonical.reconcilePaidUntilFromMonthEvidence(profile, evidence, { allowRegression: false }) };
 }
+
 function _guardAllowed(a,p){try{return typeof window.guardFinancialWriteIntent==='function'&&typeof window.isFinancialWriteAllowed==='function'&&window.isFinancialWriteAllowed(window.guardFinancialWriteIntent(a,p))===true}catch(_){return false}}
 function _vMonth(v){return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(v||'').trim())}
 function _validDate(v){const x=String(v||'').trim();if(!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(x))return false;const d=new Date(x+'T00:00:00');return !Number.isNaN(d.getTime())&&d.getFullYear()==+x.slice(0,4)&&d.getMonth()+1==+x.slice(5,7)&&d.getDate()==+x.slice(8,10)}
 function _positiveAmount(v){const n=+v;return Number.isFinite(n)&&n>0?n:null}
 function _profileKey(n,p){return String(p?.profileId||p?.id||p?.uid||p?.memberId||p?.memberID||p?.studentId||n||'').trim()}
+function _sameBranch(a,b){try{if(window.BranchIdentity?.isSameBranch)return window.BranchIdentity.isSameBranch(a,b)}catch(_){}const n=v=>/^(mặc định|default|cs0?1)$/i.test(String(v||'').trim())?'CS1':String(v||'').trim().toUpperCase().replace(/\s+/g,'');return n(a)===n(b)}
+function _finCtx(){return FinanceService.captureFinancialWriteContext?.()||null}
+function _finCtxCurrent(c){return !!c&&FinanceService.isFinancialWriteContextCurrent?.(c)===true}
+function _quickPayIntent(name,branch,profile,owedMonths){return Object.freeze({financialContext:_finCtx(),profileId:_profileKey(name,profile),branch:String(branch||profile?.branch||'CS1').trim()||'CS1',tuitionFee:Number(profile?.tuitionFee)||0,owedMonths:Object.freeze((owedMonths||[]).slice())})}
+function _quickPayIntentState(i,name){if(!i||!_finCtxCurrent(i.financialContext))return{ok:false,code:'tuition/intent-context-stale'};const p=_profiles()[name]||{};if(_profileKey(name,p)!==i.profileId)return{ok:false,code:'tuition/intent-context-stale'};if(!_sameBranch(i.branch,p.branch||i.branch))return{ok:false,code:'tuition/intent-branch-stale'};if(Number(p.tuitionFee||0)!==Number(i.tuitionFee||0))return{ok:false,code:'tuition/intent-fee-stale'};return{ok:true,profile:p}}
+function _staleTuitionToast(){window.showToast('⚠️ CLB hoặc dữ liệu học phí đã thay đổi. Khoản thu chưa được ghi. Vui lòng mở lại thao tác Thu.',5000)}
 function _comboValidatedIntents(rows){const out=[],seen=new Set();for(const raw of rows){const studentName=String(raw.studentName||'').trim(),month=String(raw.month||'').trim(),hasAny=studentName!==''||String(raw.amountRaw??'').trim()!==''||month!=='';if(!hasAny)continue;
         const amount=_positiveAmount(raw.amountRaw),profile=_profiles()[studentName];if(!studentName||amount==null||!_vMonth(month)||!profile)throw Object.assign(new Error('Thu gộp không hợp lệ.'),{code:'combo/invalid-row'});
         const profileId=_profileKey(studentName,profile);if(!profileId||seen.has(profileId))throw Object.assign(new Error('Võ sinh bị trùng trong thu gộp.'),{code:'combo/duplicate-profile'});seen.add(profileId);out.push({profileId,studentName,amount,month,profile,order:raw.order})}if(!out.length)throw Object.assign(new Error('Chưa có khoản thu.'),{code:'combo/no-active-row'});return out}
 function _detachFeeAudit(d){try{void Promise.resolve(FinanceService.addFeeAuditSilent(d)).catch(e=>console.warn('[fee-audit]',e))}catch(e){console.warn('[fee-audit]',e)}}
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang FinanceService / StudentService */
 
-// EXPORT CHÍNH
 
 /**
  * initFinance() — Đăng ký toàn bộ window functions tài chính.
@@ -181,29 +184,32 @@ export function initFinance() {
             : '';
         const isTuitionOnly = impact?.isPureTuition === true;
         const genericAuditPayload={txId,relatedInvId:relatedInvId||'',type:txToDelete.type||'',amount:Number(txToDelete.amount)||0,studentName:txToDelete.studentName||txToDelete.description||''};
+        const ctx=!isTuitionOnly?_finCtx():null;let intent;
         if (!isTuitionOnly) {
             try {
                 if (typeof window.guardFinancialWriteIntent !== 'function'
                     || typeof window.isFinancialWriteAllowed !== 'function'
-                    || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('transaction.delete', genericAuditPayload)) !== true) return false;
+                    || !_finCtxCurrent(ctx)
+                    || window.isFinancialWriteAllowed(intent=window.guardFinancialWriteIntent('transaction.delete', genericAuditPayload)) !== true) return false;
             } catch (_) { return false; }
         }
-        if (!isTuitionOnly) window.recordFinancialActionAudit?.('transaction.delete', 'before', genericAuditPayload);
+        if (!isTuitionOnly) window.recordFinancialActionAudit?.('transaction.delete', 'before', genericAuditPayload,{intent:intent});
+        let tuitionDeleteResult = null;
         try {
             if (isTuitionOnly) {
                 if (!window.TuitionCommandBoundary?.deleteTuitionTransaction) throw new Error('[V5U-2] TuitionCommandBoundary chưa sẵn sàng.');
-                const result = await window.TuitionCommandBoundary.deleteTuitionTransaction({ txId: txId, transaction: txToDelete, impact, source: 'finance.deleteTx' });
-                if (result?.cancelled) return false;
+                tuitionDeleteResult = await window.TuitionCommandBoundary.deleteTuitionTransaction({ txId: txId, transaction: txToDelete, impact, source: 'finance.deleteTx' });
+                if (tuitionDeleteResult?.cancelled) return false;
             } else if(impact?.isPureInventory===true){
                 if(refs.length!==1)throw new Error('[F1D1] Inventory ref không an toàn.');
                 const invId=refs[0], previous=((window.__store||{}).inventory||window.allInventory||[]).find(r=>String(r?.id||'')===invId);
                 if(!previous||!window.InventoryService?.deleteItem)throw new Error('[F1D1] Inventory local owner chưa sẵn sàng.');
+                if(!_finCtxCurrent(ctx))return false;
                 await window.InventoryService.deleteItem(invId,{previous,relatedTxId:txId,reason:'finance-delete-pure-inventory-atomic'});
-                window.invalidateDashboard?.('delete-pure-inventory-existing-owner');window.invalidateList?.('tx.txList','delete-pure-inventory-existing-owner');window.recordFinancialActionAudit?.('transaction.delete','after',genericAuditPayload);
             } else {
                 const runGenericDelete = async () => {
-                    await FinanceService.deleteTransaction(txId);
-                    if (impact?.requiresProfileReconcile && impact.studentName) await window.reconcileStudentTuitionAfterDeletedTransaction(impact.studentName, txToDelete, { reason: 'delete-transaction-non-tuition-owner' });
+                    if (impact?.requiresProfileReconcile && impact.studentName) throw Object.assign(new Error('Giao dịch có ảnh hưởng học phí phải đi qua Tuition delete owner.'),{code:'tuition/delete-owner-required'});
+                    await FinanceService.deleteTransaction(txId,{expectedContext:ctx});
                 };
                 if(impact?.hasInventory)throw new Error('[F1D1] Inventory delete chưa có atomic owner.');
                 if (impact?.requiresProfileReconcile && impact.studentName) {
@@ -211,13 +217,15 @@ export function initFinance() {
                     if (!laneOwner?.runInProfileTuitionMutationLane) throw new Error('[F1D] Tuition lane unavailable.');
                     await laneOwner.runInProfileTuitionMutationLane({ studentName: impact.studentName, reason: 'finance.generic-delete' }, runGenericDelete);
                 } else await runGenericDelete();
-                if (impact?.requiresExamRefresh && typeof window.renderExamList === 'function') window.renderExamList();
-                window.invalidateDashboard?.('delete-transaction-existing-owner');
-                window.invalidateList?.('tx.txList', 'delete-transaction-existing-owner');
-                window.invalidateList?.('students.debtList', 'delete-transaction-existing-owner');
-                window.recordFinancialActionAudit?.('transaction.delete', 'after', genericAuditPayload);
             }
-            window.showToast('✅ Đã xóa!');
+            if(!isTuitionOnly){
+                window.recordFinancialActionAudit?.('transaction.delete','after',genericAuditPayload,{intent:intent});
+                if(!_finCtxCurrent(ctx)){window.showToast?.('✅ Đã xóa. Không xóa lại.',7000);return true}
+                if(impact?.isPureInventory){window.invalidateDashboard?.('delete-pure-inventory-existing-owner');window.invalidateList?.('tx.txList','delete-pure-inventory-existing-owner')}
+                else{if(impact?.requiresExamRefresh&&typeof window.renderExamList==='function')window.renderExamList();window.invalidateDashboard?.('delete-transaction-existing-owner');window.invalidateList?.('tx.txList','delete-transaction-existing-owner');window.invalidateList?.('students.debtList','delete-transaction-existing-owner')}
+            }
+            if(tuitionDeleteResult?.transactionDeleted===true&&tuitionDeleteResult?.profileReconcileVerified===false)window.showToast?.('⚠️ Giao dịch đã được xóa. Hệ thống chưa hạ trạng thái học phí vì chưa xác minh đủ các giao dịch còn lại. Không cần xóa lại giao dịch.','error');
+            else window.showToast('✅ Đã xóa!');
             if (activeTabBeforeDelete === 'tx' && typeof window.getCurrentActiveTabId === 'function'
                 && window.getCurrentActiveTabId() === 'debt' && typeof window.switchTab === 'function') {
                 window.switchTab('tx');
@@ -228,12 +236,7 @@ export function initFinance() {
                 error.code === 'permission-denied' ||
                 /insufficient permissions|chưa được Firestore Rules cấp quyền/i.test(error.message || '')
             );
-            if (!isTuitionOnly) {
-                window.recordFinancialActionAudit?.('transaction.delete', 'error', {
-                    ...genericAuditPayload,
-                    error: error?.message || String(error)
-                });
-            }
+            if (!isTuitionOnly) window.recordFinancialActionAudit?.('transaction.delete','error',{...genericAuditPayload,error:error?.message||String(error)},{intent:intent});
             console.error('[deleteTx] failed:', error);
             if (denied) {
                 window.showToast?.('❌ Firestore Rules chưa cấp quyền xóa giao dịch cho Admin. Hãy deploy Rules của bản V5U-1/V5U-2.', 'error');
@@ -249,396 +252,437 @@ export function initFinance() {
             return false;
         }
     };
-    /**
-     * Thu học phí cho một võ sinh, ghi giao dịch và cập nhật paidUntil.
-     *
-     * Logic tính tháng thực tế:
-     *   Nếu feePerMonth > 0 và đóng nhiều tháng → tính số tháng = floor(amount/fee)
-     *   → tránh đánh dấu dư tháng chưa thực sự đóng đủ tiền.
-     *
-     * Fix date: thu bù tháng cũ → date = tháng-01, không dùng hôm nay
-     *   → giao dịch xuất hiện đúng khi lọc theo tháng.
-     *
-     * Fix paidUntil: không cho thụt lùi — so sánh với paidUntil hiện tại.
-     *
-     * @param {string}  name         — Tên võ sinh
-     * @param {string}  monthsStr    — Tháng nợ, cách nhau bởi dấu phẩy (YYYY-MM)
-     * @param {string}  branch       — Mã cơ sở (CS1, CS2, ...)
-     * @param {string}  defaultFee   — Học phí mặc định (string)
-     * @param {boolean} skipPrompt   — Bỏ qua prompt, dùng defaultFee trực tiếp
-     */
-    window.quickPay = async (name, monthsStr, branch, defaultFee, skipPrompt) => {
-        if (window.userRole === 'viewer') {
-            window.showToast('⚠️ Tài khoản khách không thể thu tiền!', 3000);
-            return false;
-        }
-
-        const cleanName = String(name || '').replace(/\\'/g, "'").trim();
-        const monthsList = monthsStr
-            ? monthsStr.split(',').map(s => s.trim()).filter(Boolean)
-            : [];
-        const monthLabel = formatMonthCompact(monthsList.join(','));
-
+    // monthsStr xác định chính xác kỳ học phí cần settlement; amount là số tiền thực thu; không suy số tháng từ amount.
+    window.quickPay = async (name, monthsStr, branch, defaultFee, skipPrompt, intentSnapshot = null) => {
+        if (window.userRole === 'viewer') { window.showToast('⚠️ Tài khoản khách không thể thu tiền!', 3000); return false; }
+        const cleanName=String(name||'').replace(/\\'/g,"'").trim(),monthsList=monthsStr?monthsStr.split(',').map(s=>s.trim()).filter(Boolean):[],monthLabel=formatMonthCompact(monthsList.join(','));
+        const currentProfile=_profiles()[cleanName]||{},intent=intentSnapshot||_quickPayIntent(cleanName,branch,currentProfile,monthsList),intentState=_quickPayIntentState(intent,cleanName);
+        if(!intentState.ok){_staleTuitionToast();return false;}
         let amount;
-        if (skipPrompt && defaultFee && Number(String(defaultFee).replace(/\D/g, '')) > 0) {
-            amount = Number(String(defaultFee).replace(/\D/g, ''));
-        } else {
-            const defaultAmountStr = defaultFee
-                ? parseInt(defaultFee, 10).toLocaleString('vi-VN')
-                : '0';
-            const inputAmount = prompt(
-                `XÁC NHẬN THU HỌC PHÍ\nVõ sinh: ${cleanName}\nKỳ học phí: ${monthLabel}\n\nNhập số tiền thu (VNĐ):`,
-                defaultAmountStr
-            );
-            if (inputAmount === null) return false;
-            amount = Number(inputAmount.replace(/\D/g, ''));
-            if (amount <= 0) {
-                window.showToast('⚠️ Số tiền không hợp lệ!', 2500);
-                return false;
-            }
-        }
-
-        try {
-            if (!window.TuitionCommandBoundary?.collectTuition) {
-                throw new Error('[V5U-2] TuitionCommandBoundary chưa sẵn sàng.');
-            }
-            const result = await window.TuitionCommandBoundary.collectTuition({
-                studentName: cleanName,
-                months: monthsList,
-                branch: branch || 'CS1',
-                amount,
-                source: 'finance.quickPay',
-            });
-            if (!result || result.cancelled || result.ok === false) return false;
-            if (result.alreadySettled === true && !result.txId) {
-                window.showToast('ℹ️ Khoản học phí này đã được ghi nhận là đã đóng. Không thu thêm tiền. Hãy dùng giao dịch đã lưu để In lại biên lai.', 6500);
-                return true;
-            }
-
-            const monthsLabel = result.paidMonths.map(m => {
-                const [y, mo] = String(m).split('-');
-                return `tháng ${parseInt(mo, 10)}/${y}`;
-            }).join(', ');
-            window.showToast(result.completedReplay
-                ? `ℹ️ Khoản học phí này đã được thu. Đang mở lại biên lai, không thu thêm tiền.`
-                : (result.paidMonths.length > 1
-                    ? `✅ ${cleanName} đóng học phí ${monthsLabel} (${result.paidMonths.length} tháng)!`
-                    : `✅ ${cleanName} đóng học phí ${monthsLabel}!`)
-            );
-
-            if (window.exportReceipt) {
-                try {
-                    const breakdown = [{ label: 'Học phí ' + result.monthLabel, amount: result.amount }];
-                    const receiptResult = await window.exportReceipt(
-                        cleanName,
-                        result.amount,
-                        'Học phí',
-                        result.txDate || getLocalToday(),
-                        result.paidMonths.join(','),
-                        result.branch,
-                        '',
-                        'BIÊN LAI THU TIỀN',
-                        breakdown
-                    );
-                    if (receiptResult && receiptResult.ok === false) {
-                        console.warn('[finance.js] Canonical payment preserved; receipt unavailable:', receiptResult.reason, receiptResult.error || '');
-                        window.showToast('✅ Đã thu học phí thành công. Biên lai chưa tạo được. Không thu lại khoản tiền này. Có thể xuất lại biên lai từ giao dịch đã lưu.', 6500);
-                    }
-                } catch (receiptError) {
-                    // Tuition write already succeeded. Receipt failure must not make
-                    // the user retry and accidentally create a second transaction.
-                    console.warn('[finance.js] Thu học phí thành công nhưng xuất biên lai lỗi:', receiptError);
-                    window.showToast('✅ Đã thu học phí. Biên lai chưa xuất được, có thể in lại trong tab Học phí.', 4500);
-                }
-            }
+        if(skipPrompt&&defaultFee&&Number(String(defaultFee).replace(/\D/g,''))>0)amount=Number(String(defaultFee).replace(/\D/g,''));
+        else{const d=defaultFee?parseInt(defaultFee,10).toLocaleString('vi-VN'):'0',input=prompt(`XÁC NHẬN THU HỌC PHÍ\nVõ sinh: ${cleanName}\nKỳ học phí: ${monthLabel}\n\nNhập số tiền thu (VNĐ):`,d);if(input===null)return false;amount=Number(input.replace(/\D/g,''));if(amount<=0){window.showToast('⚠️ Số tiền không hợp lệ!',2500);return false;}}
+        try{
+            if(!window.TuitionCommandBoundary?.collectTuition)throw new Error('[V5U-2] TuitionCommandBoundary chưa sẵn sàng.');
+            const result=await window.TuitionCommandBoundary.collectTuition({studentName:cleanName,months:monthsList,branch:branch||'CS1',amount,source:'finance.quickPay',expectedContext:intent.financialContext,intentProfileId:intent.profileId,tuitionFeeSnapshot:intent.tuitionFee});
+            if(!result||result.cancelled||result.ok===false){if(/context-stale|intent-/.test(String(result?.reason||'')))_staleTuitionToast();return false;}
+            if(result.alreadySettled===true&&!result.txId){window.showToast('ℹ️ Khoản học phí này đã được ghi nhận là đã đóng. Không thu thêm tiền. Hãy dùng giao dịch đã lưu để In lại biên lai.',6500);return true;}
+            if(result.primaryCommitted===true&&(result.postCommitContextCurrent===false||!_finCtxCurrent(intent.financialContext))){window.showToast('✅ Khoản thu đã được ghi thành công tại CLB trước. Phiên hiện tại đã thay đổi nên dữ liệu hiển thị/biên lai chưa được cập nhật tại màn hình này. Không thu lại khoản tiền này.',7500);return true;}
+            const monthsLabel=result.paidMonths.map(m=>{const[y,mo]=String(m).split('-');return`tháng ${parseInt(mo,10)}/${y}`}).join(', ');
+            window.showToast(result.completedReplay?'ℹ️ Khoản học phí này đã được thu. Đang mở lại biên lai, không thu thêm tiền.':(result.paidMonths.length>1?`✅ ${cleanName} đóng học phí ${monthsLabel} (${result.paidMonths.length} tháng)!`:`✅ ${cleanName} đóng học phí ${monthsLabel}!`));
+            if(window.exportReceipt){try{const breakdown=[{label:'Học phí '+result.monthLabel,amount:result.amount}],receiptResult=await window.exportReceipt(cleanName,result.amount,'Học phí',result.txDate||getLocalToday(),result.paidMonths.join(','),result.branch,'','BIÊN LAI THU TIỀN',breakdown);if(receiptResult&&receiptResult.ok===false){console.warn('[finance.js] Canonical payment preserved; receipt unavailable:',receiptResult.reason,receiptResult.error||'');window.showToast('✅ Đã thu học phí thành công. Biên lai chưa tạo được. Không thu lại khoản tiền này. Có thể xuất lại biên lai từ giao dịch đã lưu.',6500)}}catch(receiptError){console.warn('[finance.js] Thu học phí thành công nhưng xuất biên lai lỗi:',receiptError);window.showToast('✅ Đã thu học phí. Biên lai chưa xuất được, có thể in lại trong tab Học phí.',4500)}}
             return true;
-        } catch (error) {
-            console.error('[finance.js] quickPay lỗi:', error);
-            if (error?.partialWrite === true) {
-                window.showToast('⚠️ Giao dịch đã được ghi nhưng hồ sơ học phí chưa cập nhật. Hệ thống đã làm mới dữ liệu để đối chiếu.', 5000);
-            } else {
-                window.showToast('⚠️ Lỗi hệ thống, vui lòng thử lại!', 4000);
-            }
-            return false;
-        }
+        }catch(error){console.error('[finance.js] quickPay lỗi:',error);if(error?.code==='finance/write-context-stale'){_staleTuitionToast();return false;}if(error?.partialWrite===true)window.showToast('⚠️ Giao dịch đã được ghi nhưng hồ sơ học phí chưa cập nhật. Hệ thống đã làm mới dữ liệu để đối chiếu.',5000);else window.showToast('⚠️ Lỗi hệ thống, vui lòng thử lại!',4000);return false;}
     };
 
-    // 6. openQuickPayModal — Mở modal chọn số tháng thu
-
-    /**
-     * Hiển thị modal chọn số tháng học phí cần thu.
-     * Fallback về quickPay trực tiếp nếu modal không có trong DOM.
-     *
-     * @param {string} name          — Tên võ sinh
-     * @param {string} owedMonthsStr — Chuỗi tháng nợ (YYYY-MM, phẩy-separated)
-     * @param {string} branch        — Mã cơ sở
-     */
     window.openQuickPayModal = (name, owedMonthsStr, branch) => {
-        if (window.userRole === 'viewer') {
-            window.showToast('⚠️ Tài khoản khách không thể thu tiền!', 3000);
-            return;
-        }
-
-        const cleanName = name.replace(/\\'/g, "'");
-        const monthsList = owedMonthsStr
-            ? owedMonthsStr.split(',').map(s => s.trim()).filter(Boolean)
-            : [];
-        const profiles = _profiles();
-        const profile = profiles[cleanName] || {};
-        const feePerMonth = Number(profile.tuitionFee) || 0;
-        const totalMonths = monthsList.length;
-        const modal = document.getElementById('quickPayModal');
-        let submitInProgress = false;
-        const beginSubmit = () => {
-            if (submitInProgress) return false;
-            submitInProgress = true;
-            try {
-                modal?.setAttribute('aria-busy', 'true');
-                document.getElementById('qpm_options')?.querySelectorAll('button').forEach(button => { button.disabled = true; });
-            } catch (_) {}
-            return true;
-        };
-        const endSubmit = () => {
-            submitInProgress = false;
-            try { modal?.removeAttribute('aria-busy'); } catch (_) {}
-        };
-
-        // Không có modal trong DOM → fallback quickPay trực tiếp
-        if (!modal) {
-            window.quickPay(name, owedMonthsStr, branch, (feePerMonth * totalMonths).toString(), true);
-            return;
-        }
-
-        // Tiêu đề modal
-        document.getElementById('qpm_name').textContent =
-            `${cleanName} — ${totalMonths} tháng chưa nộp`;
-
-        // Xây dựng các nút chọn tháng
-        const optionsEl = document.getElementById('qpm_options');
-        optionsEl.innerHTML = '';
-
-        for (let i = 1; i <= totalMonths; i++) {
-            const months = monthsList.slice(0, i);
-            const amount = feePerMonth > 0 ? feePerMonth * i : 0;
-            const monthsStr = months.join(',');
-            const label = months
-                .map(m => { const p = m.split('-'); return `T${parseInt(p[1])}/${p[0]}`; })
-                .join(', ');
-            const isAll = (i === totalMonths);
-
-            const btn = document.createElement('button');
-            btn.setAttribute('type', 'button');
-            btn.style.cssText = [
-                'width:100%;padding:11px 14px;border-radius:11px;',
-                `border:2px solid ${isAll ? '#059669' : '#e2e8f0'};`,
-                `background:${isAll ? '#ecfdf5' : '#f8fafc'};`,
-                'cursor:pointer;display:flex;justify-content:space-between;',
-                'align-items:center;margin-bottom:6px;transition:opacity 0.15s;',
-            ].join('');
-            const amtText = amount > 0
-                ? amount.toLocaleString('vi-VN') + ' ₫'
-                : '(Tự nhập)';
-            btn.innerHTML =
-                `<span style="font-weight:700;color:#1e293b;font-size:0.88rem;">${i} tháng ` +
-                `<span style="font-weight:500;color:#64748b;font-size:0.78rem;">(${label})</span></span>` +
-                `<span style="font-weight:900;color:${isAll ? '#059669' : '#0033A0'};font-size:0.95rem;">${amtText}</span>`;
-            btn.onclick = async () => {
-                if (!beginSubmit()) return;
-                modal.style.display = 'none';
-                try {
-                    await window.quickPay(
-                        name, monthsStr, branch,
-                        amount > 0 ? String(amount) : String(feePerMonth * i),
-                        true
-                    );
-                } finally {
-                    endSubmit();
-                }
-            };
-            optionsEl.appendChild(btn);
-        }
-
-        // Nút nhập số tiền tùy chỉnh
-        const customBtn = document.createElement('button');
-        customBtn.setAttribute('type', 'button');
-        customBtn.style.cssText = [
-            'width:100%;padding:9px 14px;border-radius:11px;',
-            'border:1px dashed #cbd5e1;background:#fff;cursor:pointer;',
-            'color:#64748b;font-weight:600;font-size:0.82rem;margin-top:4px;',
-        ].join('');
-        customBtn.textContent = '✏️ Nhập số tiền tùy chỉnh';
-        customBtn.onclick = () => {
-            customBtn.style.display = 'none';
-            const row = document.createElement('div');
-            row.style.cssText = 'margin-top:8px;display:flex;gap:8px;align-items:center;';
-            const defaultVal = feePerMonth > 0
-                ? (feePerMonth * totalMonths).toLocaleString('vi-VN')
-                : '';
-            row.innerHTML =
-                `<input type="tel" id="qpm_custom_input" placeholder="Nhập số tiền (₫)..."` +
-                ` style="flex:1;padding:9px 12px;border:1.5px solid #0033A0;border-radius:9px;` +
-                `font-size:0.88rem;font-weight:700;outline:none;box-sizing:border-box;" value="${defaultVal}" />` +
-                `<button type="button" id="qpm_custom_ok" style="padding:9px 14px;background:#059669;` +
-                `color:#fff;border:none;border-radius:9px;font-weight:800;font-size:0.85rem;` +
-                `cursor:pointer;white-space:nowrap;">✓ Thu</button>`;
-            optionsEl.appendChild(row);
-
-            const inp = document.getElementById('qpm_custom_input');
-            if (inp) { inp.focus(); inp.select(); }
-
-            const doConfirm = async () => {
-                const raw = (inp ? inp.value : '').replace(/\D/g, '');
-                const v = Number(raw);
-                if (!v || v <= 0) { window.showToast('⚠️ Số tiền không hợp lệ!', 2500); return; }
-                if (!beginSubmit()) return;
-                modal.style.display = 'none';
-                try {
-                    await window.quickPay(name, owedMonthsStr, branch, String(v), true);
-                } finally {
-                    endSubmit();
-                }
-            };
-            const okBtn = document.getElementById('qpm_custom_ok');
-            if (okBtn) okBtn.onclick = doConfirm;
-            if (inp) inp.addEventListener('keypress', ev => { if (ev.key === 'Enter') doConfirm(); });
-        };
-        optionsEl.appendChild(customBtn);
-        modal.style.display = 'flex';
+        if(window.userRole==='viewer'){window.showToast('⚠️ Tài khoản khách không thể thu tiền!',3000);return;}
+        const cleanName=String(name||'').replace(/\\'/g,"'"),monthsList=owedMonthsStr?owedMonthsStr.split(',').map(s=>s.trim()).filter(Boolean):[],profile=_profiles()[cleanName]||{},feePerMonth=Number(profile.tuitionFee)||0,totalMonths=monthsList.length,modal=document.getElementById('quickPayModal');
+        const intent=_quickPayIntent(cleanName,branch,profile,monthsList);
+        if(!modal){window.showToast('⚠️ Bộ chọn kỳ học phí chưa sẵn sàng. Vui lòng tải lại màn hình trước khi thu.',5000);return false;}
+        let submitInProgress=false;const beginSubmit=()=>{if(submitInProgress)return false;submitInProgress=true;try{modal.setAttribute?.('aria-busy','true');document.getElementById('qpm_options')?.querySelectorAll?.('button').forEach(b=>{b.disabled=true})}catch(_){}return true},endSubmit=()=>{submitInProgress=false;try{modal.removeAttribute?.('aria-busy')}catch(_){}};
+        const fresh=()=>{const x=_quickPayIntentState(intent,cleanName);if(!x.ok)_staleTuitionToast();return x.ok};
+        document.getElementById('qpm_name').textContent=`${cleanName} — ${totalMonths} tháng chưa nộp`;const optionsEl=document.getElementById('qpm_options');optionsEl.innerHTML='';
+        for(let i=1;i<=totalMonths;i++){const months=monthsList.slice(0,i),amount=feePerMonth>0?feePerMonth*i:0,monthsStr=months.join(','),label=months.map(m=>{const p=m.split('-');return`T${parseInt(p[1])}/${p[0]}`}).join(', '),isAll=i===totalMonths,btn=document.createElement('button');btn.type='button';btn.style.cssText=`width:100%;padding:11px 14px;border-radius:11px;border:2px solid ${isAll?'#059669':'#e2e8f0'};background:${isAll?'#ecfdf5':'#f8fafc'};cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;`;btn.innerHTML=`<span style="font-weight:700;color:#1e293b;font-size:0.88rem;">${i} tháng <span style="font-weight:500;color:#64748b;font-size:0.78rem;">(${label})</span></span><span style="font-weight:900;color:${isAll?'#059669':'#0033A0'};font-size:0.95rem;">${amount>0?amount.toLocaleString('vi-VN')+' ₫':'(Tự nhập)'}</span>`;btn.onclick=async()=>{if(!fresh()||!beginSubmit())return;modal.style.display='none';try{await window.quickPay(cleanName,monthsStr,branch,String(amount||feePerMonth*i),true,intent)}finally{endSubmit()}};optionsEl.appendChild(btn)}
+        const customBtn=document.createElement('button');customBtn.type='button';customBtn.style.cssText='width:100%;padding:9px 14px;border-radius:11px;border:1px dashed #cbd5e1;background:#fff;cursor:pointer;color:#64748b;font-weight:600;font-size:0.82rem;margin-top:4px;';customBtn.textContent='✏️ Nhập số tiền tùy chỉnh';customBtn.onclick=()=>{customBtn.style.display='none';const row=document.createElement('div');row.style.cssText='margin-top:8px;display:grid;grid-template-columns:1fr;gap:7px;';const opts=monthsList.map((_,i)=>{const ms=monthsList.slice(0,i+1),label=ms.map(m=>{const p=m.split('-');return`T${parseInt(p[1])}/${p[0]}`}).join(', ');return`<option value="${i+1}">${i+1} tháng — ${label}</option>`}).join('');row.innerHTML=`<select id="qpm_custom_months" style="padding:9px 12px;border:1.5px solid #0033A0;border-radius:9px;font-weight:700;"><option value="">-- Chọn số tháng --</option>${opts}</select><div style="display:flex;gap:8px;"><input type="tel" id="qpm_custom_input" placeholder="Số tiền thực thu (₫)..." style="flex:1;padding:9px 12px;border:1.5px solid #0033A0;border-radius:9px;font-size:0.88rem;font-weight:700;outline:none;box-sizing:border-box;"/><button type="button" id="qpm_custom_ok" style="padding:9px 14px;background:#059669;color:#fff;border:none;border-radius:9px;font-weight:800;font-size:0.85rem;cursor:pointer;white-space:nowrap;">✓ Thu</button></div>`;optionsEl.appendChild(row);const inp=document.getElementById('qpm_custom_input'),sel=document.getElementById('qpm_custom_months');inp?.focus?.();sel?.addEventListener?.('change',()=>{const c=Number(sel.value)||0;if(c>0&&feePerMonth>0&&!String(inp.value||'').replace(/\D/g,''))inp.value=(feePerMonth*c).toLocaleString('vi-VN')});const doConfirm=async()=>{const count=Number(sel?.value)||0,v=Number(String(inp?.value||'').replace(/\D/g,''));if(!count){window.showToast('⚠️ Vui lòng chọn số tháng cần thu.',3000);return}if(!v||v<=0){window.showToast('⚠️ Số tiền không hợp lệ!',2500);return}if(!fresh()||!beginSubmit())return;modal.style.display='none';try{await window.quickPay(cleanName,monthsList.slice(0,count).join(','),branch,String(v),true,intent)}finally{endSubmit()}};document.getElementById('qpm_custom_ok').onclick=doConfirm;inp?.addEventListener?.('keypress',ev=>{if(ev.key==='Enter')doConfirm()})};optionsEl.appendChild(customBtn);modal.style.display='flex';return true;
     };
-
-    // 7. quickCollectExam — Thu lệ phí thi nhanh (tab Thi Đai)
 
     /** Thu lệ phí thi theo võ sinh và cơ sở. */
     window.quickCollectExam = async (name, branch) => {
-        if(window.quickCollectExam.__inFlight)return false;
-        window.quickCollectExam.__inFlight=true;
+        if (window.quickCollectExam.__inFlight) return false;
+        window.quickCollectExam.__inFlight = true;
         try {
-            name=String(name||'').trim();const profile=_profiles()[name],month=String(document.getElementById('filterMonth')?.value||getLocalToday().slice(0,7)).trim();
-            if(!_clubId()||!profile||!_vMonth(month)||typeof window.buildCanonicalExamPaymentLedger!=='function'
-                ||typeof window.mergeTransactionIntoRuntimeStore!=='function')return false;
-            const paid=()=>{const st=window.__store||{},rows=[...(Array.isArray(st.allTransactions)?st.allTransactions:[]),...(Array.isArray(st.transactions)?st.transactions:[])];
-                return !!window.buildCanonicalExamPaymentLedger({month,transactions:rows})?.byName?.[name];};
-            if(paid()){window.showToast('ℹ️ Võ sinh đã nộp lệ phí thi kỳ này.');return false;}
-            const displayName=window.ProfileCanonicalStore?.resolveDisplayName?.(name,profile)
-                ||String(profile.displayName||profile.name||profile.fullName||profile.studentName||name).trim();
-            const curBelt=profile.belt||'Đai trắng - Cấp 10',nextBelt=window.BELT_NEXT?.[curBelt]||curBelt;
-            const title=`Thi lên ${nextBelt}`,feeEl=document.getElementById('exam_fee_all_actual');
-            const suggested=window.getClubExamFee?.()||feeEl?.value||250000;
-            const input=prompt(`Nhập lệ phí thi của ${displayName}:`,suggested);
-            if(input==null||!/^[\d.,\s]+$/.test(String(input).trim()))return false;
-            const amount=Number(String(input).replace(/[.,\s]/g,''));
-            if(!displayName||!title||_positiveAmount(amount)==null||!_guardAllowed('exam.collect',{amount,profileId:name,month}))return false;
-            if(paid())return false;
-            const today=getLocalToday(),todayMonth=today.slice(0,7),date=month===todayMonth?today:(month<todayMonth?month+'-28':month+'-01');
-            await FinanceService.addTransaction({branch:branch||profile.branch||'CS1',type:'Lệ phí thi',
-                description:`${displayName} (${title})`,studentName:displayName,profileName:displayName,profileId:name,
-                amount,date,txMonth:month,examTitle:title,currentBeltAtPayment:curBelt,examTargetBelt:nextBelt,timestamp:Date.now()});
+            name = String(name || '').trim();
+            const profile = _profiles()[name];
+            const month = String(document.getElementById('filterMonth')?.value || getLocalToday().slice(0, 7)).trim();
+            if (!_clubId() || !profile || !_vMonth(month)
+                || typeof window.buildCanonicalExamPaymentLedger !== 'function'
+                || typeof window.mergeTransactionIntoRuntimeStore !== 'function') return false;
+
+            const paid = () => {
+                const st = window.__store || {};
+                const rows = [
+                    ...(Array.isArray(st.allTransactions) ? st.allTransactions : []),
+                    ...(Array.isArray(st.transactions) ? st.transactions : []),
+                ];
+                return !!window.buildCanonicalExamPaymentLedger({ month, transactions: rows })?.byName?.[name];
+            };
+            if (paid()) {
+                window.showToast('ℹ️ Võ sinh đã nộp lệ phí thi kỳ này.');
+                return false;
+            }
+
+            const displayName = window.ProfileCanonicalStore?.resolveDisplayName?.(name, profile)
+                || String(profile.displayName || profile.name || profile.fullName || profile.studentName || name).trim();
+            const curBelt = profile.belt || 'Đai trắng - Cấp 10';
+            const nextBelt = window.BELT_NEXT?.[curBelt] || curBelt;
+            const title = `Thi lên ${nextBelt}`;
+            const feeEl = document.getElementById('exam_fee_all_actual');
+            const suggested = window.getClubExamFee?.() || feeEl?.value || 250000;
+            const input = prompt(`Nhập lệ phí thi của ${displayName}:`, suggested);
+            if (input == null || !/^[\d.,\s]+$/.test(String(input).trim())) return false;
+
+            const amount = Number(String(input).replace(/[.,\s]/g, ''));
+            if (!displayName || !title || _positiveAmount(amount) == null
+                || !_guardAllowed('exam.collect', { amount, profileId: name, month })) return false;
+
+            const ctx = _finCtx();
+            if (!_finCtxCurrent(ctx)) return false;
+            const examDecision = await FinanceService.requireExamUnpaidForWrite({
+                profile,
+                studentName: name,
+                month,
+                reason: 'finance.quickCollectExam',
+            });
+            if (examDecision.status === 'PAID') {
+                window.showToast('ℹ️ Võ sinh đã nộp lệ phí thi kỳ này.');
+                return false;
+            }
+
+            const today = getLocalToday();
+            const todayMonth = today.slice(0, 7);
+            const date = month === todayMonth ? today : (month < todayMonth ? month + '-28' : month + '-01');
+            if (!_finCtxCurrent(ctx)) return false;
+
+            await FinanceService.addTransaction({
+                branch: branch || profile.branch || 'CS1',
+                type: 'Lệ phí thi',
+                description: `${displayName} (${title})`,
+                studentName: displayName,
+                profileName: displayName,
+                profileId: name,
+                amount,
+                date,
+                txMonth: month,
+                examTitle: title,
+                currentBeltAtPayment: curBelt,
+                examTargetBelt: nextBelt,
+                timestamp: Date.now(),
+            });
+            if (!_finCtxCurrent(ctx)) {
+                window.showToast('✅ Lệ phí thi đã ghi tại CLB trước. Phiên đã đổi; không thu lại.', 7000);
+                return true;
+            }
             window.showToast(`✅ Đã thu lệ phí thi cho ${displayName}!`);
             window.renderExamList?.();
             return true;
-        } catch(error) { console.error('[finance.js] quickCollectExam failed:',error);window.showToast('❌ Chưa lưu được lệ phí thi.');return false; }
-        finally { window.quickCollectExam.__inFlight=false; }
+        } catch (error) {
+            console.error('[finance.js] quickCollectExam failed:', error);
+            window.showToast('❌ Chưa lưu được lệ phí thi.');
+            return false;
+        } finally {
+            window.quickCollectExam.__inFlight = false;
+        }
     };
 
-    // 8. processCombo — Thu gộp học phí 2 võ sinh cùng gia đình
 
     /** Ghi hai khoản học phí hoặc xuất phiếu báo. */
     window.processCombo = async (action) => {
-        const rows=[0,1].map((order)=>({order,studentName:((document.getElementById('combo_name'+(order+1))||{}).value||'').trim(),amountRaw:(document.getElementById('combo_fee'+(order+1)+'_actual')||{}).value,month:(document.getElementById('combo_month'+(order+1))||{}).value||''}));
-        let intents;try{intents=_comboValidatedIntents(rows);}catch(error){window.showToast(error.message);return false;}
+        const rows=[0,1].map(order=>({order,studentName:((document.getElementById('combo_name'+(order+1))||{}).value||'').trim(),amountRaw:(document.getElementById('combo_fee'+(order+1)+'_actual')||{}).value,month:(document.getElementById('combo_month'+(order+1))||{}).value||''}));
+        let intents;try{intents=_comboValidatedIntents(rows)}catch(error){window.showToast(error.message);return false}
         const combinedNameStr=intents.map(x=>x.studentName).join(' & '),combinedMonthStr=Array.from(new Set(intents.map(x=>x.month))).join(', '),totalAmt=intents.reduce((sum,x)=>sum+x.amount,0);
-        if(action==='report'){try{if(typeof window.exportReceipt!=='function')throw new Error('Chức năng xuất phiếu chưa sẵn sàng.');const branches=intents.map(x=>String(x.profile?.branch||'').trim());if(branches.some(b=>!b))throw new Error('Chưa xác định cơ sở của từng võ sinh.');const receiptResult=await window.exportReceipt(combinedNameStr,totalAmt,'Học phí',getLocalToday(),combinedMonthStr,branches,'Gộp gia đình','PHIẾU BÁO HỌC PHÍ');if(!receiptResult?.ok)throw new Error('QR/phiếu báo chưa sẵn sàng.');const modal=document.getElementById('comboModal');if(modal)modal.style.display='none';return true;}catch(error){window.showToast('❌ Không tạo được phiếu gộp: '+error.message);return false;}}
-        if(action!=='pay')return false;
-        if(!_guardAllowed('tuition.familyCombo',{total:totalAmt,studentNames:intents.map(x=>x.studentName),months:intents.map(x=>x.month)})){window.showToast('⚠️ Không được phép thu gộp.');return false;}
-        if(window.processCombo.__atomicInFlight===true)return window.showToast('⏳ Giao dịch thu gộp đang được xử lý.');
-        window.processCombo.__atomicInFlight=true;
-        try{
-            const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLanes||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
-            const result=await laneOwner.runInProfileTuitionMutationLanes({profiles:intents.map(x=>({studentName:x.studentName,profileId:x.profileId})),reason:'finance.processCombo'},async()=>{
-                const latest=intents.map(x=>({...x,..._freshTuitionDecision(x.studentName,[x.month])}));
-                if(latest.some(x=>x.settlement?.paidMonths?.length))return{stale:true};
-                const today=getLocalToday(),todayM=today.substring(0,7),transactions=[],profileUpdates=[],audits=[];
-                for(const row of latest){const branch=String(row.profile.branch||'CS1'),date=row.month<todayM?row.month+'-01':today;transactions.push({data:{branch,type:'Học phí',description:row.studentName,amount:row.amount,date,txMonth:row.month,packageMonths:[row.month],timestamp:Date.now()+row.order},reason:'family-pay-student-'+(row.order+1)});profileUpdates.push({studentName:row.studentName,data:{paidUntil:row.paidUntil,paidMonths:FinanceService._arrayUnion(row.month)}});audits.push({studentId:row.studentName,amount:row.amount,date:today,type:'tuition',month:row.paidUntil,months:[row.month],by:window.currentUserEmail||'admin',timestamp:Date.now()+row.order});}
-                const atomic=await FinanceService.commitAtomicWritePlan({transactions,profileUpdates});latest.forEach(row=>laneOwner.commitLocalTuitionPaymentState({studentName:row.studentName,paidUntil:row.paidUntil,paidMonths:[row.month],reason:'finance.processCombo'}));return{ok:true,atomic,audits,receiptBranch:String(latest[0]?.profile?.branch||'CS1')};
-            });
-            if(result?.stale){window.showToast('⚠️ Dữ liệu học phí vừa thay đổi. Vui lòng xác nhận lại giao dịch gộp.');return false;}
-            window.showToast('✅ Đã ghi sổ gộp thành công!');window.exportReceipt?.(combinedNameStr,totalAmt,'Học phí',getLocalToday(),combinedMonthStr,result.receiptBranch,'Gộp gia đình','BIÊN LAI THU TIỀN');for(const audit of result.audits)_detachFeeAudit(audit);const modal=document.getElementById('comboModal');if(modal)modal.style.display='none';return true;
-        }catch(error){console.error('[finance.js] processCombo lỗi:',error);window.showToast(error?.code==='finance/atomic-plan-too-large'?'⚠️ Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.':'❌ Lỗi khi xử lý thu gộp!');return false;}finally{window.processCombo.__atomicInFlight=false;}
+        if(action==='report'){try{if(typeof window.exportReceipt!=='function')throw new Error('Chức năng xuất phiếu chưa sẵn sàng.');const branches=intents.map(x=>String(x.profile?.branch||'').trim());if(branches.some(b=>!b))throw new Error('Chưa xác định cơ sở của từng võ sinh.');const receiptResult=await window.exportReceipt(combinedNameStr,totalAmt,'Học phí',getLocalToday(),combinedMonthStr,branches,'Gộp gia đình','PHIẾU BÁO HỌC PHÍ');if(!receiptResult?.ok)throw new Error('QR/phiếu báo chưa sẵn sàng.');const modal=document.getElementById('comboModal');if(modal)modal.style.display='none';return true}catch(error){window.showToast('❌ Không tạo được phiếu gộp: '+error.message);return false}}
+        if(action!=='pay')return false;if(!_guardAllowed('tuition.familyCombo',{total:totalAmt,studentNames:intents.map(x=>x.studentName),months:intents.map(x=>x.month)})){window.showToast('⚠️ Không được phép thu gộp.');return false}if(window.processCombo.__atomicInFlight===true)return window.showToast('⏳ Giao dịch thu gộp đang được xử lý.');
+        const expectedContext=_finCtx();if(!_finCtxCurrent(expectedContext)){_staleTuitionToast();return false}window.processCombo.__atomicInFlight=true;
+        try{const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLanes||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+            const result=await laneOwner.runInProfileTuitionMutationLanes({profiles:intents.map(x=>({studentName:x.studentName,profileId:x.profileId})),reason:'finance.processCombo'},async()=>{if(!_finCtxCurrent(expectedContext))throw Object.assign(new Error('Financial write context stale'),{code:'finance/write-context-stale'});const decisions=await Promise.all(intents.map(x=>laneOwner.requireTuitionUnpaidForWrite({profile:_profiles()[x.studentName],studentName:x.studentName,targetMonths:[x.month],reason:'finance.processCombo',expectedContext})));if(!_finCtxCurrent(expectedContext))throw Object.assign(new Error('Financial write context stale'),{code:'finance/write-context-stale'});if(decisions.some(d=>d.status==='PAID'))return{stale:true};const latest=intents.map((x,i)=>{const profile=decisions[i].profile||_profiles()[x.studentName]||x.profile;return{...x,profile,settlement:decisions[i].settlement,paidUntil:decisions[i].paidUntil}}),today=getLocalToday(),todayM=today.substring(0,7),transactions=[],profileUpdates=[],audits=[];for(const row of latest){const branch=String(row.profile.branch||'CS1'),date=row.month<todayM?row.month+'-01':today;transactions.push({data:{branch,type:'Học phí',description:row.studentName,amount:row.amount,date,txMonth:row.month,packageMonths:[row.month],timestamp:Date.now()+row.order},reason:'family-pay-student-'+(row.order+1)});profileUpdates.push({studentName:row.studentName,data:{paidUntil:row.paidUntil,paidMonths:FinanceService._arrayUnion(row.month)}});audits.push({studentId:row.studentName,amount:row.amount,date:today,type:'tuition',month:row.paidUntil,months:[row.month],by:window.currentUserEmail||'admin',timestamp:Date.now()+row.order})}const atomic=await FinanceService.commitAtomicWritePlan({expectedContext,transactions,profileUpdates}),postCommitContextCurrent=_finCtxCurrent(expectedContext);if(postCommitContextCurrent)latest.forEach(row=>laneOwner.commitLocalTuitionPaymentState({studentName:row.studentName,paidUntil:row.paidUntil,paidMonths:[row.month],reason:'finance.processCombo'}));return{ok:true,atomic,audits,receiptBranch:String(latest[0]?.profile?.branch||'CS1'),postCommitContextCurrent,primaryCommitted:true}});
+            if(result?.stale){window.showToast('⚠️ Dữ liệu học phí vừa thay đổi. Vui lòng xác nhận lại giao dịch gộp.');return false}if(result?.primaryCommitted&&(result.postCommitContextCurrent===false||!_finCtxCurrent(expectedContext))){window.showToast('✅ Khoản thu gộp đã được ghi tại CLB trước. Phiên hiện tại đã thay đổi; không thu lại khoản tiền này.',7000);return true}window.showToast('✅ Đã ghi sổ gộp thành công!');window.exportReceipt?.(combinedNameStr,totalAmt,'Học phí',getLocalToday(),combinedMonthStr,result.receiptBranch,'Gộp gia đình','BIÊN LAI THU TIỀN');for(const audit of result.audits)_detachFeeAudit(audit);const modal=document.getElementById('comboModal');if(modal)modal.style.display='none';return true;
+        }catch(error){console.error('[finance.js] processCombo lỗi:',error);if(error?.code==='finance/write-context-stale'){_staleTuitionToast();return false}window.showToast(error?.code==='finance/atomic-plan-too-large'?'⚠️ Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.':'❌ Lỗi khi xử lý thu gộp!');return false}finally{window.processCombo.__atomicInFlight=false}
     };
 
     // Phase 4K-6S: openComboModal is registered once by registerFinanceUiGlobals().
 
+
     // ════════════════════════════════════════════════════════════════
     // 10. saveTx — Form thu tiền chính (transactionForm.onsubmit)
-
     /** Form thu tiền: Tuition updates only canonical paid fields. */
     const _txFormEl = document.getElementById('transactionForm');
     if (_txFormEl) _txFormEl.onsubmit = async (e) => {
         e.preventDefault();
-        if(_txFormEl.dataset.atomicSubmitInFlight==='1')return window.showToast('⏳ Khoản thu đang được lưu.');
-        const config=_config(),type=document.getElementById('type').value,name=document.getElementById('description').value.trim(),amount=Number(document.getElementById('amountActual').value),date=String(document.getElementById('date').value||'').trim();
-        const branch=config.branchCount===1?'Mặc định':document.getElementById('branch').value,isTuition=type==='Học phí'||type==='Học phí + Lệ phí thi',pkgEl=document.getElementById('tx_package'),rawPkg=String(pkgEl?.value||'').trim(),packageCount=Number(rawPkg),allowedPkgs=new Set(Array.from(pkgEl?.options||[]).map(o=>Number(o.value)).filter(n=>Number.isInteger(n)&&n>0));
-        const typeOptions=Array.from(document.getElementById('type')?.options||[]).map(o=>o.value);
-        const branchOptions=Array.from(document.getElementById('branch')?.options||[]).map(o=>o.value);
-        if(!['Học phí','Học phí + Lệ phí thi','Thu khác'].includes(type)||(typeOptions.length>0&&!typeOptions.includes(type))
-            ||!name||_positiveAmount(amount)==null||!_validDate(date)||!branch
-            ||(config.branchCount!==1&&branchOptions.length>0&&!branchOptions.includes(branch))){window.showToast('⚠️ Khoản thu không hợp lệ.');return false;}
-        if(isTuition&&(_positiveAmount(amount)==null||!_validDate(date)||!Number.isInteger(packageCount)||!allowedPkgs.has(packageCount))){window.showToast('⚠️ Dữ liệu học phí không hợp lệ.');return false;}
-        const txMonth=_validDate(date)?date.slice(0,7):'';if(isTuition&&!_vMonth(txMonth))return false;
-        const examAmount=type==='Học phí + Lệ phí thi'?Number(document.getElementById('tx_exam_amountActual').value):0;
-        const examTitle=type==='Học phí + Lệ phí thi'?String(document.getElementById('tx_exam_title').value||'').trim():'';
-        if(type==='Học phí + Lệ phí thi'&&(_positiveAmount(examAmount)==null||!examTitle)){window.showToast('⚠️ Lệ phí thi không hợp lệ.');return false;}
-        if(isTuition&&!_guardAllowed('tuition.transactionForm',{amount,studentName:name,month:txMonth,packageCount})){window.showToast('⚠️ Không được phép thu học phí.');return false;}
-        if(!isTuition&&!_guardAllowed('transaction.otherIncome',{amount,description:name,date})){window.showToast('⚠️ Không được phép ghi khoản thu.');return false;}
-        _txFormEl.dataset.atomicSubmitInFlight='1';
-        try{
-            const monthsToRecord=[];if(isTuition){let[y,m]=txMonth.split('-').map(Number);for(let i=0;i<packageCount;i++){let mm=m+i,yy=y;while(mm>12){mm-=12;yy++;}monthsToRecord.push(`${yy}-${String(mm).padStart(2,'0')}`);}}
-            let txData={branch,type,description:name,date,timestamp:Date.now(),amount:type==='Học phí + Lệ phí thi'?amount+examAmount:amount};
-            if(monthsToRecord.length){const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLane||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
-                const result=await laneOwner.runInProfileTuitionMutationLane({studentName:name,reason:'finance.transactionForm'},async()=>{const fresh=_freshTuitionDecision(name,monthsToRecord);if(fresh.settlement?.paidMonths?.length)return{alreadySettled:true,settlement:fresh.settlement};const finalTx={...txData,txMonth,packageMonths:monthsToRecord};if(type==='Học phí + Lệ phí thi')Object.assign(finalTx,{tuitionAmount:amount,examAmount,examTitle});const atomic=await FinanceService.commitAtomicWritePlan({transactions:[{data:finalTx,reason:'transaction-form-tuition'}],profileUpdates:[{studentName:name,data:{paidUntil:fresh.paidUntil,paidMonths:FinanceService._arrayUnion(...monthsToRecord)}}]});laneOwner.commitLocalTuitionPaymentState({studentName:name,paidUntil:fresh.paidUntil,paidMonths:monthsToRecord,reason:'finance.transactionForm'});return{ok:true,atomic,txData:finalTx,paidUntil:fresh.paidUntil};});
-                if(result?.alreadySettled){window.showToast('⚠️ Học phí tháng này đã được ghi nhận. Không tạo thêm khoản thu.');return false;}txData=result.txData;_detachFeeAudit({studentId:name,amount:txData.amount,date:getLocalToday(),type:'tuition',month:result.paidUntil,months:monthsToRecord,by:window.currentUserEmail||'admin',timestamp:Date.now()});
-            }else await FinanceService.addTransaction(txData);
-            e.target.reset();document.getElementById('date').value=getLocalToday();if(pkgEl)pkgEl.value='1';const disc=document.getElementById('tx_discount');if(disc)disc.checked=false;const pct=document.getElementById('tx_discount_pct');if(pct)pct.value='10';const sv=document.getElementById('tx_discount_saved');if(sv)sv.style.display='none';const ex=document.getElementById('tx_exam_amountActual');if(ex)ex.value='';window.toggleTxFormType?.();window.showToast('✅ Đã lưu khoản thu!');return true;
-        }catch(error){console.error('[finance.js] transactionForm atomic save failed:',error);window.showToast(error?.code==='finance/atomic-plan-too-large'?'⚠️ Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.':'❌ Không thể lưu khoản thu. Chưa có dữ liệu tài chính dở dang được ghi.');return false;}finally{delete _txFormEl.dataset.atomicSubmitInFlight;}
+        if (_txFormEl.dataset.atomicSubmitInFlight === '1') return window.showToast('⏳ Khoản thu đang được lưu.');
+
+        const config = _config();
+        const type = document.getElementById('type').value;
+        const name = document.getElementById('description').value.trim();
+        const amount = Number(document.getElementById('amountActual').value);
+        const date = String(document.getElementById('date').value || '').trim();
+        const branch = config.branchCount === 1 ? 'Mặc định' : document.getElementById('branch').value;
+        const isTuition = type === 'Học phí' || type === 'Học phí + Lệ phí thi';
+        const pkgEl = document.getElementById('tx_package');
+        const rawPkg = String(pkgEl?.value || '').trim();
+        const packageCount = Number(rawPkg);
+        const allowedPkgs = new Set(
+            Array.from(pkgEl?.options || []).map(o => Number(o.value)).filter(n => Number.isInteger(n) && n > 0)
+        );
+        const typeOptions = Array.from(document.getElementById('type')?.options || []).map(o => o.value);
+        const branchOptions = Array.from(document.getElementById('branch')?.options || []).map(o => o.value);
+
+        if (!['Học phí', 'Học phí + Lệ phí thi', 'Thu khác'].includes(type)
+            || (typeOptions.length > 0 && !typeOptions.includes(type))
+            || !name || _positiveAmount(amount) == null || !_validDate(date) || !branch
+            || (config.branchCount !== 1 && branchOptions.length > 0 && !branchOptions.includes(branch))) {
+            window.showToast('⚠️ Khoản thu không hợp lệ.');
+            return false;
+        }
+        if (isTuition && (_positiveAmount(amount) == null || !_validDate(date)
+            || !Number.isInteger(packageCount) || !allowedPkgs.has(packageCount))) {
+            window.showToast('⚠️ Dữ liệu học phí không hợp lệ.');
+            return false;
+        }
+
+        const txMonth = _validDate(date) ? date.slice(0, 7) : '';
+        if (isTuition && !_vMonth(txMonth)) return false;
+        const examAmount = type === 'Học phí + Lệ phí thi'
+            ? Number(document.getElementById('tx_exam_amountActual').value) : 0;
+        const examTitle = type === 'Học phí + Lệ phí thi'
+            ? String(document.getElementById('tx_exam_title').value || '').trim() : '';
+        if (type === 'Học phí + Lệ phí thi' && (_positiveAmount(examAmount) == null || !examTitle)) {
+            window.showToast('⚠️ Lệ phí thi không hợp lệ.');
+            return false;
+        }
+        if (isTuition && !_guardAllowed('tuition.transactionForm', {
+            amount,
+            studentName: name,
+            month: txMonth,
+            packageCount,
+        })) {
+            window.showToast('⚠️ Không được phép thu học phí.');
+            return false;
+        }
+        if (!isTuition && !_guardAllowed('transaction.otherIncome', { amount, description: name, date })) {
+            window.showToast('⚠️ Không được phép ghi khoản thu.');
+            return false;
+        }
+
+        const ctx = _finCtx();
+        if (!_finCtxCurrent(ctx)) {
+            if (isTuition) _staleTuitionToast();
+            return false;
+        }
+        _txFormEl.dataset.atomicSubmitInFlight = '1';
+        try {
+            const monthsToRecord = [];
+            if (isTuition) {
+                let [y, m] = txMonth.split('-').map(Number);
+                for (let i = 0; i < packageCount; i++) {
+                    let mm = m + i, yy = y;
+                    while (mm > 12) { mm -= 12; yy++; }
+                    monthsToRecord.push(`${yy}-${String(mm).padStart(2, '0')}`);
+                }
+            }
+
+            let txData = {
+                branch,
+                type,
+                description: name,
+                date,
+                timestamp: Date.now(),
+                amount: type === 'Học phí + Lệ phí thi' ? amount + examAmount : amount,
+            };
+            if (monthsToRecord.length) {
+                const laneOwner = window.TuitionCommandBoundary;
+                if (!laneOwner?.runInProfileTuitionMutationLane || !laneOwner?.commitLocalTuitionPaymentState)
+                    throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+
+                const result = await laneOwner.runInProfileTuitionMutationLane({
+                    studentName: name,
+                    reason: 'finance.transactionForm',
+                }, async () => {
+                    if (!_finCtxCurrent(ctx))
+                        throw Object.assign(new Error('Financial write context stale'), { code: 'finance/write-context-stale' });
+                    const tuitionDecision = await laneOwner.requireTuitionUnpaidForWrite({
+                        profile: _profiles()[name],
+                        studentName: name,
+                        targetMonths: monthsToRecord,
+                        reason: 'finance.transactionForm',
+                        expectedContext: ctx,
+                    });
+                    if (tuitionDecision.status === 'PAID')
+                        return { alreadySettled: true, settlement: tuitionDecision.settlement };
+                    if (!_finCtxCurrent(ctx))
+                        throw Object.assign(new Error('Financial write context stale'), { code: 'finance/write-context-stale' });
+
+                    const freshProfile = tuitionDecision.profile || _profiles()[name];
+                    if (type === 'Học phí + Lệ phí thi') {
+                        if (!_finCtxCurrent(ctx))
+                            throw Object.assign(new Error('Financial write context stale'), { code: 'finance/write-context-stale' });
+                        const examDecision = await FinanceService.requireExamUnpaidForWrite({
+                            profile: freshProfile,
+                            studentName: name,
+                            month: txMonth,
+                            reason: 'finance.transactionForm.mixedExam',
+                        });
+                        if (!_finCtxCurrent(ctx))
+                            throw Object.assign(new Error('Financial write context stale'), { code: 'finance/write-context-stale' });
+                        if (examDecision.status === 'PAID') {
+                            const er = new Error('Lệ phí thi kỳ này đã được ghi nhận. Vui lòng chọn giao dịch chỉ Học phí.');
+                            er.code = 'exam/already-paid';
+                            throw er;
+                        }
+                    }
+
+                    const paidUntil = tuitionDecision.paidUntil;
+                    const finalTx = { ...txData, txMonth, packageMonths: monthsToRecord };
+                    if (type === 'Học phí + Lệ phí thi') Object.assign(finalTx, { tuitionAmount: amount, examAmount, examTitle });
+                    const atomic = await FinanceService.commitAtomicWritePlan({
+                        expectedContext: ctx,
+                        transactions: [{ data: finalTx, reason: 'transaction-form-tuition' }],
+                        profileUpdates: [{
+                            studentName: name,
+                            data: { paidUntil, paidMonths: FinanceService._arrayUnion(...monthsToRecord) },
+                        }],
+                    });
+                    const postCommitContextCurrent = _finCtxCurrent(ctx);
+                    if (postCommitContextCurrent) laneOwner.commitLocalTuitionPaymentState({
+                        studentName: name,
+                        paidUntil,
+                        paidMonths: monthsToRecord,
+                        reason: 'finance.transactionForm',
+                    });
+                    return { ok: true, atomic, txData: finalTx, paidUntil, primaryCommitted: true, postCommitContextCurrent };
+                });
+
+                if (result?.alreadySettled) {
+                    window.showToast('⚠️ Học phí tháng này đã được ghi nhận. Không tạo thêm khoản thu.');
+                    return false;
+                }
+                txData = result.txData;
+                if (result?.primaryCommitted && (result.postCommitContextCurrent === false || !_finCtxCurrent(ctx))) {
+                    window.showToast('✅ Khoản thu đã được ghi tại CLB trước. Phiên hiện tại đã thay đổi; không thu lại khoản tiền này.', 7000);
+                    return true;
+                }
+                _detachFeeAudit({
+                    studentId: name,
+                    amount,
+                    date: getLocalToday(),
+                    type: 'tuition',
+                    month: result.paidUntil,
+                    months: monthsToRecord,
+                    by: window.currentUserEmail || 'admin',
+                    timestamp: Date.now(),
+                });
+            } else {
+                await FinanceService.addTransaction(txData);
+            }
+
+            if (!_finCtxCurrent(ctx)) return true;
+            e.target.reset();
+            document.getElementById('date').value = getLocalToday();
+            if (pkgEl) pkgEl.value = '1';
+            const disc = document.getElementById('tx_discount');
+            if (disc) disc.checked = false;
+            const pct = document.getElementById('tx_discount_pct');
+            if (pct) pct.value = '10';
+            const sv = document.getElementById('tx_discount_saved');
+            if (sv) sv.style.display = 'none';
+            const ex = document.getElementById('tx_exam_amountActual');
+            if (ex) ex.value = '';
+            window.toggleTxFormType?.();
+            window.showToast('✅ Đã lưu khoản thu!');
+            return true;
+        } catch (error) {
+            console.error('[finance.js] transactionForm atomic save failed:', error);
+            if (error?.code === 'finance/write-context-stale') {
+                _staleTuitionToast();
+                return false;
+            }
+            window.showToast(error?.code === 'finance/atomic-plan-too-large'
+                ? '⚠️ Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.'
+                : '❌ Không thể lưu khoản thu. Chưa có dữ liệu tài chính dở dang được ghi.');
+            return false;
+        } finally {
+            delete _txFormEl.dataset.atomicSubmitInFlight;
+        }
     };
 
-    // Expense forms use the Finance owner and keep the edit's original snapshot.
+    // Expense forms use the Finance owner and preserve the original UI context across awaits.
     window.saveEditExpense = async () => {
-        if(window.saveEditExpense.__inFlight)return false;
-        const original=window.__editingExpenseOriginal,id=String(document.getElementById('eexp_txId')?.value||'').trim();
-        const changes={branch:String(document.getElementById('eexp_branch')?.value||'').trim(),description:String(document.getElementById('eexp_desc')?.value||'').trim(),amount:Number(document.getElementById('eexp_amountActual')?.value),date:String(document.getElementById('eexp_date')?.value||'').trim()};
-        if(window.userRole==='viewer'||!original||id!==original.id||!['Chi phí','Chi phí kỳ thi'].includes(original.type)
-            ||!changes.branch||!changes.description||_positiveAmount(changes.amount)==null||!_validDate(changes.date)
-            ||(original.type==='Chi phí kỳ thi'&&changes.date.slice(0,7)!==original.txMonth)
-            ||!_guardAllowed('expense.edit',{txId:id,amount:changes.amount,date:changes.date})){window.showToast('⚠️ Chi phí không hợp lệ.');return false;}
-        window.saveEditExpense.__inFlight=true;
-        try{await FinanceService.updateExpenseTransaction(original,changes);window.__editingExpenseOriginal=null;document.getElementById('editExpModal').style.display='none';window.showToast('✅ Đã sửa chi phí thành công!');return true;}
-        catch(error){console.error('[finance.js] expense edit failed:',error);window.showToast('❌ Chưa lưu được chi phí.');return false;}
-        finally{window.saveEditExpense.__inFlight=false;}
+        if (window.saveEditExpense.__inFlight) return false;
+        const original = window.__editingExpenseOriginal;
+        const id = String(document.getElementById('eexp_txId')?.value || '').trim();
+        const changes = {
+            branch: String(document.getElementById('eexp_branch')?.value || '').trim(),
+            description: String(document.getElementById('eexp_desc')?.value || '').trim(),
+            amount: Number(document.getElementById('eexp_amountActual')?.value),
+            date: String(document.getElementById('eexp_date')?.value || '').trim(),
+        };
+        if (window.userRole === 'viewer' || !original || id !== original.id
+            || !['Chi phí', 'Chi phí kỳ thi'].includes(original.type)
+            || !changes.branch || !changes.description || _positiveAmount(changes.amount) == null
+            || !_validDate(changes.date)
+            || (original.type === 'Chi phí kỳ thi' && changes.date.slice(0, 7) !== original.txMonth)
+            || !_guardAllowed('expense.edit', { txId: id, amount: changes.amount, date: changes.date })) {
+            window.showToast('⚠️ Chi phí không hợp lệ.');
+            return false;
+        }
+        const ctx = _finCtx();
+        if (!_finCtxCurrent(ctx)) return false;
+        window.saveEditExpense.__inFlight = true;
+        try {
+            await FinanceService.updateExpenseTransaction(original, changes);
+            if (!_finCtxCurrent(ctx)) return true;
+            window.__editingExpenseOriginal = null;
+            document.getElementById('editExpModal').style.display = 'none';
+            window.showToast('✅ Đã sửa chi phí thành công!');
+            return true;
+        } catch (error) {
+            console.error('[finance.js] expense edit failed:', error);
+            window.showToast('❌ Chưa lưu được chi phí.');
+            return false;
+        } finally {
+            window.saveEditExpense.__inFlight = false;
+        }
     };
-    for(const [formId,exam] of [['expenseForm',false],['examExpenseForm',true]]){
-        const form=document.getElementById(formId);if(!form)continue;
-        form.onsubmit=async e=>{
-            e.preventDefault();if(form.dataset.atomicSubmitInFlight==='1')return false;
-            const today=getLocalToday(),month=exam?String(document.getElementById('filterMonth')?.value||today.slice(0,7)).trim():'';
-            const date=exam?(month===today.slice(0,7)?today:month<today.slice(0,7)?month+'-28':month+'-01'):String(document.getElementById('exp_date')?.value||'').trim();
-            const data={branch:exam?'Chung':_config().branchCount===1?'CS1':String(document.getElementById('exp_branch')?.value||'').trim(),type:exam?'Chi phí kỳ thi':'Chi phí',description:String(document.getElementById(exam?'ee_desc':'exp_desc')?.value||'').trim(),amount:Number(document.getElementById(exam?'ee_amountActual':'exp_amountActual')?.value),date,timestamp:Date.now()};
-            if(exam)data.txMonth=month;
-            if(window.userRole==='viewer'||!data.branch||!data.description||_positiveAmount(data.amount)==null||!_validDate(date)
-                ||(exam&&!_vMonth(month))||!_guardAllowed('expense.create',{amount:data.amount,date,description:data.description})){
-                window.showToast('⚠️ Chi phí không hợp lệ.');return false;
+
+    for (const [formId, exam] of [['expenseForm', false], ['examExpenseForm', true]]) {
+        const form = document.getElementById(formId);
+        if (!form) continue;
+        form.onsubmit = async e => {
+            e.preventDefault();
+            if (form.dataset.atomicSubmitInFlight === '1') return false;
+            const today = getLocalToday();
+            const month = exam ? String(document.getElementById('filterMonth')?.value || today.slice(0, 7)).trim() : '';
+            const date = exam
+                ? (month === today.slice(0, 7) ? today : (month < today.slice(0, 7) ? month + '-28' : month + '-01'))
+                : String(document.getElementById('exp_date')?.value || '').trim();
+            const data = {
+                branch: exam ? 'Chung' : (_config().branchCount === 1 ? 'CS1' : String(document.getElementById('exp_branch')?.value || '').trim()),
+                type: exam ? 'Chi phí kỳ thi' : 'Chi phí',
+                description: String(document.getElementById(exam ? 'ee_desc' : 'exp_desc')?.value || '').trim(),
+                amount: Number(document.getElementById(exam ? 'ee_amountActual' : 'exp_amountActual')?.value),
+                date,
+                timestamp: Date.now(),
+            };
+            if (exam) data.txMonth = month;
+
+            if (window.userRole === 'viewer' || !data.branch || !data.description
+                || _positiveAmount(data.amount) == null || !_validDate(date)
+                || (exam && !_vMonth(month))
+                || !_guardAllowed('expense.create', { amount: data.amount, date, description: data.description })) {
+                window.showToast('⚠️ Chi phí không hợp lệ.');
+                return false;
             }
-            form.dataset.atomicSubmitInFlight='1';
-            try{await FinanceService.createExpense(data);e.target.reset();if(!exam)document.getElementById('exp_date').value=getLocalToday();window.showToast(exam?'✅ Đã lưu chi phí kỳ thi!':'✅ Đã lưu khoản chi!');return true;}
-            catch(error){console.error('[finance.js] expense create failed:',error);window.showToast('❌ Chưa lưu được chi phí.');return false;}
-            finally{delete form.dataset.atomicSubmitInFlight;}
+            const ctx = _finCtx();
+            if (!_finCtxCurrent(ctx)) return false;
+            form.dataset.atomicSubmitInFlight = '1';
+            try {
+                await FinanceService.createExpense(data);
+                if (!_finCtxCurrent(ctx)) return true;
+                e.target.reset();
+                if (!exam) document.getElementById('exp_date').value = getLocalToday();
+                window.showToast(exam ? '✅ Đã lưu chi phí kỳ thi!' : '✅ Đã lưu khoản chi!');
+                return true;
+            } catch (error) {
+                console.error('[finance.js] expense create failed:', error);
+                window.showToast('❌ Chưa lưu được chi phí.');
+                return false;
+            } finally {
+                delete form.dataset.atomicSubmitInFlight;
+            }
         };
     }
 
-    // Phase 4K-6U: Report/Excel ownership moved to reportExportFacade.js.
     // finance.js no longer installs duplicate report implementations.
 
-    // DEBUG LOG — chỉ hiển thị khi chạy trên localhost / Replit
 
     if (
         window.location.hostname === 'localhost' ||
@@ -661,7 +705,6 @@ export function initFinance() {
     }
 }
 
-// initTransactionPagination — Phase 3.2A
 /**
  * Khởi tạo server-side cursor pagination cho tab Giao dịch (tx).
  *
@@ -686,7 +729,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import("../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(({ FinanceService }) => {
+        import("../services/finance.service.js?v=a9r18-fin-nontuition-r1-2b-20261103").then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

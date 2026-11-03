@@ -1,0 +1,35 @@
+{
+  "owner": "window.normalizeBranchCodeForStats(rawBranch, branchCount)",
+  "source": "js/modules/dashboard.js:initDashboard",
+  "branchCount": 3,
+  "configuredNames": {
+    "branchName1": "Huỳnh Tấn Phát",
+    "branchName2": "Sân vận động Quy Nhơn",
+    "branchName3": "Cơ sở 3"
+  },
+  "observed": {
+    "CS1": "CS1",
+    "CS01": "CS1",
+    "cs 1": "CS1",
+    "Mặc định": "CS1",
+    "default": "CS1",
+    "Cơ sở 1": "CS1",
+    "Huỳnh Tấn Phát": "CS1",
+    "CS2": "CS2",
+    "Sân vận động Quy Nhơn": "CS2",
+    "Cơ sở 3": "CS3"
+  },
+  "required": {
+    "CS1": "CS1",
+    "CS01": "CS1",
+    "cs 1": "CS1",
+    "Mặc định": "CS1",
+    "default": "CS1",
+    "Cơ sở 1": "CS1",
+    "Huỳnh Tấn Phát": "CS1",
+    "CS2": "CS2",
+    "Sân vận động Quy Nhơn": "CS2"
+  },
+  "allRequiredPass": true,
+  "newAliasAuthorityCreated": false
+}

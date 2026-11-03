@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "zipSHA256": "3d7429bb399c91c6200b3011b840dfee22350d62a68294d96c92809a83153ab5",
+  "runtimeSHA256": "0693e6a10ea6ab6239df8ee287d6ad4f004175074f60dc892a49157f64618296",
+  "appBytes": 702900,
+  "appSHA256": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "baselineCheckExit": 0,
+  "baselineCheckAllExit": 0
+}

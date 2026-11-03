@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { verifyNontuitionContextAppWaiver } from './check-finance-nontuition-context-tail-r1-2b-app-guard.mjs';
 /**
  * Phase 4K-6V — Attendance Canonical Ownership + Monthly Pagination
  * Static contract checks and isolated runtime simulations. No network calls.
@@ -8,6 +9,9 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { pathToFileURL } from 'node:url';
 import { verifyFinanceAppWaiver } from './check-r2r4-finance-app-guard.mjs';
+import { verifyFinanceWriteAppWaiver } from './check-fin-write-r1-1-app-guard.mjs';
+import { verifyTuitionSettlementAppWaiver } from './check-tuition-settlement-r1-1a-app-guard.mjs';
+import { verifyTuitionIntentContextAppWaiver } from './check-finance-tuition-intent-context-r1-2a-app-guard.mjs';
 
 const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
@@ -109,8 +113,8 @@ const appBytes = Buffer.byteLength(app);
 const appLines = app.split('\n').length;
 check(appBytes < baselineAppBytes, `app.js reduced from ${baselineAppBytes.toLocaleString()} to ${appBytes.toLocaleString()} bytes`);
 check(appLines < baselineAppLines, `app.js reduced from ${baselineAppLines.toLocaleString()} to ${appLines.toLocaleString()} lines`);
-const financeCorrectnessWaiver = appBytes > 700000 ? verifyFinanceAppWaiver(root) : null;
-check(appBytes <= 700000 || financeCorrectnessWaiver?.ok === true, `app.js meets 700,000 byte target or exact R2R4 approved correctness-hunk proof (${appBytes.toLocaleString()} bytes; waiver ${financeCorrectnessWaiver?.ok === true ? 'verified' : 'absent'})`);
+const financeCorrectnessWaiver = appBytes > 700000 ? (verifyNontuitionContextAppWaiver(root).ok ? verifyNontuitionContextAppWaiver(root) : (verifyTuitionIntentContextAppWaiver(root).ok ? verifyTuitionIntentContextAppWaiver(root) : (verifyFinanceAppWaiver(root).ok ? verifyFinanceAppWaiver(root) : (verifyFinanceWriteAppWaiver(root).ok ? verifyFinanceWriteAppWaiver(root) : verifyTuitionSettlementAppWaiver(root))))) : null;
+check(appBytes <= 700000 || financeCorrectnessWaiver?.ok === true, `app.js meets 700,000 byte target or exact approved correctness-hunk proof (${appBytes.toLocaleString()} bytes; waiver ${financeCorrectnessWaiver?.ok === true ? 'verified' : 'absent'})`);
 // V5U6E adds the transaction-coverage publisher and explicit recovery-probe guard
 // at the canonical listener/bootstrap owners. Keep a tight compatible ceiling
 // without treating those authorized safety guards as Attendance ownership drift.

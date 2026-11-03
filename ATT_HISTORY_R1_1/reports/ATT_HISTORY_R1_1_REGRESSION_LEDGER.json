@@ -1,0 +1,78 @@
+{
+  "runtimeSha256": "0693e6a10ea6ab6239df8ee287d6ad4f004175074f60dc892a49157f64618296",
+  "overall": "PASS_WITH_ENV_BLOCKED_AUX_BROWSER_CHECKS",
+  "primary": [
+    {
+      "gate": "npm run check",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "gate": "npm run check:all",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "gate": "check:attendance-history-r1",
+      "status": "PASS",
+      "assertions": "45/45"
+    },
+    {
+      "gate": "check:attendance-history-r1-1",
+      "status": "PASS",
+      "assertions": "31/31"
+    },
+    {
+      "gate": "root/public parity",
+      "status": "PASS",
+      "files": "129/129"
+    },
+    {
+      "gate": "attendance canonical ownership",
+      "status": "PASS",
+      "assertions": 141
+    },
+    {
+      "gate": "attendance daily single-refresh authority",
+      "status": "PASS",
+      "assertions": "73/73"
+    },
+    {
+      "gate": "attendance explicit shift authority",
+      "status": "PASS",
+      "assertions": "61/61"
+    },
+    {
+      "gate": "Coach read/branch security",
+      "status": "PASS"
+    },
+    {
+      "gate": "Attendance Excel SDK/export owner",
+      "status": "PASS",
+      "assertions": "23/23"
+    },
+    {
+      "gate": "report export lazy isolation",
+      "status": "PASS",
+      "assertions": 120
+    },
+    {
+      "gate": "UI mobile app shell",
+      "status": "PASS",
+      "assertions": "81/81"
+    }
+  ],
+  "environmentBlocked": [
+    {
+      "gate": "attendance-offline-canonical-sync-guard auxiliary browser dependency",
+      "status": "ENV_BLOCKED",
+      "detail": "13 contract/version/ACK/identity checks passed before harness reported missing Playwright/Chromium dependency; not counted as PASS."
+    },
+    {
+      "gate": "dedicated member-history browser width fixture 320/360/390/430/768",
+      "status": "ENV_BLOCKED",
+      "detail": "headless Chromium fixture timed out/unstable in environment; Node mobile shell gate remains 81/81 PASS."
+    }
+  ],
+  "expectedValuesEditedToForcePass": false
+}

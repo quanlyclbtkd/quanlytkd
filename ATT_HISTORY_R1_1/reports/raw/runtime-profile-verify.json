@@ -1,0 +1,40 @@
+{
+  "identity": {
+    "id": "V11R6_A9R18_USABILITY_PERF_R2R4_COMPAT_ATTENDANCE_HISTORY_R1_1",
+    "canonicalFileCount": 129,
+    "coachAssignmentContract": "server-verified-multi-branch-v1",
+    "inputZIP_SHA256": "191bc21b6b290d70bab6afb4d80c21e6dce6c948ac8283b91472de04868ed06d",
+    "manifest": "tools/v11r2/manifests/V11R6_A9R18_ATTENDANCE_HISTORY_R1_1.json",
+    "manifestSHA256": "89e5a1d6b3ac90735ec9d78d8ea713a4855202795a2d4588eb18ddd01ee7b1fd",
+    "runtimeSHA256": "0693e6a10ea6ab6239df8ee287d6ad4f004175074f60dc892a49157f64618296",
+    "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+    "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+    "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+    "cacheLineageToken": "att-history-r1-1-20261031",
+    "cacheLineageEdges": [
+      [
+        "index.html",
+        "js/main.js"
+      ],
+      [
+        "js/main.js",
+        "js/modules/attendance.js"
+      ],
+      [
+        "js/main.js",
+        "js/modules/reports/reportExportFacade.js"
+      ],
+      [
+        "js/modules/attendance.js",
+        "js/services/attendance.service.js"
+      ],
+      [
+        "js/modules/reports/reportExportFacade.js",
+        "js/modules/reports/attendanceExcelReport.js"
+      ]
+    ]
+  },
+  "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "coachAccess": true,
+  "scope": "source-integrity-and-sdk-compatibility-only"
+}

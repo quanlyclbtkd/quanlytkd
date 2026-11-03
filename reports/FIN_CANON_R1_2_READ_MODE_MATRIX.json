@@ -1,0 +1,21 @@
+{
+  "existingPersistedCanonicalMonth": {
+    "before": "canonical",
+    "after": "canonical",
+    "policyWrites": 0
+  },
+  "nonCanonicalParityGreenMonth": {
+    "before": "legacy",
+    "after": "legacy",
+    "historicalWrites": 0,
+    "settingsPromotion": 0
+  },
+  "transientReadMode": {
+    "found": false,
+    "reason": "getReadMode derives from canonicalTransactionReadMonths only; overlap/parity metrics do not change query mode"
+  },
+  "reload": {
+    "authoritySource": "persisted clubConfig/settings",
+    "autoLocalStorageIsAuthority": false
+  }
+}

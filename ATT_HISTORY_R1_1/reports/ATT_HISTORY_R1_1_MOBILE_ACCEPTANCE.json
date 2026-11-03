@@ -1,0 +1,14 @@
+{
+  "nodeMobileShell": "PASS 81/81",
+  "widthsRequested": [
+    320,
+    360,
+    390,
+    430,
+    768
+  ],
+  "dedicatedBrowserFixture": "ENV_BLOCKED",
+  "reason": "headless Chromium fixture timed out/unstable in this environment",
+  "productionOrPhysicalDeviceVerified": false,
+  "candidateClassImpact": "Remain TEST_CANDIDATE"
+}

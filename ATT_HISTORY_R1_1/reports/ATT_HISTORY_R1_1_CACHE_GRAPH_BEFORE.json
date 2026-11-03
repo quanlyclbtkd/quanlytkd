@@ -1,0 +1,41 @@
+{
+  "activeAttendanceChangedEdges": [
+    {
+      "from": "index.html",
+      "to": "js/main.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+    },
+    {
+      "from": "js/main.js",
+      "to": "js/modules/attendance.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+    },
+    {
+      "from": "js/main.js",
+      "to": "js/modules/reports/reportExportFacade.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+    },
+    {
+      "from": "js/modules/attendance.js",
+      "to": "js/services/attendance.service.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+    },
+    {
+      "from": "js/modules/reports/reportExportFacade.js",
+      "to": "js/modules/reports/attendanceExcelReport.js",
+      "before": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+      "after": "att-history-r1-1-20261031",
+      "token": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+    }
+  ],
+  "oldGlobalBuildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+  "finding": "Changed Attendance chain used the prior cache token."
+}

@@ -1,0 +1,32 @@
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -2028,8 +2028,11 @@
+         }
+         const historyOwner = _captureOfflineAttendanceSyncContext();
+         const historyAuthoritySnapshot = _memberHistoryAuthoritySnapshot();
+-        const historyBranchSelector = document.getElementById(overrideMonth ? 'att_month_branch' : 'att_branch');
+-        const requestedHistoryBranch = overrideBranch || historyBranchSelector?.value || '';
++        // R1.1: member-history branch scope belongs to the caller intent, not
++        // the current Daily/Monthly selector DOM. A normal Admin Daily click
++        // passes no branch and therefore means complete recorded history across
++        // historical branches. Explicit Monthly callers continue to pass branch.
++        const requestedHistoryBranch = typeof overrideBranch === 'string' ? overrideBranch.trim() : '';
+         const historyBranch = historyOwner.role === 'coach' ? historyOwner.coachBranch
+             : (requestedHistoryBranch && requestedHistoryBranch !== 'all' ? _canonicalAttendanceBranch(requestedHistoryBranch, '') : '');
+         const historyAuthorityScope = historyOwner.role === 'coach' ? 'current' : 'recorded';
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -2028,8 +2028,11 @@
+         }
+         const historyOwner = _captureOfflineAttendanceSyncContext();
+         const historyAuthoritySnapshot = _memberHistoryAuthoritySnapshot();
+-        const historyBranchSelector = document.getElementById(overrideMonth ? 'att_month_branch' : 'att_branch');
+-        const requestedHistoryBranch = overrideBranch || historyBranchSelector?.value || '';
++        // R1.1: member-history branch scope belongs to the caller intent, not
++        // the current Daily/Monthly selector DOM. A normal Admin Daily click
++        // passes no branch and therefore means complete recorded history across
++        // historical branches. Explicit Monthly callers continue to pass branch.
++        const requestedHistoryBranch = typeof overrideBranch === 'string' ? overrideBranch.trim() : '';
+         const historyBranch = historyOwner.role === 'coach' ? historyOwner.coachBranch
+             : (requestedHistoryBranch && requestedHistoryBranch !== 'all' ? _canonicalAttendanceBranch(requestedHistoryBranch, '') : '');
+         const historyAuthorityScope = historyOwner.role === 'coach' ? 'current' : 'recorded';

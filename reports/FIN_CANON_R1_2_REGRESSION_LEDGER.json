@@ -1,0 +1,17 @@
+{
+  "baseline": {
+    "npmRunCheck": 0,
+    "npmRunCheckAll": 0
+  },
+  "candidate": {
+    "npmRunCheck": 0,
+    "npmRunCheckAll": 0,
+    "finCanonR1_2": "25/25 PASS",
+    "firestoreReadAttribution": "34/34 PASS",
+    "dashboardSingleRead": "38/38 PASS",
+    "attendanceHistoryR1": "45/45 PASS",
+    "attendanceHistoryR1_1": "31/31 PASS"
+  },
+  "expectedValuesEditedMerelyToPass": false,
+  "legacyGateContractUpdate": "The former gate required automatic cutover, which is the reproduced defect. It now executes the R1.2 no-migration policy gate; this is a deliberate contract correction backed by production RED evidence."
+}
