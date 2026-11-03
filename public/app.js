@@ -6891,11 +6891,23 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 _showQRDetails('r_qr_amount_display', amount.toLocaleString('vi-VN') + ' ₫');
                 const _memoMonths=String(txMonth || '').includes(',') ? window.formatMonthCompact(txMonth) : formatMonth(txMonth);
                 let paymentContent = type === 'Học phí' && txMonth ? `${extraDesc ? removeVietnameseTonesForQR(extraDesc)+' ' : ''}Hoc Phi Thang ${_memoMonths}` : `${qrDesc}${txMonth ? ' '+_memoMonths : ''}`;
+                const _tuitionComponent = Array.isArray(breakdown)
+                    ? breakdown.find(row => row?.kind === 'tuition' && Array.isArray(row.packageMonths) && row.packageMonths.length > 0)
+                    : null;
+                const _tuitionMemoMonths = type === 'Học phí' && txMonth
+                    ? String(txMonth)
+                    : (_tuitionComponent ? _tuitionComponent.packageMonths.join(',') : '');
+                const _tuitionMemoLabel = _tuitionMemoMonths
+                    ? (String(_tuitionMemoMonths).includes(',') ? window.formatMonthCompact(_tuitionMemoMonths) : formatMonth(_tuitionMemoMonths))
+                    : '';
+                const _memoPaymentContent = _tuitionComponent && type !== 'Học phí'
+                    ? `Hoc Phi Thang ${_tuitionMemoLabel}`
+                    : paymentContent;
                 let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
                 _setStage('intent');
-                const _verboseMemo=_receiptPaymentMemo(qrName,paymentContent,type === 'Học phí' && txMonth ? 512 : 48);
-                const _canonicalMemo=type === 'Học phí' && txMonth
-                    ? _receiptTuitionMemo(qrName,txMonth,_verboseMemo) : _verboseMemo;
+                const _verboseMemo=_receiptPaymentMemo(qrName,_memoPaymentContent,_tuitionMemoMonths ? 512 : 48);
+                const _canonicalMemo=_tuitionMemoMonths
+                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo) : _verboseMemo;
                 const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only', _canonicalMemo);
                 _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_canonicalMemo,intentKind:_kind});
                 _expectedMemoLength=_intent.memo.length;_providerEndpoint='vietqr-qr-only-svg';
@@ -9535,7 +9547,7 @@ window.processMultiItem = async (action) => {
     // Chỉ thêm dòng "Học phí" vào breakdown khi học phí được bật và có giá trị
     const breakdown = [];
     if(isTuitionEnabled && tuition > 0) {
-        breakdown.push({ label: 'Học phí ' + (typeof window.formatTuitionMonthList === 'function' ? window.formatTuitionMonthList(packageMonths) : window.formatMonthCompact(packageMonths.join(','))), amount: tuition });
+        breakdown.push({ kind: 'tuition', label: 'Học phí ' + (typeof window.formatTuitionMonthList === 'function' ? window.formatTuitionMonthList(packageMonths) : window.formatMonthCompact(packageMonths.join(','))), amount: tuition, packageMonths: packageMonths.slice() });
     }
     if(hasExam && examFee > 0) breakdown.push({ label: examTitle, amount: examFee });
     if(hasInv && invTotal > 0) breakdown.push({ label: invCat + ' ' + invSize + ' x' + invQty, amount: invTotal });

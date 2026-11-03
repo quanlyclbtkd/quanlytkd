@@ -11,7 +11,7 @@ export function attachTransactionPageProjection({ store, pgState, pageSize: PAGE
     const fences = new Map();
     let evidenceEpoch = null;
     const seenEpochs = new WeakSet(), sourceVersions = new Map();
-    let statusFingerprint = '';
+    let statusFingerprint = '', visibleStatusFingerprint = '';
     pgState.projectionRevision = 0;
     pgState._visibleCount = PAGE_SIZE;
 
@@ -132,10 +132,14 @@ export function attachTransactionPageProjection({ store, pgState, pageSize: PAGE
             byId,
         };
         const nextFingerprint = JSON.stringify(status);
-        if (nextFingerprint === statusFingerprint) return false;
+        if (nextFingerprint === statusFingerprint) return { internalChanged: false, visibleChanged: false };
+        const visible = Object.fromEntries(status.needsReview.map(id => [id, { state: 'needs-review', sources: byId[id]?.sources || {} }]));
+        const nextVisibleFingerprint = JSON.stringify(visible);
+        const visibleChanged = nextVisibleFingerprint !== visibleStatusFingerprint;
         statusFingerprint = nextFingerprint;
+        visibleStatusFingerprint = nextVisibleFingerprint;
         pgState.reconciliation = status;
-        return true;
+        return { internalChanged: true, visibleChanged };
     }
 
     function _projectPage() {
@@ -186,8 +190,8 @@ export function attachTransactionPageProjection({ store, pgState, pageSize: PAGE
             fences.set(id, { row, witnesses: prior?.witnesses || new Map(), observed: prior?.observed || false, review: false, deleted: true });
             committedRemovals.add(id); liveRows.set(id, null); completeIds?.delete(id);
         });
-        const statusChanged = _updateStatus();
-        if (pgState.enabled && pgState._displayContextKey === getContext() && (!metadataOnly || pageChanged || statusChanged)) { _projectPage(); renderControls(); }
+        const statusChange = _updateStatus();
+        if (pgState.enabled && pgState._displayContextKey === getContext() && (!metadataOnly || pageChanged || statusChange.visibleChanged)) { _projectPage(); renderControls(); }
         return true;
     };
 

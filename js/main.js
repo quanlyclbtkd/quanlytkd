@@ -121,7 +121,7 @@ import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r
 import { initRender }                          from "./ui/render.js?v=a9r18-bstats-r1-1-20261031";
 // V5U6D compatibility marker: ./ui/render.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
-import { initFinanceIslands, registerFinanceLegacyGlobals }     from "./ui/render/renderFinance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { initFinanceIslands, registerFinanceLegacyGlobals }     from "./ui/render/renderFinance.js?v=a9r18-qr-memo-r1-2d-20261103";
 import { initStudentIslands, registerStudentsLegacyGlobals }     from "./ui/render/renderStudents.js?v=a9r18-bstats-r1-1-20261031";
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from "./ui/render/renderInventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
@@ -363,7 +363,7 @@ import {
     debugSearchPerformance,
 } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
 // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-fin-formtail-r1-2b1-20261103";
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-qr-memo-r1-2d-20261103";
 import { initInventory }                              from "./modules/inventory.js?v=a9r18-fin-nontuition-r1-2b-20261103";
 // Compatibility marker: from './modules/attendance.js'
 import { initAttendance }                             from "./modules/attendance.js?v=att-history-r1-1-20261031";
@@ -2488,7 +2488,7 @@ function _loadLegacyApp() {
     if (window.__appLoaded) return Promise.resolve();
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = "app.js?v=a9r18-fin-nontuition-r1-2b-20261103";
+        script.src = "app.js?v=a9r18-qr-memo-r1-2d-20261103";
         script.onload  = () => resolve();
         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
         document.head.appendChild(script);

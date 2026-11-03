@@ -9,7 +9,7 @@ import {
 } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
 import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
-import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
+import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=a9r18-qr-memo-r1-2d-20261103';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 function _classifyInvTxForFinance(tx, cats) {
@@ -909,7 +909,7 @@ export function initTransactionPagination() {
                     // renderTxIsland owns the same page presentation on later redraws.
                     try {
                         if (contextKey === _currentPaginationContextKey()) {
-                            const { renderTxIsland } = await import("../ui/render/renderFinance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025");
+                            const { renderTxIsland } = await import("../ui/render/renderFinance.js?v=a9r18-qr-memo-r1-2d-20261103");
                             if (pgState.isCurrentContext() && requestSeq === pgState._requestSeq && contextKey === _currentPaginationContextKey()) {
                                 renderTxIsland();
                             }
@@ -1023,7 +1023,7 @@ export function initTransactionPagination() {
                     }
 
                     try {
-                        const { renderTxIsland } = await import("../ui/render/renderFinance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025");
+                        const { renderTxIsland } = await import("../ui/render/renderFinance.js?v=a9r18-qr-memo-r1-2d-20261103");
                         if (pgState._displayContextKey === _currentPaginationContextKey()) renderTxIsland();
                     } catch (err) { console.warn('[pagination/transactions] Direct row render lỗi:', err); }
                     _injectControls();

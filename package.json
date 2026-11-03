@@ -326,7 +326,9 @@
     "check:finance-nontuition-context-tail-r1-2b": "node tools/check-finance-nontuition-context-tail-r1-2b.mjs",
     "check:finance-remaining-form-tail-r1-2b1": "node tools/check-finance-remaining-form-tail-r1-2b1.mjs",
     "check:admission-postcommit-context-r1-2c": "node tools/check-admission-postcommit-context-r1-2c.mjs",
-    "qa:admission-r1-2c-mobile": "node tools/r1_2c/admission-modal-mobile.browser.mjs"
+    "qa:admission-r1-2c-mobile": "node tools/r1_2c/admission-modal-mobile.browser.mjs",
+    "check:qr-multiitem-memo-r1-2d": "node tools/check-qr-multiitem-memo-r1-2d.mjs && node tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs",
+    "check:finance-reconciliation-ux-r1-2d": "node tools/check-finance-reconciliation-ux-r1-2d.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

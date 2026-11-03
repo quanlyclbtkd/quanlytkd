@@ -47,9 +47,7 @@ function _applyHtml(el, html) {
 /** Status comes from the existing page owner; never infer it from row presence. */
 function _appendReconciliationStatus(target, reconciliation) {
     const states = {
-        'awaiting-server': ['Đã ghi · chờ đối soát', 'Máy chủ đã xác nhận ghi; danh sách chưa xác nhận đủ nội dung giao dịch.'],
         'needs-review': ['Cần đối soát', 'Danh sách máy chủ đang thiếu hoặc có nội dung khác với giao dịch đã ghi. Chưa thể kết luận khoản thu bị xóa hay bị sửa.'],
-        'server-reconciled': ['Đã đối soát danh sách máy chủ', 'Nội dung đang hiển thị đã khớp các nguồn danh sách máy chủ tương ứng.'],
     };
     const sourceLabels = { byDate: 'Ngày thu', byTxMonth: 'Tháng học phí', byPackageMonth: 'Gói nhiều tháng', canonical: 'Tháng hạch toán' };
     const sourceStates = { matched: 'Đã khớp', cache: 'Chưa có xác nhận máy chủ', conflict: 'Nội dung khác', missing: 'Chưa thấy giao dịch', bounded: 'Danh sách chưa đầy đủ' };
@@ -60,7 +58,7 @@ function _appendReconciliationStatus(target, reconciliation) {
         const cell = row.querySelector('.tx-name-cell');
         if (!copy || !cell) continue;
         const details = document.createElement('details');
-        details.className = 'text-xs mt-1 ' + (status.state === 'server-reconciled' ? 'text-emerald-700' : 'text-amber-700');
+        details.className = 'text-xs mt-1 text-amber-700';
         details.dataset.reconciliation = status.state;
         const summary = document.createElement('summary'); summary.textContent = copy[0];
         const explanation = document.createElement('p'); explanation.textContent = copy[1];
@@ -69,9 +67,7 @@ function _appendReconciliationStatus(target, reconciliation) {
         for (const [source, value] of Object.entries(status.sources)) {
             const line = document.createElement('div'); line.textContent = (sourceLabels[source] || source) + ': ' + (sourceStates[value] || value); details.append(line);
         }
-        if (status.state !== 'server-reconciled') {
-            const instruction = document.createElement('p'); instruction.textContent = 'Không thu lại. Admin cần đối chiếu mã này với biên lai, giao dịch máy chủ và hồ sơ học phí; tải lại hoặc thấy dòng xuất hiện chưa phải là đối soát hoàn tất.'; details.append(instruction);
-        }
+        const instruction = document.createElement('p'); instruction.textContent = 'Không thu lại. Admin cần đối chiếu mã này với biên lai, giao dịch máy chủ và hồ sơ học phí; tải lại hoặc thấy dòng xuất hiện chưa phải là đối soát hoàn tất.'; details.append(instruction);
         cell.append(details);
     }
 }
