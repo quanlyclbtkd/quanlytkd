@@ -1,0 +1,317 @@
+{
+  "sourceRoot": "/workspace/scratch/036ee6a06c71/family_r1/candidate",
+  "passed": 53,
+  "failed": 0,
+  "observations": [
+    {
+      "id": "A01",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": "2026-11"
+    },
+    {
+      "id": "A02",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": "2026-09"
+    },
+    {
+      "id": "A03",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": "2026-11"
+    },
+    {
+      "id": "A04",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A05",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "STALE_TEXT",
+      "row": 1,
+      "name": "Bob",
+      "fee": "",
+      "display": "",
+      "month": ""
+    },
+    {
+      "id": "A01",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": "2026-11"
+    },
+    {
+      "id": "A02",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": "2026-09"
+    },
+    {
+      "id": "A03",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": "2026-11"
+    },
+    {
+      "id": "A04",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A05",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "STALE_TEXT",
+      "row": 2,
+      "name": "Bob",
+      "fee": "",
+      "display": "",
+      "month": ""
+    }
+  ],
+  "outcomes": [
+    {
+      "name": "A01 combo1 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A01 combo1 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A01 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A02 combo1 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A02 combo1 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A02 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A03 combo1 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A03 combo1 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A03 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo1 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo1 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo1 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo1 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo1 quit not selectable",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo1 quit canonical authority returns no months",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo1 inactive canonical authority returns no months",
+      "result": "PASS"
+    },
+    {
+      "name": "B01 combo1 editing name clears all dependent state",
+      "result": "PASS"
+    },
+    {
+      "name": "B02 combo1 zero fee never inherits previous fee",
+      "result": "PASS"
+    },
+    {
+      "name": "B03 combo1 new month and fee are profile-bound",
+      "result": "PASS"
+    },
+    {
+      "name": "B04 combo1 focus without edit preserves selected state",
+      "result": "PASS"
+    },
+    {
+      "name": "B05 combo1 missing fee clears previous state",
+      "result": "PASS"
+    },
+    {
+      "name": "B06 combo1 total refreshed",
+      "result": "PASS"
+    },
+    {
+      "name": "A01 combo2 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A01 combo2 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A01 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A02 combo2 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A02 combo2 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A02 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A03 combo2 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A03 combo2 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A03 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo2 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo2 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo2 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo2 delegates exact profile/horizon/reason",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo2 quit not selectable",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo2 quit canonical authority returns no months",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo2 inactive canonical authority returns no months",
+      "result": "PASS"
+    },
+    {
+      "name": "B01 combo2 editing name clears all dependent state",
+      "result": "PASS"
+    },
+    {
+      "name": "B02 combo2 zero fee never inherits previous fee",
+      "result": "PASS"
+    },
+    {
+      "name": "B03 combo2 new month and fee are profile-bound",
+      "result": "PASS"
+    },
+    {
+      "name": "B04 combo2 focus without edit preserves selected state",
+      "result": "PASS"
+    },
+    {
+      "name": "B05 combo2 missing fee clears previous state",
+      "result": "PASS"
+    },
+    {
+      "name": "B06 combo2 total refreshed",
+      "result": "PASS"
+    },
+    {
+      "name": "A09 invalid horizon \"\" uses local month",
+      "result": "PASS"
+    },
+    {
+      "name": "A09 invalid horizon \"2026-13\" uses local month",
+      "result": "PASS"
+    },
+    {
+      "name": "A09 invalid horizon \"not-a-month\" uses local month",
+      "result": "PASS"
+    },
+    {
+      "name": "A10 canonical result order is preserved without local sorting",
+      "result": "PASS"
+    },
+    {
+      "name": "A11 missing canonical helper does not invent a month",
+      "result": "PASS"
+    }
+  ]
+}

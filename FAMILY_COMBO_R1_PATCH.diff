@@ -1,0 +1,1007 @@
+--- a/app.js
++++ b/app.js
+@@ -4961,6 +4961,48 @@
+         if (/^phieu bao(?:\s|$)/.test(label)) return 'REPORT';
+         throw _receiptError('RECEIPT_KIND_UNKNOWN','request');
+     }
++    // Family REPORT presentation only: no persisted ID, financial evidence or writer.
++    function _receiptFamilyTuitionMemo(breakdown) {
++        const rows = Array.isArray(breakdown) ? breakdown : []; const failReference = () => { throw _receiptError('FAMILY_MEMO_REFERENCE_UNAVAILABLE','intent'); };
++        if (rows.length < 1 || rows.length > 2 || rows.some(row =>
++            row?.kind !== 'tuition' || row.familyParticipant !== true || !String(row.studentName || '').trim() ||
++            !String(row.participantKey || '').trim() || !Array.isArray(row.packageMonths) || row.packageMonths.length !== 1 ||
++            !/^20\d{2}-(0[1-9]|1[0-2])$/.test(row.packageMonths[0])
++        )) throw _receiptError('FAMILY_MEMO_METADATA_INVALID','intent');
++        const reference = (key, profile) => {
++            for (const field of ['memberId','memberID','studentId']) {
++                const id = String(profile[field] ?? '').trim();
++                if (/^[A-Za-z0-9]{1,8}$/.test(id)) return id;
++            }
++            // FNV-1a reference from the existing key; collision-checked in current memory.
++            let hash = 2166136261;
++            for (let i=0;i<key.length;i++) hash = Math.imul(hash ^ key.charCodeAt(i),16777619) >>> 0;
++            return 'M'+hash.toString(36).toUpperCase().padStart(7,'0');
++        };
++        const seenKeys = new Set(), seenRefs = new Map();
++        const refs = rows.map(row => {
++            const key = String(row.participantKey).trim(), ref = reference(key,row), folded = ref.toUpperCase();
++            if (seenKeys.has(key) || seenRefs.has(folded)) failReference();
++            seenKeys.add(key); seenRefs.set(folded,key); return ref;
++        });
++        // Finance _profileKey projection only; references never resolve student identity.
++        const profiles = window.__store?.profiles || allProfiles;
++        for (const [name,profile] of Object.entries(profiles || {})) {
++            const p = profile || {}, key = String(p.profileId||p.id||p.uid||p.memberId||p.memberID||p.studentId||name||'').trim();
++            const ref = reference(key,p).toUpperCase();
++            if (seenRefs.has(ref) && seenRefs.get(ref) !== key) failReference();
++        }
++        const months = [...new Set(rows.map(row => row.packageMonths[0]))].sort();
++        const groups = new Map();
++        months.forEach(month => {const year=month.slice(0,4);if(!groups.has(year))groups.set(year,[]);groups.get(year).push('T'+Number(month.slice(5)));});
++        const periods = [...groups].map(([year,list])=>list.join(' ')+' '+year).join(' ');
++        const prefix = 'GD '+refs.join(' ')+' HP ';
++        let memo = prefix+periods;
++        // Exact YYYYMM tokens retain sparse cross-year periods if spacing is tight.
++        if (memo.length > 40) memo = prefix+months.map(month=>month.replace('-','')).join(' ');
++        if (!/^[A-Za-z0-9 ]+$/.test(memo) || memo.length > 40) failReference();
++        return memo;
++    }
+     function _receiptPaymentMemo(name, detail, maxMemoLength = 48) {
+         // Preserve all reference digits. The provider removes punctuation; make
+         // that canonicalization explicit, visible on the receipt, and never truncate.
+@@ -5049,6 +5091,8 @@
+             QR_FETCH_NETWORK:'Không tải được mã QR. Kiểm tra kết nối rồi thử lại.',QR_FETCH_REDIRECT:'Địa chỉ ảnh QR chuyển hướng ngoài nguồn được phép. Đã chặn tải.',QR_FETCH_HTTP:'Nhà cung cấp QR trả lỗi. Thử tạo phiếu lại sau.',
+             QR_TIMEOUT:'Tải hoặc kiểm tra QR quá thời hạn. Thử lại khi mạng ổn định.',QR_EMV_MISMATCH:'Nội dung mã QR không khớp phiếu. Đã chặn tải ảnh.',QR_DECODE_FAILED:'Không đọc được mã QR trong ảnh. Đã chặn tải ảnh.',
+             QR_MIME:'Định dạng ảnh QR không được hỗ trợ.',QR_SVG_UNSAFE:'Ảnh QR có nội dung không được phép. Đã chặn tạo phiếu.',QR_BYTES_INVALID:'Dữ liệu ảnh QR không hợp lệ.',QR_MEDIA_INVALID:'Ảnh QR bị méo hoặc thiếu viền trắng.',CANVAS_EXPORT_FAILED:'Không xuất được ảnh phiếu. Kiểm tra trình duyệt.',PREVIEW_FAILED:'Không mở được ảnh xem trước.',MODAL_NOT_VISIBLE:'Khung xem phiếu chưa hiển thị.',DEBT_NOT_READY:'Báo nợ chưa có dữ liệu đã xác thực. Đợi tải xong rồi tạo lại.'};
++        if (reason === 'FAMILY_MEMO_REFERENCE_UNAVAILABLE') return `Chưa tạo được phiếu báo [${reason}]. Mã tham chiếu võ sinh bị trùng hoặc chưa thể xác định an toàn. Kiểm tra mã hội viên rồi tạo lại phiếu gia đình.`;
++        if (reason === 'FAMILY_MEMO_METADATA_INVALID') return `Chưa tạo được phiếu báo [${reason}]. Dữ liệu võ sinh hoặc kỳ học phí trong phiếu gia đình chưa hợp lệ. Mở lại phiếu gia đình.`;
+         return `Chưa tạo được phiếu báo [${reason}]. ${messages[reason] || 'Vui lòng mở lại phiếu và thử lại.'}`;
+     }
+     function getPaymentAccountForBranch(branchCode, settings) {
+@@ -6655,8 +6699,20 @@
+ 
+       const setupAutocomplete = (inputId, listId, mode) => {
+         const inp = document.getElementById(inputId); const list = document.getElementById(listId);
++        const familyRow = mode === 'combo1' ? '1' : mode === 'combo2' ? '2' : '';
++        let familySelectedName = '';
++        const clearFamilyRow = () => {
++            if (!familyRow) return;
++            ['combo_month'+familyRow, 'combo_fee'+familyRow+'_actual', 'combo_fee'+familyRow+'_display'].forEach(id => {
++                const field = document.getElementById(id); if (field) field.value = '';
++            });
++            window.updateComboTotal();
++        };
+         inp.onfocus = function() { if(this.value) this.oninput(); };
+         inp.oninput = function() {
++            if (familyRow && (!familySelectedName || this.value !== familySelectedName)) {
++                familySelectedName = ''; clearFamilyRow();
++            }
+             let val = this.value.toLowerCase().trim(); list.innerHTML = '';
+             if(!val || (mode === 'inv' && document.getElementById('inv_type').value !== 'Xuất bán')) { list.style.display = 'none'; return; }
+             let matches = Object.keys(allProfiles).filter(n => {
+@@ -6681,11 +6737,20 @@
+                             window.updateAmountByPackage();
+                         }
+                     } else if (mode === 'combo1' || mode === 'combo2') {
+-                        let feeId = mode === 'combo1' ? 'combo_fee1_actual' : 'combo_fee2_actual';
+-                        let dispId = mode === 'combo1' ? 'combo_fee1_display' : 'combo_fee2_display';
+-                        if(allProfiles[name].tuitionFee) {
+-                            document.getElementById(feeId).value = allProfiles[name].tuitionFee;
+-                            document.getElementById(dispId).value = parseInt(allProfiles[name].tuitionFee, 10).toLocaleString('vi-VN');
++                        clearFamilyRow();
++                        const profile = allProfiles[name];
++                        if (profile) {
++                            familySelectedName = name;
++                            const fee = Number(profile.tuitionFee);
++                            if (Number.isFinite(fee) && fee > 0) {
++                                document.getElementById('combo_fee'+familyRow+'_actual').value = fee;
++                                document.getElementById('combo_fee'+familyRow+'_display').value = fee.toLocaleString('vi-VN');
++                            }
++                            const selectedMonth = String(document.getElementById('filterMonth')?.value || '').trim();
++                            const horizonMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(selectedMonth) ? selectedMonth : getLocalToday().slice(0,7);
++                            const owedMonths = typeof window.getChargeableTuitionMonths === 'function'
++                                ? window.getChargeableTuitionMonths(profile, horizonMonth, { reason: 'family-combo-autofill' }) : [];
++                            document.getElementById('combo_month'+familyRow).value = Array.isArray(owedMonths) && owedMonths.length ? owedMonths[0] : '';
+                             window.updateComboTotal();
+                         }
+                     }
+@@ -6903,9 +6968,10 @@
+                     : paymentContent;
+                 let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
+                 _setStage('intent');
+-                const _verboseMemo=_receiptPaymentMemo(qrName,_memoPaymentContent,_tuitionMemoMonths ? 512 : 48);
+-                const _canonicalMemo=_tuitionMemoMonths
+-                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo) : _verboseMemo;
++                const _familyTuitionReport=Array.isArray(breakdown) && breakdown.some(row=>row?.familyParticipant === true);
++                const _verboseMemo=_familyTuitionReport ? '' : _receiptPaymentMemo(qrName,_memoPaymentContent,_tuitionMemoMonths ? 512 : 48);
++                const _canonicalMemo=_familyTuitionReport ? _receiptFamilyTuitionMemo(breakdown) : (_tuitionMemoMonths
++                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo) : _verboseMemo);
+                 const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only', _canonicalMemo);
+                 _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_canonicalMemo,intentKind:_kind});
+                 _expectedMemoLength=_intent.memo.length;_providerEndpoint='vietqr-qr-only-svg';
+--- a/index.html
++++ b/index.html
+@@ -586,7 +586,7 @@
+ <!-- V5U6C2 lineage only: app.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2; ./js/main.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2 -->
+ <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
+ <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
+-<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=fin-canon-r1-2-20261031"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=a9r18-reachable-dom-trust-r1-4b-20261105"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
++<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=fin-canon-r1-2-20261031"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=a9r18-family-combo-correctness-qr-r1-20261107"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
+ /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
+    app.js still loads via <script defer> so ALL business logic works regardless.
+    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=a9r18-finance-write-latency-r1-20261105"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=a9r18-family-combo-correctness-qr-r1-20261107"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+--- a/js/main.js
++++ b/js/main.js
+@@ -363,7 +363,7 @@
+     debugSearchPerformance,
+ } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
+ // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-finance-write-latency-r1-20261105";
++import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-family-combo-correctness-qr-r1-20261107";
+ import { initInventory }                              from "./modules/inventory.js?v=a9r18-reachable-dom-trust-r1-4b-20261105";
+ // Compatibility marker: from './modules/attendance.js'
+ import { initAttendance }                             from "./modules/attendance.js?v=att-history-r1-1-20261031";
+@@ -2488,7 +2488,7 @@
+     if (window.__appLoaded) return Promise.resolve();
+     return new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+-        script.src = "app.js?v=a9r18-qr-month-r1-2d1-20261103";
++        script.src = "app.js?v=a9r18-family-combo-correctness-qr-r1-20261107";
+         script.onload  = () => resolve();
+         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
+         document.head.appendChild(script);
+--- a/js/modules/finance.js
++++ b/js/modules/finance.js
+@@ -431,7 +431,9 @@
+         const rows=[0,1].map(order=>({order,studentName:((document.getElementById('combo_name'+(order+1))||{}).value||'').trim(),amountRaw:(document.getElementById('combo_fee'+(order+1)+'_actual')||{}).value,month:(document.getElementById('combo_month'+(order+1))||{}).value||''}));
+         let intents;try{intents=_comboValidatedIntents(rows)}catch(error){window.showToast(error.message);return false}
+         const combinedNameStr=intents.map(x=>x.studentName).join(' & '),combinedMonthStr=Array.from(new Set(intents.map(x=>x.month))).join(', '),totalAmt=intents.reduce((sum,x)=>sum+x.amount,0);
+-        if(action==='report'){try{if(typeof window.exportReceipt!=='function')throw new Error('Chức năng xuất phiếu chưa sẵn sàng.');const branches=intents.map(x=>String(x.profile?.branch||'').trim());if(branches.some(b=>!b))throw new Error('Chưa xác định cơ sở của từng võ sinh.');const receiptResult=await window.exportReceipt(combinedNameStr,totalAmt,'Học phí',getLocalToday(),combinedMonthStr,branches,'Gộp gia đình','PHIẾU BÁO HỌC PHÍ');if(!receiptResult?.ok)throw new Error('QR/phiếu báo chưa sẵn sàng.');const modal=document.getElementById('comboModal');if(modal)modal.style.display='none';return true}catch(error){window.showToast('❌ Không tạo được phiếu gộp: '+error.message);return false}}
++        if(action==='report'){try{if(typeof window.exportReceipt!=='function')throw new Error('Chức năng xuất phiếu chưa sẵn sàng.');const branches=intents.map(x=>String(x.profile?.branch||'').trim());if(branches.some(b=>!b))throw new Error('Chưa xác định cơ sở của từng võ sinh.');
++            const breakdown=intents.map(x=>({kind:'tuition',familyParticipant:true,studentName:x.studentName,participantKey:x.profileId,memberId:x.profile?.memberId,memberID:x.profile?.memberID,studentId:x.profile?.studentId,packageMonths:[x.month],amount:x.amount,label:`Học phí ${x.studentName} — T${Number(x.month.slice(5))}/${x.month.slice(0,4)}`}));
++            const receiptResult=await window.exportReceipt(combinedNameStr,totalAmt,'Học phí',getLocalToday(),combinedMonthStr,branches,'Gộp gia đình','PHIẾU BÁO HỌC PHÍ',breakdown);if(!receiptResult?.ok)throw new Error('QR/phiếu báo chưa sẵn sàng.');const modal=document.getElementById('comboModal');if(modal)modal.style.display='none';return true}catch(error){window.showToast('❌ Không tạo được phiếu gộp: '+error.message);return false}}
+         if(action!=='pay')return false;if(!_guardAllowed('tuition.familyCombo',{total:totalAmt,studentNames:intents.map(x=>x.studentName),months:intents.map(x=>x.month)})){window.showToast('⚠️ Không được phép thu gộp.');return false}if(window.processCombo.__atomicInFlight===true)return window.showToast('⏳ Giao dịch thu gộp đang được xử lý.');
+         const expectedContext=_finCtx();if(!_finCtxCurrent(expectedContext)){_staleTuitionToast();return false}window.processCombo.__atomicInFlight=true;
+         try{const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLanes||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+--- a/public/app.js
++++ b/public/app.js
+@@ -4961,6 +4961,48 @@
+         if (/^phieu bao(?:\s|$)/.test(label)) return 'REPORT';
+         throw _receiptError('RECEIPT_KIND_UNKNOWN','request');
+     }
++    // Family REPORT presentation only: no persisted ID, financial evidence or writer.
++    function _receiptFamilyTuitionMemo(breakdown) {
++        const rows = Array.isArray(breakdown) ? breakdown : []; const failReference = () => { throw _receiptError('FAMILY_MEMO_REFERENCE_UNAVAILABLE','intent'); };
++        if (rows.length < 1 || rows.length > 2 || rows.some(row =>
++            row?.kind !== 'tuition' || row.familyParticipant !== true || !String(row.studentName || '').trim() ||
++            !String(row.participantKey || '').trim() || !Array.isArray(row.packageMonths) || row.packageMonths.length !== 1 ||
++            !/^20\d{2}-(0[1-9]|1[0-2])$/.test(row.packageMonths[0])
++        )) throw _receiptError('FAMILY_MEMO_METADATA_INVALID','intent');
++        const reference = (key, profile) => {
++            for (const field of ['memberId','memberID','studentId']) {
++                const id = String(profile[field] ?? '').trim();
++                if (/^[A-Za-z0-9]{1,8}$/.test(id)) return id;
++            }
++            // FNV-1a reference from the existing key; collision-checked in current memory.
++            let hash = 2166136261;
++            for (let i=0;i<key.length;i++) hash = Math.imul(hash ^ key.charCodeAt(i),16777619) >>> 0;
++            return 'M'+hash.toString(36).toUpperCase().padStart(7,'0');
++        };
++        const seenKeys = new Set(), seenRefs = new Map();
++        const refs = rows.map(row => {
++            const key = String(row.participantKey).trim(), ref = reference(key,row), folded = ref.toUpperCase();
++            if (seenKeys.has(key) || seenRefs.has(folded)) failReference();
++            seenKeys.add(key); seenRefs.set(folded,key); return ref;
++        });
++        // Finance _profileKey projection only; references never resolve student identity.
++        const profiles = window.__store?.profiles || allProfiles;
++        for (const [name,profile] of Object.entries(profiles || {})) {
++            const p = profile || {}, key = String(p.profileId||p.id||p.uid||p.memberId||p.memberID||p.studentId||name||'').trim();
++            const ref = reference(key,p).toUpperCase();
++            if (seenRefs.has(ref) && seenRefs.get(ref) !== key) failReference();
++        }
++        const months = [...new Set(rows.map(row => row.packageMonths[0]))].sort();
++        const groups = new Map();
++        months.forEach(month => {const year=month.slice(0,4);if(!groups.has(year))groups.set(year,[]);groups.get(year).push('T'+Number(month.slice(5)));});
++        const periods = [...groups].map(([year,list])=>list.join(' ')+' '+year).join(' ');
++        const prefix = 'GD '+refs.join(' ')+' HP ';
++        let memo = prefix+periods;
++        // Exact YYYYMM tokens retain sparse cross-year periods if spacing is tight.
++        if (memo.length > 40) memo = prefix+months.map(month=>month.replace('-','')).join(' ');
++        if (!/^[A-Za-z0-9 ]+$/.test(memo) || memo.length > 40) failReference();
++        return memo;
++    }
+     function _receiptPaymentMemo(name, detail, maxMemoLength = 48) {
+         // Preserve all reference digits. The provider removes punctuation; make
+         // that canonicalization explicit, visible on the receipt, and never truncate.
+@@ -5049,6 +5091,8 @@
+             QR_FETCH_NETWORK:'Không tải được mã QR. Kiểm tra kết nối rồi thử lại.',QR_FETCH_REDIRECT:'Địa chỉ ảnh QR chuyển hướng ngoài nguồn được phép. Đã chặn tải.',QR_FETCH_HTTP:'Nhà cung cấp QR trả lỗi. Thử tạo phiếu lại sau.',
+             QR_TIMEOUT:'Tải hoặc kiểm tra QR quá thời hạn. Thử lại khi mạng ổn định.',QR_EMV_MISMATCH:'Nội dung mã QR không khớp phiếu. Đã chặn tải ảnh.',QR_DECODE_FAILED:'Không đọc được mã QR trong ảnh. Đã chặn tải ảnh.',
+             QR_MIME:'Định dạng ảnh QR không được hỗ trợ.',QR_SVG_UNSAFE:'Ảnh QR có nội dung không được phép. Đã chặn tạo phiếu.',QR_BYTES_INVALID:'Dữ liệu ảnh QR không hợp lệ.',QR_MEDIA_INVALID:'Ảnh QR bị méo hoặc thiếu viền trắng.',CANVAS_EXPORT_FAILED:'Không xuất được ảnh phiếu. Kiểm tra trình duyệt.',PREVIEW_FAILED:'Không mở được ảnh xem trước.',MODAL_NOT_VISIBLE:'Khung xem phiếu chưa hiển thị.',DEBT_NOT_READY:'Báo nợ chưa có dữ liệu đã xác thực. Đợi tải xong rồi tạo lại.'};
++        if (reason === 'FAMILY_MEMO_REFERENCE_UNAVAILABLE') return `Chưa tạo được phiếu báo [${reason}]. Mã tham chiếu võ sinh bị trùng hoặc chưa thể xác định an toàn. Kiểm tra mã hội viên rồi tạo lại phiếu gia đình.`;
++        if (reason === 'FAMILY_MEMO_METADATA_INVALID') return `Chưa tạo được phiếu báo [${reason}]. Dữ liệu võ sinh hoặc kỳ học phí trong phiếu gia đình chưa hợp lệ. Mở lại phiếu gia đình.`;
+         return `Chưa tạo được phiếu báo [${reason}]. ${messages[reason] || 'Vui lòng mở lại phiếu và thử lại.'}`;
+     }
+     function getPaymentAccountForBranch(branchCode, settings) {
+@@ -6655,8 +6699,20 @@
+ 
+       const setupAutocomplete = (inputId, listId, mode) => {
+         const inp = document.getElementById(inputId); const list = document.getElementById(listId);
++        const familyRow = mode === 'combo1' ? '1' : mode === 'combo2' ? '2' : '';
++        let familySelectedName = '';
++        const clearFamilyRow = () => {
++            if (!familyRow) return;
++            ['combo_month'+familyRow, 'combo_fee'+familyRow+'_actual', 'combo_fee'+familyRow+'_display'].forEach(id => {
++                const field = document.getElementById(id); if (field) field.value = '';
++            });
++            window.updateComboTotal();
++        };
+         inp.onfocus = function() { if(this.value) this.oninput(); };
+         inp.oninput = function() {
++            if (familyRow && (!familySelectedName || this.value !== familySelectedName)) {
++                familySelectedName = ''; clearFamilyRow();
++            }
+             let val = this.value.toLowerCase().trim(); list.innerHTML = '';
+             if(!val || (mode === 'inv' && document.getElementById('inv_type').value !== 'Xuất bán')) { list.style.display = 'none'; return; }
+             let matches = Object.keys(allProfiles).filter(n => {
+@@ -6681,11 +6737,20 @@
+                             window.updateAmountByPackage();
+                         }
+                     } else if (mode === 'combo1' || mode === 'combo2') {
+-                        let feeId = mode === 'combo1' ? 'combo_fee1_actual' : 'combo_fee2_actual';
+-                        let dispId = mode === 'combo1' ? 'combo_fee1_display' : 'combo_fee2_display';
+-                        if(allProfiles[name].tuitionFee) {
+-                            document.getElementById(feeId).value = allProfiles[name].tuitionFee;
+-                            document.getElementById(dispId).value = parseInt(allProfiles[name].tuitionFee, 10).toLocaleString('vi-VN');
++                        clearFamilyRow();
++                        const profile = allProfiles[name];
++                        if (profile) {
++                            familySelectedName = name;
++                            const fee = Number(profile.tuitionFee);
++                            if (Number.isFinite(fee) && fee > 0) {
++                                document.getElementById('combo_fee'+familyRow+'_actual').value = fee;
++                                document.getElementById('combo_fee'+familyRow+'_display').value = fee.toLocaleString('vi-VN');
++                            }
++                            const selectedMonth = String(document.getElementById('filterMonth')?.value || '').trim();
++                            const horizonMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(selectedMonth) ? selectedMonth : getLocalToday().slice(0,7);
++                            const owedMonths = typeof window.getChargeableTuitionMonths === 'function'
++                                ? window.getChargeableTuitionMonths(profile, horizonMonth, { reason: 'family-combo-autofill' }) : [];
++                            document.getElementById('combo_month'+familyRow).value = Array.isArray(owedMonths) && owedMonths.length ? owedMonths[0] : '';
+                             window.updateComboTotal();
+                         }
+                     }
+@@ -6903,9 +6968,10 @@
+                     : paymentContent;
+                 let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
+                 _setStage('intent');
+-                const _verboseMemo=_receiptPaymentMemo(qrName,_memoPaymentContent,_tuitionMemoMonths ? 512 : 48);
+-                const _canonicalMemo=_tuitionMemoMonths
+-                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo) : _verboseMemo;
++                const _familyTuitionReport=Array.isArray(breakdown) && breakdown.some(row=>row?.familyParticipant === true);
++                const _verboseMemo=_familyTuitionReport ? '' : _receiptPaymentMemo(qrName,_memoPaymentContent,_tuitionMemoMonths ? 512 : 48);
++                const _canonicalMemo=_familyTuitionReport ? _receiptFamilyTuitionMemo(breakdown) : (_tuitionMemoMonths
++                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo) : _verboseMemo);
+                 const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only', _canonicalMemo);
+                 _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_canonicalMemo,intentKind:_kind});
+                 _expectedMemoLength=_intent.memo.length;_providerEndpoint='vietqr-qr-only-svg';
+--- a/public/index.html
++++ b/public/index.html
+@@ -586,7 +586,7 @@
+ <!-- V5U6C2 lineage only: app.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2; ./js/main.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2 -->
+ <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
+ <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
+-<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=fin-canon-r1-2-20261031"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=a9r18-reachable-dom-trust-r1-4b-20261105"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
++<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=fin-canon-r1-2-20261031"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=a9r18-family-combo-correctness-qr-r1-20261107"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
+ /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
+    app.js still loads via <script defer> so ALL business logic works regardless.
+    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=a9r18-finance-write-latency-r1-20261105"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=a9r18-family-combo-correctness-qr-r1-20261107"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+--- a/public/js/main.js
++++ b/public/js/main.js
+@@ -363,7 +363,7 @@
+     debugSearchPerformance,
+ } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
+ // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-finance-write-latency-r1-20261105";
++import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-family-combo-correctness-qr-r1-20261107";
+ import { initInventory }                              from "./modules/inventory.js?v=a9r18-reachable-dom-trust-r1-4b-20261105";
+ // Compatibility marker: from './modules/attendance.js'
+ import { initAttendance }                             from "./modules/attendance.js?v=att-history-r1-1-20261031";
+@@ -2488,7 +2488,7 @@
+     if (window.__appLoaded) return Promise.resolve();
+     return new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+-        script.src = "app.js?v=a9r18-qr-month-r1-2d1-20261103";
++        script.src = "app.js?v=a9r18-family-combo-correctness-qr-r1-20261107";
+         script.onload  = () => resolve();
+         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
+         document.head.appendChild(script);
+--- a/public/js/modules/finance.js
++++ b/public/js/modules/finance.js
+@@ -431,7 +431,9 @@
+         const rows=[0,1].map(order=>({order,studentName:((document.getElementById('combo_name'+(order+1))||{}).value||'').trim(),amountRaw:(document.getElementById('combo_fee'+(order+1)+'_actual')||{}).value,month:(document.getElementById('combo_month'+(order+1))||{}).value||''}));
+         let intents;try{intents=_comboValidatedIntents(rows)}catch(error){window.showToast(error.message);return false}
+         const combinedNameStr=intents.map(x=>x.studentName).join(' & '),combinedMonthStr=Array.from(new Set(intents.map(x=>x.month))).join(', '),totalAmt=intents.reduce((sum,x)=>sum+x.amount,0);
+-        if(action==='report'){try{if(typeof window.exportReceipt!=='function')throw new Error('Chức năng xuất phiếu chưa sẵn sàng.');const branches=intents.map(x=>String(x.profile?.branch||'').trim());if(branches.some(b=>!b))throw new Error('Chưa xác định cơ sở của từng võ sinh.');const receiptResult=await window.exportReceipt(combinedNameStr,totalAmt,'Học phí',getLocalToday(),combinedMonthStr,branches,'Gộp gia đình','PHIẾU BÁO HỌC PHÍ');if(!receiptResult?.ok)throw new Error('QR/phiếu báo chưa sẵn sàng.');const modal=document.getElementById('comboModal');if(modal)modal.style.display='none';return true}catch(error){window.showToast('❌ Không tạo được phiếu gộp: '+error.message);return false}}
++        if(action==='report'){try{if(typeof window.exportReceipt!=='function')throw new Error('Chức năng xuất phiếu chưa sẵn sàng.');const branches=intents.map(x=>String(x.profile?.branch||'').trim());if(branches.some(b=>!b))throw new Error('Chưa xác định cơ sở của từng võ sinh.');
++            const breakdown=intents.map(x=>({kind:'tuition',familyParticipant:true,studentName:x.studentName,participantKey:x.profileId,memberId:x.profile?.memberId,memberID:x.profile?.memberID,studentId:x.profile?.studentId,packageMonths:[x.month],amount:x.amount,label:`Học phí ${x.studentName} — T${Number(x.month.slice(5))}/${x.month.slice(0,4)}`}));
++            const receiptResult=await window.exportReceipt(combinedNameStr,totalAmt,'Học phí',getLocalToday(),combinedMonthStr,branches,'Gộp gia đình','PHIẾU BÁO HỌC PHÍ',breakdown);if(!receiptResult?.ok)throw new Error('QR/phiếu báo chưa sẵn sàng.');const modal=document.getElementById('comboModal');if(modal)modal.style.display='none';return true}catch(error){window.showToast('❌ Không tạo được phiếu gộp: '+error.message);return false}}
+         if(action!=='pay')return false;if(!_guardAllowed('tuition.familyCombo',{total:totalAmt,studentNames:intents.map(x=>x.studentName),months:intents.map(x=>x.month)})){window.showToast('⚠️ Không được phép thu gộp.');return false}if(window.processCombo.__atomicInFlight===true)return window.showToast('⏳ Giao dịch thu gộp đang được xử lý.');
+         const expectedContext=_finCtx();if(!_finCtxCurrent(expectedContext)){_staleTuitionToast();return false}window.processCombo.__atomicInFlight=true;
+         try{const laneOwner=window.TuitionCommandBoundary;if(!laneOwner?.runInProfileTuitionMutationLanes||!laneOwner?.commitLocalTuitionPaymentState)throw new Error('[D1C] Tuition owner chưa sẵn sàng.');
+--- /dev/null
++++ b/tools/check-family-combo-autofill-r1.mjs
+@@ -0,0 +1,80 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import vm from 'node:vm';
++import assert from 'node:assert/strict';
++import {fileURLToPath, pathToFileURL} from 'node:url';
++
++const root=path.resolve(process.env.FAMILY_TEST_SOURCE_ROOT || path.join(path.dirname(fileURLToPath(import.meta.url)),'..'));
++const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
++const {normalizeYYYYMM}=await import(pathToFileURL(path.join(root,'js/utils/format.js')));
++const cut=(a,b)=>{const i=app.indexOf(a),j=app.indexOf(b,i);assert(i>=0&&j>i,a);return app.slice(i,j);};
++const actualHandler=cut('const setupAutocomplete =','const _acInputIds =');
++const actualHelper=cut('window.getChargeableTuitionMonths =','// Phase 4K-5M — formatTuitionMonthList');
++const outcomes=[],observations=[];
++function check(name,fn){try{fn();outcomes.push({name,result:'PASS'});console.log('PASS',name);}catch(e){outcomes.push({name,result:'FAIL',reason:e.message});console.error('FAIL',name,e.message);}}
++function harness(profiles,horizon='2026-11',row=1){
++ const nodes=new Map();let totals=0,reads=0,calls=[];
++ const element=()=>{let html='';return {value:'',style:{},children:[],dataset:{},appendChild(x){this.children.push(x);},get innerHTML(){return html;},set innerHTML(x){html=x;this.children=[];}};};
++ const document={getElementById(id){if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);},createElement:element};
++ const w={__store:{profiles},updateComboTotal:()=>{totals++;},getBranchNameDisplay:x=>x,escapeHtml:x=>String(x),showToast(){}};
++ const noRead=()=>{reads++;throw Error('Autofill must not read Firestore');};
++ const c=vm.createContext({window:w,document,allProfiles:profiles,clubConfig:{branchCount:1},normalizeYYYYMM,getLocalToday:()=> '2026-11-07',console,getDoc:noRead,getDocs:noRead,onSnapshot:noRead,runTransaction:noRead});
++ vm.runInContext(fs.readFileSync(path.join(root,'js/core/tuitionDebtCanonical.js'),'utf8')+'\n'+actualHelper,c);
++ const canonical=w.getChargeableTuitionMonths;
++ w.getChargeableTuitionMonths=(p,m,o)=>{calls.push({profile:p,month:m,options:o});return canonical(p,m,o);};
++ document.getElementById('filterMonth').value=horizon;
++ vm.runInContext(actualHandler+`\nsetupAutocomplete('combo_name${row}','combo-autocomplete-${row}','combo${row}');`,c);
++ const inp=document.getElementById('combo_name'+row),list=document.getElementById('combo-autocomplete-'+row);
++ const state=()=>({name:inp.value,fee:document.getElementById(`combo_fee${row}_actual`).value,display:document.getElementById(`combo_fee${row}_display`).value,month:document.getElementById('combo_month'+row).value});
++ function input(value){inp.value=value;inp.oninput.call(inp);}
++ function select(name){input(name);assert.equal(list.children.length,1,'exact suggestion fixture');list.children[0].onclick();}
++ return {w,document,profiles,input,select,state,calls,get totals(){return totals;},get reads(){return reads;},focus:()=>inp.onfocus.call(inp),list};
++}
++const paidUntil=p=>({tuitionFee:500000,branch:'CS1',status:'active',paidUntil:p});
++for(const row of [1,2]){
++ for(const [id,p,expected] of [
++  ['A01',paidUntil('2026-10'),'2026-11'],
++  ['A02',paidUntil('2026-08'),'2026-09'],
++  ['A03',{...paidUntil('2026-08'),skippedMonths:['2026-09','2026-10']},'2026-11'],
++  ['A04',paidUntil('2026-11'),''],
++  ['A05',{...paidUntil('2026-08'),feeExempt:true},'']
++ ]){
++  const h=harness({Alice:p},'2026-11',row);h.select('Alice');observations.push({id,row,...h.state()});
++  check(`${id} combo${row} canonical default`,()=>assert.equal(h.state().month,expected));
++  check(`${id} combo${row} delegates exact profile/horizon/reason`,()=>{assert.equal(h.calls.length,1);assert.equal(h.calls[0].profile,p);assert.equal(h.calls[0].month,'2026-11');assert.equal(h.calls[0].options.reason,'family-combo-autofill');});
++  check(`${id} combo${row} zero SDK reads`,()=>assert.equal(h.reads,0));
++ }
++ for(const status of ['quit','inactive']){
++  const h=harness({Alice:{...paidUntil('2026-08'),status}},'2026-11',row);h.input('Alice');
++  // Existing canonical status classifier is normally installed before this UI.
++  if(status==='quit')check(`A06 combo${row} quit not selectable`,()=>assert.equal(h.list.children.length,0));
++  check(`A06 combo${row} ${status} canonical authority returns no months`,()=>assert.equal(h.w.getChargeableTuitionMonths(h.profiles.Alice,'2026-11').length,0));
++ }
++ const h=harness({Alice:paidUntil('2026-08'),Bob:{...paidUntil('2026-10'),tuitionFee:0},Carol:{...paidUntil('2026-10'),tuitionFee:300000}},'2026-11',row);
++ h.select('Alice');h.input('Bob');observations.push({id:'STALE_TEXT',row,...h.state()});
++ check(`B01 combo${row} editing name clears all dependent state`,()=>assert.deepEqual(h.state(),{name:'Bob',fee:'',display:'',month:''}));
++ h.select('Alice');h.select('Bob');
++ check(`B02 combo${row} zero fee never inherits previous fee`,()=>{assert.equal(h.state().fee,'');assert.equal(h.state().display,'');});
++ h.select('Alice');h.select('Carol');
++ check(`B03 combo${row} new month and fee are profile-bound`,()=>{assert.equal(h.state().month,'2026-11');assert.equal(Number(h.state().fee),300000);});
++ const before=h.state();h.focus();
++ check(`B04 combo${row} focus without edit preserves selected state`,()=>assert.deepEqual(h.state(),before));
++ h.profiles.Bob.tuitionFee=undefined;h.select('Alice');h.select('Bob');
++ check(`B05 combo${row} missing fee clears previous state`,()=>{assert.equal(h.state().fee,'');assert.equal(h.state().display,'');});
++ check(`B06 combo${row} total refreshed`,()=>assert(h.totals>0));
++}
++for(const horizon of ['', '2026-13','not-a-month']){
++ const h=harness({Alice:paidUntil('2026-10')},horizon);h.select('Alice');
++ check(`A09 invalid horizon ${JSON.stringify(horizon)} uses local month`,()=>{assert.equal(h.calls[0]?.month,'2026-11');assert.equal(h.state().month,'2026-11');});
++}
++{
++ const h=harness({Alice:paidUntil('2026-01')});h.w.getChargeableTuitionMonths=()=>['2026-10','2026-09'];h.select('Alice');
++ check('A10 canonical result order is preserved without local sorting',()=>assert.equal(h.state().month,'2026-10'));
++}
++{
++ const h=harness({Alice:paidUntil('2026-10')});delete h.w.getChargeableTuitionMonths;h.select('Alice');
++ check('A11 missing canonical helper does not invent a month',()=>assert.equal(h.state().month,''));
++}
++const failed=outcomes.filter(x=>x.result==='FAIL').length;
++console.log('FAMILY_AUTOFILL_RESULT',JSON.stringify({sourceRoot:root,passed:outcomes.length-failed,failed,observations,outcomes}));
++if(failed)process.exitCode=1;
+--- /dev/null
++++ b/tools/check-family-combo-qr-r1.mjs
+@@ -0,0 +1,103 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import vm from 'node:vm';
++import assert from 'node:assert/strict';
++import {fileURLToPath,pathToFileURL} from 'node:url';
++import {parse} from './v11r2/vendor/acorn.mjs';
++
++const root=path.resolve(process.env.FAMILY_TEST_SOURCE_ROOT || path.join(path.dirname(fileURLToPath(import.meta.url)),'..'));
++process.chdir(root);process.env.QR_TEST_SOURCE_ROOT=root;
++const {createHarness,syntheticForUrl,bankConfig,decodePng}=await import(pathToFileURL(path.join(root,'tools/qr-v7/harness.mjs')));
++const finance=fs.readFileSync(path.join(root,'js/modules/finance.js'),'utf8');
++const tree=parse(finance,{ecmaVersion:'latest',sourceType:'module'}),firstExport=tree.body.find(n=>n.type.startsWith('Export')).start;
++const prelude=tree.body.filter(n=>n.end<=firstExport&&n.type!=='ImportDeclaration').map(n=>finance.slice(n.start,n.end)).join('\n');
++const begin=finance.indexOf('window.processCombo = async (action) => {'),end=finance.indexOf('// Phase 4K-6S: openComboModal',begin);
++assert(begin>=0&&end>begin);const actualProcess=finance.slice(begin,end);
++const outcomes=[],observations=[];
++function check(name,fn){try{fn();outcomes.push({name,result:'PASS'});console.log('PASS',name);}catch(e){outcomes.push({name,result:'FAIL',reason:e.message});console.error('FAIL',name,e.message);}}
++const names=['Trần Thị Huyền Trang','Nguyễn Văn Minh'];
++async function report({months=['2026-11','2026-11'],ids=['VTF001','VTF002'],mutate='',differentAccounts=false,extraProfiles={}}={}){
++ const config=bankConfig();if(!differentAccounts)config.branchPaymentAccountMap.CS2='bank1';
++ const providerBytes=async url=>{const u=new URL(url),parts=u.pathname.split('/'),bits=parts.pop().split('-');
++  const memo=u.searchParams.get('addInfo');
++  if(mutate==='tail')u.searchParams.set('addInfo',memo.slice(0,-2));
++  if(mutate==='head')u.searchParams.set('addInfo',memo.slice(3));
++  if(mutate==='case')u.searchParams.set('addInfo',memo[0].toLowerCase()+memo.slice(1));
++  if(mutate==='amount')u.searchParams.set('amount',String(Number(u.searchParams.get('amount'))+1));
++  if(mutate==='bank')bits[0]=bits[0]==='970436'?'970415':'970436';
++  if(mutate==='account')bits[1]='999999999999';
++  parts.push(bits.join('-'));u.pathname=parts.join('/');return syntheticForUrl(u);
++ };
++ const h=await createHarness({config,providerBytes});
++ h.c.allProfiles=Object.fromEntries(names.map((n,i)=>[n,{profileId:'profile-'+i,memberId:ids[i],branch:i?'CS2':'CS1',tuitionFee:500000,paidUntil:'2026-09'}]));
++ Object.assign(h.c.allProfiles,extraProfiles);h.w.__store.profiles=h.c.allProfiles;
++ for(let i=0;i<2;i++)for(const [key,value]of Object.entries({['combo_name'+(i+1)]:names[i],['combo_fee'+(i+1)+'_actual']:'500000',['combo_month'+(i+1)]:months[i]}))h.document.getElementById(key).value=value;
++ h.document.getElementById('comboModal').style.display='flex';
++ h.c.FinanceService=h.w.FinanceService;
++ vm.runInContext(prelude+'\n'+actualProcess,h.c);
++ // Delegate to the actual queued receipt and QR owner; never replace its builder/verifier.
++ const actualReceipt=h.w.exportReceipt,calls=[];let receiptResult;
++ h.w.exportReceipt=(...args)=>{calls.push(args);return actualReceipt(...args).then(r=>{receiptResult=r;return r;});};
++ const result=await h.w.processCombo('report');
++ const memo=h.fetches[0]?new URL(h.fetches[0].url).searchParams.get('addInfo'):'';
++ return {h,result,receiptResult,memo,calls,summary:{result,receiptOK:receiptResult?.ok,reason:receiptResult?.reason,stage:receiptResult?.stage,providerFetches:h.fetches.length,memo,months,writes:h.writes.length}};
++}
++function success(id,r){observations.push({id,...r.summary});check(id+' actual Family handler/receipt succeeds',()=>{assert.equal(r.result,true);assert.equal(r.receiptResult?.ok,true);assert.equal(r.h.fetches.length,1);});}
++function denied(id,r,reason){observations.push({id,...r.summary});check(id,()=>{assert.equal(r.result,false);assert.equal(r.receiptResult?.ok,false);assert.equal(r.receiptResult?.reason,reason);assert.equal(r.h.document.getElementById('btnDownloadReceipt').onclick,null);});}
++const good=await report();success('F01 F02 F05 F09 long names / same month / member IDs / same account',good);
++check('F17 report reaches zero SDK/business writers',()=>assert.equal(good.h.writes.length,0));
++check('F18 full names and participant-month mapping remain in receipt',()=>{const html=good.h.document.getElementById('r_breakdown_table').innerHTML;for(const n of names)assert(html.includes(n),html);assert(html.includes('11/2026'));});
++check('F19 F20 canonical memo references everyone and all periods within local cap',()=>{assert.match(good.memo,/^[A-Za-z0-9 ]+$/);assert(good.memo.length<=40);for(const id of ['VTF001','VTF002'])assert(good.memo.includes(id));assert(good.memo.includes('T11 2026'));});
++check('single exact memo at addInfo, visible transfer and independently decoded provider/preview pixels',()=>{
++ assert(good.h.document.getElementById('r_type').innerText.endsWith('Nội dung CK: '+good.memo));
++ const provider=decodePng(Buffer.from(good.h.document.getElementById('qrCodeImg').src.split(',')[1],'base64'));
++ const preview=decodePng(Buffer.from(good.h.document.getElementById('receiptPreviewImg').src.split(',')[1],'base64'));
++ assert(provider.payload.includes(good.memo));assert.equal(provider.payload,preview.payload);
++});
++const different=await report({months:['2026-10','2026-11']});success('F03 different months',different);
++check('F03 both distinct months represented without false range',()=>assert(different.memo.includes('T10 T11 2026')));
++const cross=await report({months:['2026-11','2027-01']});success('F04 different years',cross);
++check('F04 both month/year pairs represented',()=>assert(cross.memo.includes('T11 2026 T1 2027')));
++const oneMissing=await report({ids:['VTF001',undefined]});success('F06 one member ID missing',oneMissing);
++const bothMissing=await report({ids:[undefined,undefined],months:['2026-11','2027-12']});success('F07 both IDs missing / longest cross-year periods',bothMissing);
++check('F07 bounded compact references retain both exact periods',()=>{assert(bothMissing.memo.length<=40);assert(bothMissing.memo.includes('202611')&&bothMissing.memo.includes('202712'));});
++const repeated=await report({ids:[undefined,undefined],months:['2026-11','2027-12']});
++check('F08 repeated fallback build is deterministic',()=>{assert.equal(repeated.memo,bothMissing.memo);assert.equal(repeated.receiptResult?.ok,true);});
++const conflict=await report({differentAccounts:true});denied('F10 conflicting receiving accounts DENY',conflict,'ACCOUNT_ALIAS_CONFLICT');
++check('F10 denial occurs before provider',()=>assert.equal(conflict.h.fetches.length,0));
++for(const [id,mutate] of [['F11','tail'],['F12','head'],['F13','case'],['F14','amount'],['F15','bank'],['F16','account']]){
++ const r=await report({mutate});denied(id+' provider '+mutate+' mutation DENY',r,'QR_EMV_MISMATCH');
++ check(id+' exactly one provider response is audited, no financial write',()=>{assert.equal(r.h.fetches.length,1);assert.equal(r.h.writes.length,0);});
++}
++const duplicateRef=await report({ids:['SAME','SAME']});denied('F21 duplicate compact references fail closed',duplicateRef,'FAMILY_MEMO_REFERENCE_UNAVAILABLE');
++const collision=await report({extraProfiles:{Other:{profileId:'other-profile',memberId:'VTF001'}}});denied('F22 reference collision against current profile cache fails closed',collision,'FAMILY_MEMO_REFERENCE_UNAVAILABLE');
++const aliases=await report({ids:[undefined,undefined],extraProfiles:{[names[0]]:{profileId:'alias-0',memberID:'ALT001',studentId:'ST001',branch:'CS1'},[names[1]]:{profileId:'alias-1',studentId:'ST002',branch:'CS2'}}});success('F23 existing memberID/studentId priority',aliases);
++check('F23 first valid compact identifier wins',()=>{assert(aliases.memo.includes('ALT001'));assert(aliases.memo.includes('ST002'));assert(!aliases.memo.includes('ST001'));});
++const noIds=await report({ids:[undefined,undefined],extraProfiles:{[names[0]]:{branch:'CS1'},[names[1]]:{branch:'CS2'}}});success('F24 existing canonical name key fallback',noIds);
++check('F24 fallback never persists or adds an ID to profiles',()=>{assert.equal(noIds.h.writes.length,0);assert.deepEqual(Object.keys(noIds.h.c.allProfiles[names[0]]),['branch']);});
++// Known distinct FNV-1a inputs sharing 0x5e4daa9d; the fallback must DENY.
++const hashCollision=await report({ids:[undefined,undefined],extraProfiles:{[names[0]]:{profileId:'costarring',branch:'CS1'},[names[1]]:{profileId:'liquid',branch:'CS2'}}});denied('F25 actual derived-reference hash collision fails closed',hashCollision,'FAMILY_MEMO_REFERENCE_UNAVAILABLE');
++check('F25 hash collision is rejected before provider',()=>assert.equal(hashCollision.h.fetches.length,0));
++// Actual Family pay handler with controlled existing write-boundary decisions.
++async function payTest(statuses,{pending=false,reject=false,double=false}={}){
++ const profiles=Object.fromEntries(names.map((n,i)=>[n,{profileId:'p'+i,branch:'CS1',tuitionFee:500000}]));
++ const values={};names.forEach((n,i)=>Object.assign(values,{['combo_name'+(i+1)]:{value:n},['combo_fee'+(i+1)+'_actual']:{value:'500000'},['combo_month'+(i+1)]:{value:'2026-11'}}));values.comboModal={style:{display:'flex'}};
++ let commits=0,local=0,receipt=0,evidence=0,plan,resolve;
++ const ack=new Promise(r=>resolve=r),events=[];
++ const service={captureFinancialWriteContext:()=>({clubId:'A'}),isFinancialWriteContextCurrent:()=>true,_arrayUnion:(...x)=>x,addFeeAuditSilent:async()=>{},commitAtomicWritePlan:async p=>{commits++;plan=p;if(pending)await ack;if(reject)throw Error('primary rejected');return {primaryCommitted:true};}};
++ const w={__store:{profiles},showToast:m=>events.push(m),guardFinancialWriteIntent:()=>true,isFinancialWriteAllowed:()=>true,exportReceipt:()=>{receipt++;return Promise.resolve({ok:true});},TuitionCommandBoundary:{runInProfileTuitionMutationLanes:async(_,fn)=>fn(),requireTuitionUnpaidForWrite:async({studentName})=>{const i=names.indexOf(studentName);evidence++;return {status:statuses[i],profile:profiles[studentName],paidUntil:'2026-11'};},commitLocalTuitionPaymentState:()=>{local++;}}};
++ const c=vm.createContext({window:w,document:{getElementById:id=>values[id]||null},FinanceService:service,getLocalToday:()=> '2026-11-07',console:{error(){},warn(){}},Date});vm.runInContext(prelude+'\n'+actualProcess,c);
++ const first=w.processCombo('pay');await new Promise(setImmediate);
++ const before={commits,local,receipt,success:events.some(x=>x.startsWith('✅'))};if(double)await w.processCombo('pay');resolve();const result=await first;
++ return {result,commits,local,receipt,evidence,plan,before};
++}
++const paid=await payTest(['PAID','VERIFIED_UNPAID']);
++check('PAY01 concurrent settlement PAID blocks entire atomic plan',()=>{assert.equal(paid.result,false);assert.equal(paid.evidence,2);assert.equal(paid.commits,0);assert.equal(paid.local,0);assert.equal(paid.receipt,0);});
++const pay=await payTest(['VERIFIED_UNPAID','VERIFIED_UNPAID'],{pending:true,double:true});
++check('PAY02 one atomic plan / two transactions / two profile updates',()=>{assert.equal(pay.result,true);assert.equal(pay.commits,1);assert.equal(pay.plan.transactions.length,2);assert.equal(pay.plan.profileUpdates.length,2);assert.equal(pay.local,2);});
++check('PAY03 pending ACK has no financial success/local promotion/receipt; double tap one writer',()=>{assert.deepEqual(pay.before,{commits:1,local:0,receipt:0,success:false});assert.equal(pay.receipt,1);});
++const rejected=await payTest(['VERIFIED_UNPAID','VERIFIED_UNPAID'],{reject:true});
++check('PAY04 rejected primary creates no local partial success or receipt',()=>{assert.equal(rejected.result,false);assert.equal(rejected.commits,1);assert.equal(rejected.local,0);assert.equal(rejected.receipt,0);});
++const failed=outcomes.filter(x=>x.result==='FAIL').length;
++console.log('FAMILY_QR_RESULT',JSON.stringify({sourceRoot:root,passed:outcomes.length-failed,failed,observations,outcomes}));
++if(failed)process.exitCode=1;
+--- a/tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs
++++ b/tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs
+@@ -13,7 +13,8 @@
+   V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A:'21f410dbc3dbb41bf3a346f33d80f70eb2b3dc8877d6f6d99b2cee4ca2e26f30',
+   V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A:'21f410dbc3dbb41bf3a346f33d80f70eb2b3dc8877d6f6d99b2cee4ca2e26f30',
+   V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B:'a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4',
+-  V11R6_A9R18_FINANCE_WRITE_LATENCY_R1:'a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4'
++  V11R6_A9R18_FINANCE_WRITE_LATENCY_R1:'a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4',
++  V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1:'34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf'
+ });
+ const extract=(a,b)=>{const i=app.indexOf(a),j=app.indexOf(b,i);if(i<0||j<=i)throw Error('R1_2D_GUARD_BOUNDARY_MISSING');return app.slice(i,j);};
+ export function verifyQrMultiitemMemoR1_2DAppWaiver(targetRoot=root){
+@@ -27,7 +28,7 @@
+   if(sha(slice('    function _receiptTuitionMemo(', '    function _receiptQrMismatch('))!=='6065a1041150f195bb0337d65a0941ce6fa83dd719ad2512a794f0e944206a25') return {ok:false,reason:'R1_2D_TUITION_HELPER_DRIFT'};
+   if(sha(slice('    async function _verifyReceiptQrPixels(', '    function _receiptFailureMessage('))!=='78160969cf25440769c8c907d289aee212ce6f1cac7d1aae29c2e01e03409080') return {ok:false,reason:'R1_2D_PIXEL_VALIDATOR_DRIFT'};
+   if(!source.includes("breakdown.push({ kind: 'tuition'")||!source.includes("const _tuitionComponent = Array.isArray(breakdown)")) return {ok:false,reason:'R1_2D_MEMO_COVERAGE_HUNK_MISSING'};
+-  if(['V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1','V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3','V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A','V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A','V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B','V11R6_A9R18_FINANCE_WRITE_LATENCY_R1'].includes(pin.id)){
++  if(['V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1','V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1','V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3','V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A','V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A','V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B','V11R6_A9R18_FINANCE_WRITE_LATENCY_R1'].includes(pin.id)){
+     const start=source.indexOf('const _tuitionMemoMonths =');const section=source.slice(start,start+700);
+     if(!(section.indexOf('_tuitionComponent')>=0&&section.indexOf('_tuitionComponent')<section.indexOf("type === 'Học phí' && txMonth")&&section.includes('const _memoPaymentContent = _tuitionComponent'))) return {ok:false,reason:'R1_2D1_MONTH_AUTHORITY_HUNK_MISSING'};
+   }
+--- /dev/null
++++ b/tools/v11r2/manifests/V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1.json
+@@ -0,0 +1,286 @@
++{
++  "kind": "A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1_FULL_SOURCE_TEST_CANDIDATE",
++  "phaseStatus": "CANDIDATE_NOT_DEPLOYED",
++  "parentPin": "V11R6_A9R18_FINANCE_WRITE_LATENCY_R1",
++  "parentRuntimeSHA256": "e949f421e4851af6d178630f5da64a7b2d31f3120641ca9d49b6d539d237ccf6",
++  "sourceBaselineZIPSHA256": "30219f10ba062d38b10f97fc60562dab8089916a2de2827e263fb54178514fc0",
++  "outerHandoffSHA256": "22aee27f49a12824d39d8e120e4257d91241e6d02c86737c15638e4c7df0a222",
++  "newPin": "V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1",
++  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++  "runtimeSHA256": "245bb80f1c4a77fe5013f4f5ad3873c61a83fe25873ee7046e00baf8d98f348f",
++  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
++  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
++  "appJsSHA256": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
++  "runtimeChangedFilesSinceParent": [
++    "app.js",
++    "js/modules/finance.js",
++    "index.html",
++    "js/main.js"
++  ],
++  "cacheLineageScopes": [
++    {
++      "token": "a9r18-family-combo-correctness-qr-r1-20261107",
++      "edges": [
++        [
++          "index.html",
++          "app.js"
++        ],
++        [
++          "index.html",
++          "js/main.js"
++        ],
++        [
++          "js/main.js",
++          "app.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/finance.js"
++        ]
++      ]
++    },
++    {
++      "token": "a9r18-reachable-dom-trust-r1-4b-20261105",
++      "edges": [
++        [
++          "js/main.js",
++          "js/core/superAdminServerRefresh.js"
++        ],
++        [
++          "js/main.js",
++          "js/ui/render.js"
++        ],
++        [
++          "js/main.js",
++          "js/core/multiItemInventorySafety.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/students.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/inventory.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/dashboard.js"
++        ],
++        [
++          "js/ui/render.js",
++          "js/modules/dashboard.js"
++        ],
++        [
++          "js/ui/render.js",
++          "js/ui/render/computation/inventoryRenderer.js"
++        ]
++      ]
++    },
++    {
++      "token": "a9r18-qr-memo-r1-2d-20261103",
++      "edges": [
++        [
++          "js/main.js",
++          "js/ui/render/renderFinance.js"
++        ],
++        [
++          "js/modules/finance.js",
++          "js/modules/finance/finance.pagination.js"
++        ],
++        [
++          "js/modules/finance.js",
++          "js/ui/render/renderFinance.js"
++        ]
++      ]
++    },
++    {
++      "token": "a9r18-fin-nontuition-r1-2b-20261103",
++      "edges": [
++        [
++          "js/main.js",
++          "js/core/tuitionCommandBoundary.js"
++        ],
++        [
++          "js/core/tuitionCommandBoundary.js",
++          "js/services/finance.service.js"
++        ],
++        [
++          "js/modules/finance.js",
++          "js/services/finance.service.js"
++        ],
++        [
++          "js/modules/students.js",
++          "js/services/finance.service.js"
++        ],
++        [
++          "js/modules/students.js",
++          "js/services/inventory.service.js"
++        ],
++        [
++          "js/services/finance.service.js",
++          "js/services/inventory.service.js"
++        ],
++        [
++          "js/modules/inventory.js",
++          "js/services/inventory.service.js"
++        ],
++        [
++          "js/modules/students.js",
++          "js/modules/students.js"
++        ]
++      ]
++    },
++    {
++      "token": "att-history-r1-1-20261031",
++      "edges": [
++        [
++          "js/main.js",
++          "js/modules/attendance.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/reports/reportExportFacade.js"
++        ],
++        [
++          "js/modules/attendance.js",
++          "js/services/attendance.service.js"
++        ],
++        [
++          "js/modules/reports/reportExportFacade.js",
++          "js/modules/reports/attendanceExcelReport.js"
++        ]
++      ]
++    }
++  ],
++  "canonicalRuntimeFiles": {
++    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
++    "app.js": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
++    "css/tailwind-static.css": "7e8aa3849956a0a1bcf758fbb8528b2fe5ddeda39290aad9971f30256b30699c",
++    "css/ui-mobile-shell.css": "e560807a9298a6a1acc40e12c54687da3109198b4ba0ba281f725d6209d71c1e",
++    "index.html": "845a89d348c240401070b205bd0c2165115648484019e69c563635702a0c01e6",
++    "js/core/actionGuard.js": "7c95650fc992cbf01b0ca5526e1656cfbf55d5f22bc1e9fe67351bc3a916178c",
++    "js/core/attendanceContract.js": "b96b04eccda4738b190b5cbb3e1d05664d422dff17b84a64cfd66bccbbc68239",
++    "js/core/branchIdentity.js": "db050656a9adaac5873887f2e9a3e80482e3e3982e5252635621f494ed020337",
++    "js/core/canonicalDomainCommandBoundary.js": "32f7d040519a84e84eb76467d65ce8c93f5551e7d6b1e9deba4eac17692a9689",
++    "js/core/clubStatsAutoCache.js": "e77bd219e9d8608676d0b0fda086fb6c41c630d93a5014b2064afc4225cada20",
++    "js/core/coachBranchRuntimeRepair.js": "3c5d5d7a95390ce8438552d48947b293a2878dd480c399c4964effce82012068",
++    "js/core/debtProfileReadBoundary.js": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08",
++    "js/core/financialActionAuditGuard.js": "8546419e8304df2c1a4433952316c446409084fec53c60533de7dc8a52c53ddc",
++    "js/core/financialFlowMap.js": "10c9cb1e754aa4253505617b7e81c24ee09e9b2d5dc7b6550dcb0652e33b8568",
++    "js/core/globalOwnershipRegistry.js": "40ebfab400b3a575d1aac2daa6db73c246be731a84a2906674fcea3c211bd133",
++    "js/core/inlineHandlerAudit.js": "4a9edc949162cb146638fb326a3eeda428c1443ab8bfa99787723a37d70ff193",
++    "js/core/inventoryMultiItemReadOnlyUI.js": "c6a50375859d78d8e732436a454fa6d157c62bafa5a9729e3986798401dd893b",
++    "js/core/lazyAssetsBootstrap.js": "b60af66ef280f3ee0d806b94d351cfd7f75cd49641f847ff9546f1cb7e5cab4c",
++    "js/core/legacyAppAudit.js": "38c05474191672096370fda3bd677cb6894e4ce1bd85054ec99f0aa65baa8455",
++    "js/core/legacyRenderEntrypoints.js": "5ae877bc1b7ff96d5c78136f408f2390e09944412cea545bdb71617a7081e1ec",
++    "js/core/listenerOwnershipBoundary.js": "7425a0a3be681f6f905955b0bff834763a0af367cad942e1419c59304adfa5b3",
++    "js/core/mobileStartupPerformance.js": "e730e61a6fb8ffd87abd18522e96ea2ca9f9a95002e60d1d4636f115b09cf284",
++    "js/core/multiItemInventorySafety.js": "129cb3d14dce51a7c28abe4eaa3159748af8e000c07bb170c387a61c0cad39ca",
++    "js/core/performanceMonitor.js": "8cec791af4edc1b48502156044eddde66d0c915b5af1ba927b18b7a508968cce",
++    "js/core/productionAuthorityPolicy.js": "4a202b36ce75ce611815d97b38c71d49fe8846fa551f5dce82865b28db97b6bd",
++    "js/core/productionStabilityGate.js": "7f54d756de6ee26a39e80953df3b2fc092cb3039db2a18d73d23281128ceac40",
++    "js/core/profileCanonicalStore.js": "195e10c0f9aa28d43193130597e3a73b833be5e628409c2f1633d76358005a41",
++    "js/core/roleReadBoundary.js": "47f789c19b72d126c2a6e8245d39ddaff2d6a23c8bb66bd9513ee2c793e7c67e",
++    "js/core/securityPosture.js": "3ce6fe7b516f138205635dbef81208c0a0dcf6621170c989ef648706772dd6d7",
++    "js/core/staticCssBuildHealth.js": "e0e87c489e5bb1548c2a060bb5a82f23b64c3806c00a410731e61bcf500ffc3e",
++    "js/core/studentSearchIndex.js": "5d22ee419d8f56394ef6a04909ff073be390f14aee057d56940ece743a7ef29a",
++    "js/core/studentStatusCommandBoundary.js": "1d6f756286254eed7381b3f8ab7d063a45c3abc6c5d1e30f997021e5badf0288",
++    "js/core/superAdminQuotaGuard.js": "5640900910f77d231620683c9417b55305f3741250ab85807b2afd0ba8ef86e6",
++    "js/core/superAdminServerRefresh.js": "c77e3d1610e6fcd7fc75d8987150e54ef0bdaa14232565cf0d5a925879237e8b",
++    "js/core/trainingRegistration.js": "61756f420172b06e7ff640c7c2fdc36533e1653a680c2676f0661278a7536df4",
++    "js/core/transactionCanonicalBoundary.js": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f",
++    "js/core/transactionDeleteIntegrity.js": "32bad07e037860da4543c3aa064fcf1eb99fb8869dc2a6451a75bf1d97510a4f",
++    "js/core/tuitionCommandBoundary.js": "1939bdcad2f8d21c03d88f182c1e21f237d4f7a4886a1f90933f29df550f75e7",
++    "js/core/tuitionDebtCanonical.js": "3755b877d8e0be7cc72aa986eca3b3e723d493717fa6631de4fe1d367327e92e",
++    "js/data/attendanceJournal.js": "0f493addd96591dce9776148b43c7625cdcf6abcd7962f1cccceb70f237646ee",
++    "js/data/inventoryStore.js": "39c1008f1803d62ba353ac04f079118ba4ec62112e2c7ffbecd50742fd910390",
++    "js/data/profileStatusConfig.js": "108a09f6811bb749c7ca2bc9170e769ee94378debfe3d276f7352fb7dcdfa934",
++    "js/data/quitProfileBoundary.js": "a1f83492ae482ca3c7d0c0eedc736823aae051d335f9224fa1835fd7a5401097",
++    "js/data/studentProfileStore.js": "83cd8875463085d67d73966284b6c65ba1a7887adee788f90380eb4c23a6aa61",
++    "js/diagnostics/legacyDiagnostics.js": "dcc6d26c51efe1777268f46820a9efa2809319bd43f099bb8ddd9b652d012689",
++    "js/diagnostics/onboardingDiagnostics.js": "4a09db1ccc93e1005075c696f477bbf68ae8d71ee6fa2241169ca3427f5c3724",
++    "js/diagnostics/runtimeReadinessDiagnostics.js": "0ade23e3657bfddde45cbefa598127b490664b0a1ccfb94e2cf378c78169e56b",
++    "js/diagnostics/superAdminAuditDiagnostics.js": "d09987a65275422c4bc1b3f2db0eaf7fa893b3ce8a6fc882c8435a5ca9b48657",
++    "js/events/attendance.events.js": "e94081b5f5def17db437098ae3a33808cb15c4243416feebd9b18460a294b6b3",
++    "js/events/finance.events.js": "d6d18e8400529a865112894c23e03963f016c665db4307b284d12c0349399e81",
++    "js/events/inventory.events.js": "f8f079375fe733d7fef915ed3db41b761bf0a2a6a2dcaf25248b25ff1b7cda7b",
++    "js/events/students.events.js": "d83cc9582b1c5c9e4107685578a2a7bbbd6a0ac85de960d41dd7e5163a53ef59",
++    "js/firebase/config.js": "745a895328c557b6d2a863c8f71dfbdb0bb44b9adecf70740e94921a63d8a876",
++    "js/firebase/paginatedQuery.js": "6895e483951509528983fa7429db79bcf12c8b06dc206e492bbec3091abfcae9",
++    "js/legacy/legacyAttendanceFallbacks.js": "622cab7f9a2453fa2a78a0685429b21fdc277b6d3cb8cb072c9b0c2cff9f1b15",
++    "js/legacy/legacyUiFallbacks.js": "4a1773ae305467bbf057cabc0ffda7e36cccc0d6525520f96416ee3b695fc852",
++    "js/listeners/attendance.listeners.js": "f9fc2834a0f34ab2c59f8a714b3de89e961e5c2d8fdca6e127d3f769dfa5b3d6",
++    "js/listeners/dashboard.listeners.js": "b46a70d81b3abafc680dfe096e2a0e93c923bcde359af59e4f35ab86a4d221bb",
++    "js/listeners/exam.listeners.js": "eae546eb6a369ff652c4f3abb0dc69e56cf80604a405a7d575e660c0ed911009",
++    "js/listeners/finance.listeners.js": "d06f1ab4773c3b9b861ee92a304bde7a760ae9d7db65998424aab12f58d59ac5",
++    "js/listeners/global.listeners.js": "8bcabd108fddeb6da9a58bedf1c7086aeec2665156883b6bc37e75673711d974",
++    "js/listeners/inventory.listeners.js": "1b733bd5f3423b0ab6b5e85396bc936211d92a7e012d8ca65d0a06c0a312e154",
++    "js/listeners/profiles.listeners.js": "a63cac438c0dbe94fee97e8f828baab8ee7abce0a5420eda593b043a14d8bac5",
++    "js/listeners/students.listeners.js": "a3d8f8c286a48d8e2a37fe7043c520ee46d32d2d295676873771394a2cecf231",
++    "js/main.js": "c3ef9ba5e81e77c9d1f416c65748d4039099fe93bb503576c84fa507008b2118",
++    "js/migrations/migrate-legacy-to-primary.js": "a5ac866f3cad2a893300e733c82b68ea73bafbda7709ba5031f5cbb8184974d1",
++    "js/modules/attendance.js": "fe39a6da8a7a21db571bfc7e2fee604b63e850cce1c8a75c7f14615cf427d7d9",
++    "js/modules/dashboard.js": "37901bd51ef587cba033e6020b1391f746b9ad1cf41b35f3537bfebf82dba9df",
++    "js/modules/exam.js": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed",
++    "js/modules/finance.js": "f652c2d896180654cf8f1534a916cb7f44ebff3599251070b0ef74eb998c809b",
++    "js/modules/finance/finance.controller.js": "7fe2ba28150942c264ae85fe871635c8b61dc23a2c7a1d1e2054a5d1b5192b71",
++    "js/modules/finance/finance.excel.js": "e4a4a23af165decaa1f422dcbb5939e5f06b35027c7ee928716d851c654d130e",
++    "js/modules/finance/finance.pagination.js": "375410287ada6471cbbac888d1ee96e73fb245ee73ac02a0dce74a21eeb31a73",
++    "js/modules/finance/finance.receipt.js": "a18ebf9ebdf6cba177788c4cdd078ae51c8f41318a476446d91c08435f3ec5f8",
++    "js/modules/finance/index.js": "a8ab32dfcd576ac15f6f038b85d171966033127f3707794f25ac1b79d0d72dea",
++    "js/modules/inventory.js": "309b8091cf2ed74338161d58f5a44d249f5293c6b6943334e05d3c20c5cc0858",
++    "js/modules/qrBankingHelpers.js": "8fa10f05f306f5fe6384ef2898d77ad8f9c8e200cb50c9af126173dc2d935a0c",
++    "js/modules/receiptHelpers.js": "8abe96afb78dae32cbffd8bdb08492e808de01753a0b817748da4d32975d44e9",
++    "js/modules/reports.js": "ce9567d07b2d06233711ee1ddcf16e66a1a258faa58a7e46624c02e4f563f94a",
++    "js/modules/reports/attendanceExcelReport.js": "d02b9b450670e34c6a5027cb1b9e798498d484d8f72fc5fbabfff3ab7b164037",
++    "js/modules/reports/reportExportFacade.js": "ae42947277d7e587214f2803366b8b0c55a26254f60f4945d2b7c7492cbb841b",
++    "js/modules/searchRuntime.js": "489cfce41aafe0147cfebf37e3e879830549465b8cae444e062cdf727ae813d8",
++    "js/modules/students.js": "7347ee2c05c57c9d969c1371b5832058e40e844f35f1dfb1803a71da214344e3",
++    "js/modules/students/index.js": "11fffcc2cfc877d6186898cc555d379945ba1223b248aa06e6709eeacc73efe1",
++    "js/modules/students/students.controller.js": "499f7b0acb3bc6e5ed950c904406352fc7c9f370742611440366aebc3a41a266",
++    "js/modules/students/students.modal.js": "a09e9a1dfe84916b28d5849311996871f593c83ff069c6fa4d721db9410c50d7",
++    "js/modules/students/students.pagination.js": "e848769cddd3c3213c9c5459c5269724d9ceeebdd38c89ed41a89238469c61d6",
++    "js/modules/students/students.render.js": "4a345e0b5983794c68f6ac5b9521c0235f9d302081ca6fd2cb6503d2dd09c233",
++    "js/modules/students/students.search.js": "2cae282651e695cc3ab4f4cea9e827f5337cf12ad9544e20f23ef1a6a386f867",
++    "js/modules/superadmin.js": "2c039e8e972ca2312095e3431ba02ff767a4efe146ba2caf8ec947c8a4ea8111",
++    "js/services/attendance.service.js": "ed5b7d4fb5a0be3c1ea416ac01648a3d2b5033db324022441a1af4735b2c9aa6",
++    "js/services/finance.service.js": "c33428e1ada24f2aec428acd3d042141bdf33851c24fd75cfa8a142a9aea2314",
++    "js/services/inventory.service.js": "503e49f07d3150dec0ce2d4ac23a1a3acb777c06c290e606098367393b85b307",
++    "js/services/students.service.js": "191c6adad0694f64b69200e989be82a5b9bda0bfb825db8ddbbd6c65331f0261",
++    "js/store.js": "5050d6380e1115d68e2acf2faa7e7c3ef88cd8f58d3298bcff7e26074fbdfcf0",
++    "js/ui/eventActionBridge.js": "15e4c01c17daee5677c8ba766f73ff17807265fba7204103e2e248040cbe2416",
++    "js/ui/legacyUiShell.js": "0f5dfcc8e11ce115bd7c123b0fe9d37766ba786e50cd49787cfea902522cd2df",
++    "js/ui/loading.js": "8ec3655bd2579a73dd31a4553c7793f439a57c872b103fc63b0152468a169e5a",
++    "js/ui/modal.js": "16f9978a2780c78f93a91a53411e18fe6961ea892bd3613839a597705dc6e0ec",
++    "js/ui/render.js": "97c477a2d66da57319a07abea767ec08658703a32ac941529da70c36f5659e93",
++    "js/ui/render/computation/dashboardRenderer.js": "beccf91e83bce18b7a84a2e1f2e512af616a31d1ef6511814afb50c06ecfec9b",
++    "js/ui/render/computation/financeRenderer.js": "1fe9bbf70322f93bf73248ef102c5e2c7194f981f4e29bf9994b976fe0622d8f",
++    "js/ui/render/computation/inventoryRenderer.js": "ed35c6ced9a22bf61ea3a23e173a9d11e07b8462eba9764809a0834556fb1314",
++    "js/ui/render/computation/studentsRenderer.js": "43c26234d2eca584b02b5c2e51a3d651a526e4d4bada81316d8ca773c22b58db",
++    "js/ui/render/listComputationRefresh.js": "fb0b6d7595a87d31a68aa9dbea90bdc29e160fd96532915df1057b5f7840061e",
++    "js/ui/render/renderAttendance.js": "30cac7c5f41fffc6f137d76fbde76f8ebf58283101a5b9577b23097c22b424a1",
++    "js/ui/render/renderDashboard.js": "1f45da7e769e46f110e179a7a1686f0f561c78429f1900ed409e215827213da3",
++    "js/ui/render/renderFinance.js": "1a498728633a788d5e0b4c48f11626063b084aea5ef3025175bf53acb11eb3f4",
++    "js/ui/render/renderInvalidation.js": "4592fbe5a799441547de3ee17acbcb40a2db76551e0c877e84cdad660d4032e2",
++    "js/ui/render/renderInventory.js": "d0a1039752004b58144884a6200e024952c22e28f169dd87860c66863cf3193c",
++    "js/ui/render/renderRegistry.js": "fd90c79f3fc0d95ddf195e0204b1e16b577454139d82170b1aa2e24d034a7cac",
++    "js/ui/render/renderScheduler.js": "775d8b58ce34e8b9352d7d6b0ad77125bdf5fd22275169218176cba0b0af7e60",
++    "js/ui/render/renderStudents.js": "6c53dfb122cbbce1ebf71ae1fdb1efb383b013f4795b2fef1ed976a2436dd063",
++    "js/ui/tabs.js": "e9d27932fd0ca35e99fe4724ea3bba8e1eb23ee25090b076d38441bb0a7a9457",
++    "js/ui/toast.js": "0371bb50b96f4e6b52c73901cdc401f0cb05d644d5754cf464292e9232678b76",
++    "js/utils/constants.js": "908b51067faf4ddcee93290f476e16c2ac37a2b2599a4ea36085843b737eb481",
++    "js/utils/event-guard.js": "6300daf65b516b9957148f0bd38f52c261078b31c860bbe3dac83fca98f3ced7",
++    "js/utils/firestore-guard.js": "8dcf5507d5d03fa05241a1c5e9db6c93212610ea3256390f6bc46f5114a4c74f",
++    "js/utils/format.js": "0e0112247c55f0436d64f7e1d0d3584dd388b39bdf761b4e6c0b598c1ecbb3ca",
++    "js/utils/formatters.js": "a8fa8fb6a4724bf821018959a074b6fcbd5a82fd521bc1029ccbc7a011e72271",
++    "js/utils/helpers.js": "846f33061619280d7525013b355afbadb4a1584b0b6befdf3eeee7a9a37533c8",
++    "js/utils/idb-cache.js": "b0570146b42c8268a48578b1640890a9eb58922fda5dd9302eaf4dbe31616409",
++    "js/utils/listeners.js": "bd572fda452100e79b3eb1ead383efaeb9a48b460db44f75d1d9926e5fffb4cb",
++    "js/utils/monthlyHelpers.js": "c918eed1780a14c40fd3708c8e3e187fcb10a5d8fb8aa797e86d467867c1a358",
++    "js/utils/offline-queue.js": "8e58ab4ea60f237d7b0698e44ff8a7e9cfb0857b9d45a31f59a9a2c7e25f1d5e",
++    "js/utils/pagination.js": "ccf55c82f00805d9e8ab27075e06adbe40fc7debd980431402bfa2b381c2e003",
++    "js/vendor/jsqr-1.4.0.esm.js": "0c1f462afd313d07b47756c492145659d59c68f03aa340ec26fe668d062ca401",
++    "js/vendor/jsqr-LICENSE.txt": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
++    "style.css": "ef74e7128a16991596ea696a2a6b655b69de6dcc17266d31c2a78db248ca71be"
++  }
++}
+--- a/tools/v11r2/source-identity.mjs
++++ b/tools/v11r2/source-identity.mjs
+@@ -1670,8 +1670,156 @@
+   ]
+ });
+ 
++const V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1 = Object.freeze({
++  "id": "V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1",
++  "canonicalFileCount": 129,
++  "coachAssignmentContract": "server-verified-multi-branch-v1",
++  "inputZIP_SHA256": "30219f10ba062d38b10f97fc60562dab8089916a2de2827e263fb54178514fc0",
++  "manifest": "tools/v11r2/manifests/V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1.json",
++  "manifestSHA256": "d1a9770d690c9674644364a961206126b2e6bd82f3e49101bf743895d7375a8d",
++  "runtimeSHA256": "245bb80f1c4a77fe5013f4f5ad3873c61a83fe25873ee7046e00baf8d98f348f",
++  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
++  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
++  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
++  "cacheLineageScopes": [
++    {
++      "token": "a9r18-family-combo-correctness-qr-r1-20261107",
++      "edges": [
++        [
++          "index.html",
++          "app.js"
++        ],
++        [
++          "index.html",
++          "js/main.js"
++        ],
++        [
++          "js/main.js",
++          "app.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/finance.js"
++        ]
++      ]
++    },
++    {
++      "token": "a9r18-reachable-dom-trust-r1-4b-20261105",
++      "edges": [
++        [
++          "js/main.js",
++          "js/core/superAdminServerRefresh.js"
++        ],
++        [
++          "js/main.js",
++          "js/ui/render.js"
++        ],
++        [
++          "js/main.js",
++          "js/core/multiItemInventorySafety.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/students.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/inventory.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/dashboard.js"
++        ],
++        [
++          "js/ui/render.js",
++          "js/modules/dashboard.js"
++        ],
++        [
++          "js/ui/render.js",
++          "js/ui/render/computation/inventoryRenderer.js"
++        ]
++      ]
++    },
++    {
++      "token": "a9r18-qr-memo-r1-2d-20261103",
++      "edges": [
++        [
++          "js/main.js",
++          "js/ui/render/renderFinance.js"
++        ],
++        [
++          "js/modules/finance.js",
++          "js/modules/finance/finance.pagination.js"
++        ],
++        [
++          "js/modules/finance.js",
++          "js/ui/render/renderFinance.js"
++        ]
++      ]
++    },
++    {
++      "token": "a9r18-fin-nontuition-r1-2b-20261103",
++      "edges": [
++        [
++          "js/main.js",
++          "js/core/tuitionCommandBoundary.js"
++        ],
++        [
++          "js/core/tuitionCommandBoundary.js",
++          "js/services/finance.service.js"
++        ],
++        [
++          "js/modules/finance.js",
++          "js/services/finance.service.js"
++        ],
++        [
++          "js/modules/students.js",
++          "js/services/finance.service.js"
++        ],
++        [
++          "js/modules/students.js",
++          "js/services/inventory.service.js"
++        ],
++        [
++          "js/services/finance.service.js",
++          "js/services/inventory.service.js"
++        ],
++        [
++          "js/modules/inventory.js",
++          "js/services/inventory.service.js"
++        ],
++        [
++          "js/modules/students.js",
++          "js/modules/students.js"
++        ]
++      ]
++    },
++    {
++      "token": "att-history-r1-1-20261031",
++      "edges": [
++        [
++          "js/main.js",
++          "js/modules/attendance.js"
++        ],
++        [
++          "js/main.js",
++          "js/modules/reports/reportExportFacade.js"
++        ],
++        [
++          "js/modules/attendance.js",
++          "js/services/attendance.service.js"
++        ],
++        [
++          "js/modules/reports/reportExportFacade.js",
++          "js/modules/reports/attendanceExcelReport.js"
++        ]
++      ]
++    }
++  ]
++});
++
+ export function verifySourceIdentity(root, actualRuntimeSHA256) {
+- const pinned=[V11R6_A9R18_FINANCE_WRITE_LATENCY_R1,V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B,V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A,V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A,V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3,V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1,V11R6_A9R18_QR_MULTIITEM_MEMO_RECONCILIATION_UI_R1_2D,V11R6_A9R18_ADMISSION_POSTCOMMIT_CONTEXT_R1_2C,V11R6_A9R18_FINANCE_REMAINING_FORM_TAIL_R1_2B1,V11R6_A9R18_FINANCE_NONTUITION_CONTEXT_TAIL_R1_2B,V11R6_A9R18_FINANCE_DELETE_CONTEXT_TAIL_R1_2A1,V11R6_A9R18_FINANCE_TUITION_INTENT_CONTEXT_R1_2A,V11R6_A9R18_FINANCE_TUITION_QUICKPAY_MONTH_AUTHORITY_R1_2,V11R6_A9R18_FINANCE_TUITION_SETTLEMENT_R1_1A,V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1,V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1,V11R6_A9R18_FINANCE_CANONICAL_POLICY_R1_2,V11R6_A9R18_ATTENDANCE_HISTORY_R1_1,V11R6_A9R18_ATTENDANCE_HISTORY_R1,V11R6_A9R18_USABILITY_PERF_R2R5_2B,V11R6_A9R18_USABILITY_PERF_R2R5_2,V11R6_A9R18_USABILITY_PERF_R2R5_1_SYNC,V11R6_A9R18_USABILITY_PERF_R2R5,V11R6_A9R18_USABILITY_PERF_R2R4_R6,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE,V11R6_A9R18_USABILITY_PERF_R2R2_C1,V11R6_A9R18_USABILITY_PERF_R2_RCACHE,V11R6_A9R18_USABILITY_SYNC_R1_U2,V11R6_A9R18_USABILITY_SYNC_R1_U1,V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
++ const pinned=[V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1,V11R6_A9R18_FINANCE_WRITE_LATENCY_R1,V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B,V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A,V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A,V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3,V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1,V11R6_A9R18_QR_MULTIITEM_MEMO_RECONCILIATION_UI_R1_2D,V11R6_A9R18_ADMISSION_POSTCOMMIT_CONTEXT_R1_2C,V11R6_A9R18_FINANCE_REMAINING_FORM_TAIL_R1_2B1,V11R6_A9R18_FINANCE_NONTUITION_CONTEXT_TAIL_R1_2B,V11R6_A9R18_FINANCE_DELETE_CONTEXT_TAIL_R1_2A1,V11R6_A9R18_FINANCE_TUITION_INTENT_CONTEXT_R1_2A,V11R6_A9R18_FINANCE_TUITION_QUICKPAY_MONTH_AUTHORITY_R1_2,V11R6_A9R18_FINANCE_TUITION_SETTLEMENT_R1_1A,V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1,V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1,V11R6_A9R18_FINANCE_CANONICAL_POLICY_R1_2,V11R6_A9R18_ATTENDANCE_HISTORY_R1_1,V11R6_A9R18_ATTENDANCE_HISTORY_R1,V11R6_A9R18_USABILITY_PERF_R2R5_2B,V11R6_A9R18_USABILITY_PERF_R2R5_2,V11R6_A9R18_USABILITY_PERF_R2R5_1_SYNC,V11R6_A9R18_USABILITY_PERF_R2R5,V11R6_A9R18_USABILITY_PERF_R2R4_R6,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE,V11R6_A9R18_USABILITY_PERF_R2R2_C1,V11R6_A9R18_USABILITY_PERF_R2_RCACHE,V11R6_A9R18_USABILITY_SYNC_R1_U2,V11R6_A9R18_USABILITY_SYNC_R1_U1,V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
+  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
+  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

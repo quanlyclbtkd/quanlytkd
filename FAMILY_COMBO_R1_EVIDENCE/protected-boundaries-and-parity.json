@@ -1,0 +1,89 @@
+{
+  "functionsUnchanged": [
+    {
+      "name": "window.getChargeableTuitionMonths",
+      "unchanged": true,
+      "sha256": "e03918e86ee46a6ca3400664938f51683e85557bd5d166a0211ce4a1dca9323b"
+    },
+    {
+      "name": "_receiptPaymentMemo",
+      "unchanged": true,
+      "sha256": "d4b21847b79e6d66bdaea4d235034e3219d43970cb779ff2ddb0fb0bdae6d58c"
+    },
+    {
+      "name": "_receiptTuitionMemo",
+      "unchanged": true,
+      "sha256": "c126212148607ba3819a6d72051f8ccf66ca4289dc3fa384bd2ad3758df35ac5"
+    },
+    {
+      "name": "_receiptDecodeEMV",
+      "unchanged": true,
+      "sha256": "40e6ff5f4c0ee91e4ebebdb3c574c8df053acce76e6e9cb7173b78801d9d0886"
+    },
+    {
+      "name": "_verifyReceiptQrPixels",
+      "unchanged": true,
+      "sha256": "ac755ac4df29102f1daf756a497456d22dc1dc73c22e14789f0464a9fb368bf1"
+    },
+    {
+      "name": "generateVietQR",
+      "unchanged": true,
+      "sha256": "1db17ee4245e37b5b803b94b7066e8e82a792db81909100e597702a27a35cd5a"
+    }
+  ],
+  "familyPay": {
+    "unchanged": true,
+    "sha256": "bf9d0ef512a044323a7041cee7b00166403eb950a25f5d66198f11545231ab41"
+  },
+  "protectedFiles": [
+    {
+      "file": "js/services/finance.service.js",
+      "unchanged": true,
+      "sha256": "c33428e1ada24f2aec428acd3d042141bdf33851c24fd75cfa8a142a9aea2314"
+    },
+    {
+      "file": "js/core/tuitionCommandBoundary.js",
+      "unchanged": true,
+      "sha256": "1939bdcad2f8d21c03d88f182c1e21f237d4f7a4886a1f90933f29df550f75e7"
+    },
+    {
+      "file": "js/core/tuitionDebtCanonical.js",
+      "unchanged": true,
+      "sha256": "3755b877d8e0be7cc72aa986eca3b3e723d493717fa6631de4fe1d367327e92e"
+    },
+    {
+      "file": "js/core/debtProfileReadBoundary.js",
+      "unchanged": true,
+      "sha256": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08"
+    },
+    {
+      "file": "js/listeners/profiles.listeners.js",
+      "unchanged": true,
+      "sha256": "a63cac438c0dbe94fee97e8f828baab8ee7abce0a5420eda593b043a14d8bac5"
+    },
+    {
+      "file": "js/core/transactionCanonicalBoundary.js",
+      "unchanged": true,
+      "sha256": "01db7c3b9cce2c606ecbe95c3be69a3114a2dbd9ba0e79689c0d476d8562608f"
+    },
+    {
+      "file": "firestore.rules",
+      "unchanged": true,
+      "sha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3"
+    },
+    {
+      "file": "firestore.indexes.json",
+      "unchanged": true,
+      "sha256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2"
+    }
+  ],
+  "rootPublic": {
+    "pairs": 129,
+    "mismatches": []
+  },
+  "identity": {
+    "id": "V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1",
+    "runtimeSHA256": "245bb80f1c4a77fe5013f4f5ad3873c61a83fe25873ee7046e00baf8d98f348f",
+    "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+  }
+}

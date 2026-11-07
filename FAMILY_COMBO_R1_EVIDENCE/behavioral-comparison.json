@@ -1,0 +1,42 @@
+[
+  {
+    "checker": "tools/check-family-combo-autofill-r1.mjs",
+    "checkerSHA256": "116d5a385f7d5e85f89af614bb8142317546276f0d37d4f9ef90a399511d5c90",
+    "baseline": {
+      "log": "baseline-autofill-final.log",
+      "sourceRoot": "/workspace/scratch/036ee6a06c71/r22/baseline",
+      "appSHA256": "a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4",
+      "financeSHA256": "9868715dcde7e82bfb7499f87f56ffab0a40744df5ddb77ac4dd79192b4b6f26",
+      "passed": 25,
+      "failed": 28
+    },
+    "candidate": {
+      "log": "candidate-autofill-final.log",
+      "sourceRoot": "/workspace/scratch/036ee6a06c71/family_r1/candidate",
+      "appSHA256": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
+      "financeSHA256": "f652c2d896180654cf8f1534a916cb7f44ebff3599251070b0ef74eb998c809b",
+      "passed": 53,
+      "failed": 0
+    }
+  },
+  {
+    "checker": "tools/check-family-combo-qr-r1.mjs",
+    "checkerSHA256": "59a20ce8afd9e8e486480a3285b44b80f2885e89f7c7eeff18084662c99ea925",
+    "baseline": {
+      "log": "baseline-qr-final.log",
+      "sourceRoot": "/workspace/scratch/036ee6a06c71/r22/baseline",
+      "appSHA256": "a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4",
+      "financeSHA256": "9868715dcde7e82bfb7499f87f56ffab0a40744df5ddb77ac4dd79192b4b6f26",
+      "passed": 9,
+      "failed": 30
+    },
+    "candidate": {
+      "log": "candidate-qr-final.log",
+      "sourceRoot": "/workspace/scratch/036ee6a06c71/family_r1/candidate",
+      "appSHA256": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
+      "financeSHA256": "f652c2d896180654cf8f1534a916cb7f44ebff3599251070b0ef74eb998c809b",
+      "passed": 39,
+      "failed": 0
+    }
+  }
+]

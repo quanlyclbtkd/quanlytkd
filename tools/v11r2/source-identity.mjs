@@ -1670,8 +1670,156 @@ const V11R6_A9R18_FINANCE_WRITE_LATENCY_R1 = Object.freeze({
   ]
 });
 
+const V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1 = Object.freeze({
+  "id": "V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "30219f10ba062d38b10f97fc60562dab8089916a2de2827e263fb54178514fc0",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1.json",
+  "manifestSHA256": "d1a9770d690c9674644364a961206126b2e6bd82f3e49101bf743895d7375a8d",
+  "runtimeSHA256": "245bb80f1c4a77fe5013f4f5ad3873c61a83fe25873ee7046e00baf8d98f348f",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+  "cacheLineageScopes": [
+    {
+      "token": "a9r18-family-combo-correctness-qr-r1-20261107",
+      "edges": [
+        [
+          "index.html",
+          "app.js"
+        ],
+        [
+          "index.html",
+          "js/main.js"
+        ],
+        [
+          "js/main.js",
+          "app.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/finance.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-reachable-dom-trust-r1-4b-20261105",
+      "edges": [
+        [
+          "js/main.js",
+          "js/core/superAdminServerRefresh.js"
+        ],
+        [
+          "js/main.js",
+          "js/ui/render.js"
+        ],
+        [
+          "js/main.js",
+          "js/core/multiItemInventorySafety.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/students.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/inventory.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/dashboard.js"
+        ],
+        [
+          "js/ui/render.js",
+          "js/modules/dashboard.js"
+        ],
+        [
+          "js/ui/render.js",
+          "js/ui/render/computation/inventoryRenderer.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-qr-memo-r1-2d-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/ui/render/renderFinance.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/modules/finance/finance.pagination.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/ui/render/renderFinance.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-fin-nontuition-r1-2b-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/core/tuitionCommandBoundary.js"
+        ],
+        [
+          "js/core/tuitionCommandBoundary.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/services/finance.service.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/inventory.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/modules/students.js"
+        ]
+      ]
+    },
+    {
+      "token": "att-history-r1-1-20261031",
+      "edges": [
+        [
+          "js/main.js",
+          "js/modules/attendance.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/reports/reportExportFacade.js"
+        ],
+        [
+          "js/modules/attendance.js",
+          "js/services/attendance.service.js"
+        ],
+        [
+          "js/modules/reports/reportExportFacade.js",
+          "js/modules/reports/attendanceExcelReport.js"
+        ]
+      ]
+    }
+  ]
+});
+
 export function verifySourceIdentity(root, actualRuntimeSHA256) {
- const pinned=[V11R6_A9R18_FINANCE_WRITE_LATENCY_R1,V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B,V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A,V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A,V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3,V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1,V11R6_A9R18_QR_MULTIITEM_MEMO_RECONCILIATION_UI_R1_2D,V11R6_A9R18_ADMISSION_POSTCOMMIT_CONTEXT_R1_2C,V11R6_A9R18_FINANCE_REMAINING_FORM_TAIL_R1_2B1,V11R6_A9R18_FINANCE_NONTUITION_CONTEXT_TAIL_R1_2B,V11R6_A9R18_FINANCE_DELETE_CONTEXT_TAIL_R1_2A1,V11R6_A9R18_FINANCE_TUITION_INTENT_CONTEXT_R1_2A,V11R6_A9R18_FINANCE_TUITION_QUICKPAY_MONTH_AUTHORITY_R1_2,V11R6_A9R18_FINANCE_TUITION_SETTLEMENT_R1_1A,V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1,V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1,V11R6_A9R18_FINANCE_CANONICAL_POLICY_R1_2,V11R6_A9R18_ATTENDANCE_HISTORY_R1_1,V11R6_A9R18_ATTENDANCE_HISTORY_R1,V11R6_A9R18_USABILITY_PERF_R2R5_2B,V11R6_A9R18_USABILITY_PERF_R2R5_2,V11R6_A9R18_USABILITY_PERF_R2R5_1_SYNC,V11R6_A9R18_USABILITY_PERF_R2R5,V11R6_A9R18_USABILITY_PERF_R2R4_R6,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE,V11R6_A9R18_USABILITY_PERF_R2R2_C1,V11R6_A9R18_USABILITY_PERF_R2_RCACHE,V11R6_A9R18_USABILITY_SYNC_R1_U2,V11R6_A9R18_USABILITY_SYNC_R1_U1,V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+ const pinned=[V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1,V11R6_A9R18_FINANCE_WRITE_LATENCY_R1,V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B,V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A,V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A,V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3,V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1,V11R6_A9R18_QR_MULTIITEM_MEMO_RECONCILIATION_UI_R1_2D,V11R6_A9R18_ADMISSION_POSTCOMMIT_CONTEXT_R1_2C,V11R6_A9R18_FINANCE_REMAINING_FORM_TAIL_R1_2B1,V11R6_A9R18_FINANCE_NONTUITION_CONTEXT_TAIL_R1_2B,V11R6_A9R18_FINANCE_DELETE_CONTEXT_TAIL_R1_2A1,V11R6_A9R18_FINANCE_TUITION_INTENT_CONTEXT_R1_2A,V11R6_A9R18_FINANCE_TUITION_QUICKPAY_MONTH_AUTHORITY_R1_2,V11R6_A9R18_FINANCE_TUITION_SETTLEMENT_R1_1A,V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1,V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1,V11R6_A9R18_FINANCE_CANONICAL_POLICY_R1_2,V11R6_A9R18_ATTENDANCE_HISTORY_R1_1,V11R6_A9R18_ATTENDANCE_HISTORY_R1,V11R6_A9R18_USABILITY_PERF_R2R5_2B,V11R6_A9R18_USABILITY_PERF_R2R5_2,V11R6_A9R18_USABILITY_PERF_R2R5_1_SYNC,V11R6_A9R18_USABILITY_PERF_R2R5,V11R6_A9R18_USABILITY_PERF_R2R4_R6,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE,V11R6_A9R18_USABILITY_PERF_R2R2_C1,V11R6_A9R18_USABILITY_PERF_R2_RCACHE,V11R6_A9R18_USABILITY_SYNC_R1_U2,V11R6_A9R18_USABILITY_SYNC_R1_U1,V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

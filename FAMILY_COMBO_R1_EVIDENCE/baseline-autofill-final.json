@@ -1,0 +1,345 @@
+{
+  "sourceRoot": "/workspace/scratch/036ee6a06c71/r22/baseline",
+  "passed": 25,
+  "failed": 28,
+  "observations": [
+    {
+      "id": "A01",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A02",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A03",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A04",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A05",
+      "row": 1,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "STALE_TEXT",
+      "row": 1,
+      "name": "Bob",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A01",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A02",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A03",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A04",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "A05",
+      "row": 2,
+      "name": "Alice",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    },
+    {
+      "id": "STALE_TEXT",
+      "row": 2,
+      "name": "Bob",
+      "fee": 500000,
+      "display": "500.000",
+      "month": ""
+    }
+  ],
+  "outcomes": [
+    {
+      "name": "A01 combo1 canonical default",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n'' !== '2026-11'\n"
+    },
+    {
+      "name": "A01 combo1 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A01 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A02 combo1 canonical default",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n'' !== '2026-09'\n"
+    },
+    {
+      "name": "A02 combo1 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A02 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A03 combo1 canonical default",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n'' !== '2026-11'\n"
+    },
+    {
+      "name": "A03 combo1 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A03 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo1 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo1 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A04 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo1 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo1 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A05 combo1 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo1 quit not selectable",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo1 quit canonical authority returns no months",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo1 inactive canonical authority returns no months",
+      "result": "PASS"
+    },
+    {
+      "name": "B01 combo1 editing name clears all dependent state",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   display: '500.000',\n+   fee: 500000,\n-   display: '',\n-   fee: '',\n    month: '',\n    name: 'Bob'\n  }\n"
+    },
+    {
+      "name": "B02 combo1 zero fee never inherits previous fee",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n500000 !== ''\n"
+    },
+    {
+      "name": "B03 combo1 new month and fee are profile-bound",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n'' !== '2026-11'\n"
+    },
+    {
+      "name": "B04 combo1 focus without edit preserves selected state",
+      "result": "PASS"
+    },
+    {
+      "name": "B05 combo1 missing fee clears previous state",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n500000 !== ''\n"
+    },
+    {
+      "name": "B06 combo1 total refreshed",
+      "result": "PASS"
+    },
+    {
+      "name": "A01 combo2 canonical default",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n'' !== '2026-11'\n"
+    },
+    {
+      "name": "A01 combo2 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A01 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A02 combo2 canonical default",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n'' !== '2026-09'\n"
+    },
+    {
+      "name": "A02 combo2 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A02 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A03 combo2 canonical default",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n'' !== '2026-11'\n"
+    },
+    {
+      "name": "A03 combo2 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A03 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo2 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A04 combo2 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A04 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo2 canonical default",
+      "result": "PASS"
+    },
+    {
+      "name": "A05 combo2 delegates exact profile/horizon/reason",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "A05 combo2 zero SDK reads",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo2 quit not selectable",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo2 quit canonical authority returns no months",
+      "result": "PASS"
+    },
+    {
+      "name": "A06 combo2 inactive canonical authority returns no months",
+      "result": "PASS"
+    },
+    {
+      "name": "B01 combo2 editing name clears all dependent state",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   display: '500.000',\n+   fee: 500000,\n-   display: '',\n-   fee: '',\n    month: '',\n    name: 'Bob'\n  }\n"
+    },
+    {
+      "name": "B02 combo2 zero fee never inherits previous fee",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n500000 !== ''\n"
+    },
+    {
+      "name": "B03 combo2 new month and fee are profile-bound",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n'' !== '2026-11'\n"
+    },
+    {
+      "name": "B04 combo2 focus without edit preserves selected state",
+      "result": "PASS"
+    },
+    {
+      "name": "B05 combo2 missing fee clears previous state",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n500000 !== ''\n"
+    },
+    {
+      "name": "B06 combo2 total refreshed",
+      "result": "PASS"
+    },
+    {
+      "name": "A09 invalid horizon \"\" uses local month",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ undefined\n- '2026-11'\n"
+    },
+    {
+      "name": "A09 invalid horizon \"2026-13\" uses local month",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ undefined\n- '2026-11'\n"
+    },
+    {
+      "name": "A09 invalid horizon \"not-a-month\" uses local month",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ undefined\n- '2026-11'\n"
+    },
+    {
+      "name": "A10 canonical result order is preserved without local sorting",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n'' !== '2026-10'\n"
+    },
+    {
+      "name": "A11 missing canonical helper does not invent a month",
+      "result": "PASS"
+    }
+  ]
+}

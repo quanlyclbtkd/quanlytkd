@@ -13,7 +13,8 @@ const acceptedApp=Object.freeze({
   V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A:'21f410dbc3dbb41bf3a346f33d80f70eb2b3dc8877d6f6d99b2cee4ca2e26f30',
   V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A:'21f410dbc3dbb41bf3a346f33d80f70eb2b3dc8877d6f6d99b2cee4ca2e26f30',
   V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B:'a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4',
-  V11R6_A9R18_FINANCE_WRITE_LATENCY_R1:'a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4'
+  V11R6_A9R18_FINANCE_WRITE_LATENCY_R1:'a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4',
+  V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1:'34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf'
 });
 const extract=(a,b)=>{const i=app.indexOf(a),j=app.indexOf(b,i);if(i<0||j<=i)throw Error('R1_2D_GUARD_BOUNDARY_MISSING');return app.slice(i,j);};
 export function verifyQrMultiitemMemoR1_2DAppWaiver(targetRoot=root){
@@ -27,7 +28,7 @@ export function verifyQrMultiitemMemoR1_2DAppWaiver(targetRoot=root){
   if(sha(slice('    function _receiptTuitionMemo(', '    function _receiptQrMismatch('))!=='6065a1041150f195bb0337d65a0941ce6fa83dd719ad2512a794f0e944206a25') return {ok:false,reason:'R1_2D_TUITION_HELPER_DRIFT'};
   if(sha(slice('    async function _verifyReceiptQrPixels(', '    function _receiptFailureMessage('))!=='78160969cf25440769c8c907d289aee212ce6f1cac7d1aae29c2e01e03409080') return {ok:false,reason:'R1_2D_PIXEL_VALIDATOR_DRIFT'};
   if(!source.includes("breakdown.push({ kind: 'tuition'")||!source.includes("const _tuitionComponent = Array.isArray(breakdown)")) return {ok:false,reason:'R1_2D_MEMO_COVERAGE_HUNK_MISSING'};
-  if(['V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1','V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3','V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A','V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A','V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B','V11R6_A9R18_FINANCE_WRITE_LATENCY_R1'].includes(pin.id)){
+  if(['V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1','V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1','V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3','V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A','V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A','V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B','V11R6_A9R18_FINANCE_WRITE_LATENCY_R1'].includes(pin.id)){
     const start=source.indexOf('const _tuitionMemoMonths =');const section=source.slice(start,start+700);
     if(!(section.indexOf('_tuitionComponent')>=0&&section.indexOf('_tuitionComponent')<section.indexOf("type === 'Học phí' && txMonth")&&section.includes('const _memoPaymentContent = _tuitionComponent'))) return {ok:false,reason:'R1_2D1_MONTH_AUTHORITY_HUNK_MISSING'};
   }

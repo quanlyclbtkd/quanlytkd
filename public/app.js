@@ -4961,6 +4961,48 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (/^phieu bao(?:\s|$)/.test(label)) return 'REPORT';
         throw _receiptError('RECEIPT_KIND_UNKNOWN','request');
     }
+    // Family REPORT presentation only: no persisted ID, financial evidence or writer.
+    function _receiptFamilyTuitionMemo(breakdown) {
+        const rows = Array.isArray(breakdown) ? breakdown : []; const failReference = () => { throw _receiptError('FAMILY_MEMO_REFERENCE_UNAVAILABLE','intent'); };
+        if (rows.length < 1 || rows.length > 2 || rows.some(row =>
+            row?.kind !== 'tuition' || row.familyParticipant !== true || !String(row.studentName || '').trim() ||
+            !String(row.participantKey || '').trim() || !Array.isArray(row.packageMonths) || row.packageMonths.length !== 1 ||
+            !/^20\d{2}-(0[1-9]|1[0-2])$/.test(row.packageMonths[0])
+        )) throw _receiptError('FAMILY_MEMO_METADATA_INVALID','intent');
+        const reference = (key, profile) => {
+            for (const field of ['memberId','memberID','studentId']) {
+                const id = String(profile[field] ?? '').trim();
+                if (/^[A-Za-z0-9]{1,8}$/.test(id)) return id;
+            }
+            // FNV-1a reference from the existing key; collision-checked in current memory.
+            let hash = 2166136261;
+            for (let i=0;i<key.length;i++) hash = Math.imul(hash ^ key.charCodeAt(i),16777619) >>> 0;
+            return 'M'+hash.toString(36).toUpperCase().padStart(7,'0');
+        };
+        const seenKeys = new Set(), seenRefs = new Map();
+        const refs = rows.map(row => {
+            const key = String(row.participantKey).trim(), ref = reference(key,row), folded = ref.toUpperCase();
+            if (seenKeys.has(key) || seenRefs.has(folded)) failReference();
+            seenKeys.add(key); seenRefs.set(folded,key); return ref;
+        });
+        // Finance _profileKey projection only; references never resolve student identity.
+        const profiles = window.__store?.profiles || allProfiles;
+        for (const [name,profile] of Object.entries(profiles || {})) {
+            const p = profile || {}, key = String(p.profileId||p.id||p.uid||p.memberId||p.memberID||p.studentId||name||'').trim();
+            const ref = reference(key,p).toUpperCase();
+            if (seenRefs.has(ref) && seenRefs.get(ref) !== key) failReference();
+        }
+        const months = [...new Set(rows.map(row => row.packageMonths[0]))].sort();
+        const groups = new Map();
+        months.forEach(month => {const year=month.slice(0,4);if(!groups.has(year))groups.set(year,[]);groups.get(year).push('T'+Number(month.slice(5)));});
+        const periods = [...groups].map(([year,list])=>list.join(' ')+' '+year).join(' ');
+        const prefix = 'GD '+refs.join(' ')+' HP ';
+        let memo = prefix+periods;
+        // Exact YYYYMM tokens retain sparse cross-year periods if spacing is tight.
+        if (memo.length > 40) memo = prefix+months.map(month=>month.replace('-','')).join(' ');
+        if (!/^[A-Za-z0-9 ]+$/.test(memo) || memo.length > 40) failReference();
+        return memo;
+    }
     function _receiptPaymentMemo(name, detail, maxMemoLength = 48) {
         // Preserve all reference digits. The provider removes punctuation; make
         // that canonicalization explicit, visible on the receipt, and never truncate.
@@ -5049,6 +5091,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             QR_FETCH_NETWORK:'Không tải được mã QR. Kiểm tra kết nối rồi thử lại.',QR_FETCH_REDIRECT:'Địa chỉ ảnh QR chuyển hướng ngoài nguồn được phép. Đã chặn tải.',QR_FETCH_HTTP:'Nhà cung cấp QR trả lỗi. Thử tạo phiếu lại sau.',
             QR_TIMEOUT:'Tải hoặc kiểm tra QR quá thời hạn. Thử lại khi mạng ổn định.',QR_EMV_MISMATCH:'Nội dung mã QR không khớp phiếu. Đã chặn tải ảnh.',QR_DECODE_FAILED:'Không đọc được mã QR trong ảnh. Đã chặn tải ảnh.',
             QR_MIME:'Định dạng ảnh QR không được hỗ trợ.',QR_SVG_UNSAFE:'Ảnh QR có nội dung không được phép. Đã chặn tạo phiếu.',QR_BYTES_INVALID:'Dữ liệu ảnh QR không hợp lệ.',QR_MEDIA_INVALID:'Ảnh QR bị méo hoặc thiếu viền trắng.',CANVAS_EXPORT_FAILED:'Không xuất được ảnh phiếu. Kiểm tra trình duyệt.',PREVIEW_FAILED:'Không mở được ảnh xem trước.',MODAL_NOT_VISIBLE:'Khung xem phiếu chưa hiển thị.',DEBT_NOT_READY:'Báo nợ chưa có dữ liệu đã xác thực. Đợi tải xong rồi tạo lại.'};
+        if (reason === 'FAMILY_MEMO_REFERENCE_UNAVAILABLE') return `Chưa tạo được phiếu báo [${reason}]. Mã tham chiếu võ sinh bị trùng hoặc chưa thể xác định an toàn. Kiểm tra mã hội viên rồi tạo lại phiếu gia đình.`;
+        if (reason === 'FAMILY_MEMO_METADATA_INVALID') return `Chưa tạo được phiếu báo [${reason}]. Dữ liệu võ sinh hoặc kỳ học phí trong phiếu gia đình chưa hợp lệ. Mở lại phiếu gia đình.`;
         return `Chưa tạo được phiếu báo [${reason}]. ${messages[reason] || 'Vui lòng mở lại phiếu và thử lại.'}`;
     }
     function getPaymentAccountForBranch(branchCode, settings) {
@@ -6655,8 +6699,20 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
       const setupAutocomplete = (inputId, listId, mode) => {
         const inp = document.getElementById(inputId); const list = document.getElementById(listId);
+        const familyRow = mode === 'combo1' ? '1' : mode === 'combo2' ? '2' : '';
+        let familySelectedName = '';
+        const clearFamilyRow = () => {
+            if (!familyRow) return;
+            ['combo_month'+familyRow, 'combo_fee'+familyRow+'_actual', 'combo_fee'+familyRow+'_display'].forEach(id => {
+                const field = document.getElementById(id); if (field) field.value = '';
+            });
+            window.updateComboTotal();
+        };
         inp.onfocus = function() { if(this.value) this.oninput(); };
         inp.oninput = function() {
+            if (familyRow && (!familySelectedName || this.value !== familySelectedName)) {
+                familySelectedName = ''; clearFamilyRow();
+            }
             let val = this.value.toLowerCase().trim(); list.innerHTML = '';
             if(!val || (mode === 'inv' && document.getElementById('inv_type').value !== 'Xuất bán')) { list.style.display = 'none'; return; }
             let matches = Object.keys(allProfiles).filter(n => {
@@ -6681,11 +6737,20 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                             window.updateAmountByPackage();
                         }
                     } else if (mode === 'combo1' || mode === 'combo2') {
-                        let feeId = mode === 'combo1' ? 'combo_fee1_actual' : 'combo_fee2_actual';
-                        let dispId = mode === 'combo1' ? 'combo_fee1_display' : 'combo_fee2_display';
-                        if(allProfiles[name].tuitionFee) {
-                            document.getElementById(feeId).value = allProfiles[name].tuitionFee;
-                            document.getElementById(dispId).value = parseInt(allProfiles[name].tuitionFee, 10).toLocaleString('vi-VN');
+                        clearFamilyRow();
+                        const profile = allProfiles[name];
+                        if (profile) {
+                            familySelectedName = name;
+                            const fee = Number(profile.tuitionFee);
+                            if (Number.isFinite(fee) && fee > 0) {
+                                document.getElementById('combo_fee'+familyRow+'_actual').value = fee;
+                                document.getElementById('combo_fee'+familyRow+'_display').value = fee.toLocaleString('vi-VN');
+                            }
+                            const selectedMonth = String(document.getElementById('filterMonth')?.value || '').trim();
+                            const horizonMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(selectedMonth) ? selectedMonth : getLocalToday().slice(0,7);
+                            const owedMonths = typeof window.getChargeableTuitionMonths === 'function'
+                                ? window.getChargeableTuitionMonths(profile, horizonMonth, { reason: 'family-combo-autofill' }) : [];
+                            document.getElementById('combo_month'+familyRow).value = Array.isArray(owedMonths) && owedMonths.length ? owedMonths[0] : '';
                             window.updateComboTotal();
                         }
                     }
@@ -6903,9 +6968,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     : paymentContent;
                 let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
                 _setStage('intent');
-                const _verboseMemo=_receiptPaymentMemo(qrName,_memoPaymentContent,_tuitionMemoMonths ? 512 : 48);
-                const _canonicalMemo=_tuitionMemoMonths
-                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo) : _verboseMemo;
+                const _familyTuitionReport=Array.isArray(breakdown) && breakdown.some(row=>row?.familyParticipant === true);
+                const _verboseMemo=_familyTuitionReport ? '' : _receiptPaymentMemo(qrName,_memoPaymentContent,_tuitionMemoMonths ? 512 : 48);
+                const _canonicalMemo=_familyTuitionReport ? _receiptFamilyTuitionMemo(breakdown) : (_tuitionMemoMonths
+                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo) : _verboseMemo);
                 const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only', _canonicalMemo);
                 _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_canonicalMemo,intentKind:_kind});
                 _expectedMemoLength=_intent.memo.length;_providerEndpoint='vietqr-qr-only-svg';

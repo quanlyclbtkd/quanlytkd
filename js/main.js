@@ -363,7 +363,7 @@ import {
     debugSearchPerformance,
 } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
 // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-finance-write-latency-r1-20261105";
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=a9r18-family-combo-correctness-qr-r1-20261107";
 import { initInventory }                              from "./modules/inventory.js?v=a9r18-reachable-dom-trust-r1-4b-20261105";
 // Compatibility marker: from './modules/attendance.js'
 import { initAttendance }                             from "./modules/attendance.js?v=att-history-r1-1-20261031";
@@ -2488,7 +2488,7 @@ function _loadLegacyApp() {
     if (window.__appLoaded) return Promise.resolve();
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = "app.js?v=a9r18-qr-month-r1-2d1-20261103";
+        script.src = "app.js?v=a9r18-family-combo-correctness-qr-r1-20261107";
         script.onload  = () => resolve();
         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
         document.head.appendChild(script);

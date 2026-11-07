@@ -1,0 +1,98 @@
+[
+  {
+    "name": "qr-intent",
+    "command": [
+      "node",
+      "tools/check-qr-report-render-payment-intent.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 1.064
+  },
+  {
+    "name": "qr-account",
+    "command": [
+      "node",
+      "tools/check-qr-v4-payment-account-authority.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 2.643
+  },
+  {
+    "name": "a9r6",
+    "command": [
+      "node",
+      "tools/a9r6/qr-provider-memo-regression.test.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 0.071
+  },
+  {
+    "name": "generic-multiitem",
+    "command": [
+      "node",
+      "tools/check-qr-multiitem-memo-r1-2d1.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 1.491
+  },
+  {
+    "name": "finance-writer",
+    "command": [
+      "npm",
+      "run",
+      "check:finance-write-writer-matrix-r1-1"
+    ],
+    "returncode": 1,
+    "seconds": 0.345
+  },
+  {
+    "name": "finance-evidence",
+    "command": [
+      "npm",
+      "run",
+      "check:finance-write-evidence-r1-1"
+    ],
+    "returncode": 0,
+    "seconds": 0.572
+  },
+  {
+    "name": "tuition-month",
+    "command": [
+      "npm",
+      "run",
+      "check:finance-tuition-month-authority-r1-2"
+    ],
+    "returncode": 0,
+    "seconds": 0.255
+  },
+  {
+    "name": "tuition-context",
+    "command": [
+      "npm",
+      "run",
+      "check:finance-tuition-intent-context-r1-2a"
+    ],
+    "returncode": 0,
+    "seconds": 0.258
+  },
+  {
+    "name": "debt-authority",
+    "command": [
+      "npm",
+      "run",
+      "check:debt-authoritative-tuition-coverage"
+    ],
+    "returncode": 0,
+    "seconds": 0.209
+  },
+  {
+    "name": "tuition-source",
+    "command": [
+      "npm",
+      "run",
+      "check:tuition-debt-source-of-truth"
+    ],
+    "returncode": 0,
+    "seconds": 0.233
+  }
+]

@@ -1,0 +1,433 @@
+{
+  "sourceRoot": "/workspace/scratch/036ee6a06c71/r22/baseline",
+  "passed": 9,
+  "failed": 30,
+  "observations": [
+    {
+      "id": "F01 F02 F05 F09 long names / same month / member IDs / same account",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F03 different months",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-10",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F04 different years",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2027-01"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F06 one member ID missing",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F07 both IDs missing / longest cross-year periods",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2027-12"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F10 conflicting receiving accounts DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "ACCOUNT_ALIAS_CONFLICT",
+      "stage": "account",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F11 provider tail mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F12 provider head mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F13 provider case mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F14 provider amount mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F15 provider bank mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F16 provider account mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F21 duplicate compact references fail closed",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F22 reference collision against current profile cache fails closed",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F23 existing memberID/studentId priority",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F24 existing canonical name key fallback",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F25 actual derived-reference hash collision fails closed",
+      "result": false,
+      "receiptOK": false,
+      "reason": "MEMO_TOO_LONG",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    }
+  ],
+  "outcomes": [
+    {
+      "name": "F01 F02 F05 F09 long names / same month / member IDs / same account actual Family handler/receipt succeeds",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "name": "F17 report reaches zero SDK/business writers",
+      "result": "PASS"
+    },
+    {
+      "name": "F18 full names and participant-month mapping remain in receipt",
+      "result": "FAIL",
+      "reason": ""
+    },
+    {
+      "name": "F19 F20 canonical memo references everyone and all periods within local cap",
+      "result": "FAIL",
+      "reason": "The input did not match the regular expression /^[A-Za-z0-9 ]+$/. Input:\n\n''\n"
+    },
+    {
+      "name": "single exact memo at addInfo, visible transfer and independently decoded provider/preview pixels",
+      "result": "FAIL",
+      "reason": "The expression evaluated to a falsy value:\n\n  assert(good.h.document.getElementById('r_type').innerText.endsWith('Nội dung CK: '+good.memo))\n"
+    },
+    {
+      "name": "F03 different months actual Family handler/receipt succeeds",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "name": "F03 both distinct months represented without false range",
+      "result": "FAIL",
+      "reason": "The expression evaluated to a falsy value:\n\n  assert(different.memo.includes('T10 T11 2026'))\n"
+    },
+    {
+      "name": "F04 different years actual Family handler/receipt succeeds",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "name": "F04 both month/year pairs represented",
+      "result": "FAIL",
+      "reason": "The expression evaluated to a falsy value:\n\n  assert(cross.memo.includes('T11 2026 T1 2027'))\n"
+    },
+    {
+      "name": "F06 one member ID missing actual Family handler/receipt succeeds",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "name": "F07 both IDs missing / longest cross-year periods actual Family handler/receipt succeeds",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "name": "F07 bounded compact references retain both exact periods",
+      "result": "FAIL",
+      "reason": "The expression evaluated to a falsy value:\n\n  assert(bothMissing.memo.includes('202611')&&bothMissing.memo.includes('202712'))\n"
+    },
+    {
+      "name": "F08 repeated fallback build is deterministic",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "name": "F10 conflicting receiving accounts DENY",
+      "result": "PASS"
+    },
+    {
+      "name": "F10 denial occurs before provider",
+      "result": "PASS"
+    },
+    {
+      "name": "F11 provider tail mutation DENY",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'MEMO_TOO_LONG'\n- 'QR_EMV_MISMATCH'\n"
+    },
+    {
+      "name": "F11 exactly one provider response is audited, no financial write",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "F12 provider head mutation DENY",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'MEMO_TOO_LONG'\n- 'QR_EMV_MISMATCH'\n"
+    },
+    {
+      "name": "F12 exactly one provider response is audited, no financial write",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "F13 provider case mutation DENY",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'MEMO_TOO_LONG'\n- 'QR_EMV_MISMATCH'\n"
+    },
+    {
+      "name": "F13 exactly one provider response is audited, no financial write",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "F14 provider amount mutation DENY",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'MEMO_TOO_LONG'\n- 'QR_EMV_MISMATCH'\n"
+    },
+    {
+      "name": "F14 exactly one provider response is audited, no financial write",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "F15 provider bank mutation DENY",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'MEMO_TOO_LONG'\n- 'QR_EMV_MISMATCH'\n"
+    },
+    {
+      "name": "F15 exactly one provider response is audited, no financial write",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "F16 provider account mutation DENY",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'MEMO_TOO_LONG'\n- 'QR_EMV_MISMATCH'\n"
+    },
+    {
+      "name": "F16 exactly one provider response is audited, no financial write",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "F21 duplicate compact references fail closed",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'MEMO_TOO_LONG'\n- 'FAMILY_MEMO_REFERENCE_UNAVAILABLE'\n"
+    },
+    {
+      "name": "F22 reference collision against current profile cache fails closed",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'MEMO_TOO_LONG'\n- 'FAMILY_MEMO_REFERENCE_UNAVAILABLE'\n"
+    },
+    {
+      "name": "F23 existing memberID/studentId priority actual Family handler/receipt succeeds",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "name": "F23 first valid compact identifier wins",
+      "result": "FAIL",
+      "reason": "The expression evaluated to a falsy value:\n\n  assert(aliases.memo.includes('ALT001'))\n"
+    },
+    {
+      "name": "F24 existing canonical name key fallback actual Family handler/receipt succeeds",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "name": "F24 fallback never persists or adds an ID to profiles",
+      "result": "PASS"
+    },
+    {
+      "name": "F25 actual derived-reference hash collision fails closed",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'MEMO_TOO_LONG'\n- 'FAMILY_MEMO_REFERENCE_UNAVAILABLE'\n"
+    },
+    {
+      "name": "F25 hash collision is rejected before provider",
+      "result": "PASS"
+    },
+    {
+      "name": "PAY01 concurrent settlement PAID blocks entire atomic plan",
+      "result": "PASS"
+    },
+    {
+      "name": "PAY02 one atomic plan / two transactions / two profile updates",
+      "result": "PASS"
+    },
+    {
+      "name": "PAY03 pending ACK has no financial success/local promotion/receipt; double tap one writer",
+      "result": "PASS"
+    },
+    {
+      "name": "PAY04 rejected primary creates no local partial success or receipt",
+      "result": "PASS"
+    }
+  ]
+}
