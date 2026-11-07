@@ -1,0 +1,202 @@
+{
+  "phase": "A9R18-ADMISSION-R1.3A1",
+  "historicalGate": "check:admission-ui-draft-r1-3",
+  "canonicalGate": "check:admission-draft-snapshot-r1-3a",
+  "rows": [
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "R1_3_SAME_FORM_DRAFT_MODAL_REMAINS_OPEN",
+      "historicalInvariant": "Post-ACK edit on same form must keep modal open",
+      "r1_3aAssertion": "C01_EDIT_DURING_COMMIT_DRAFT_PRESERVED",
+      "classification": "R1_3A_STRONGER",
+      "reason": "R1.3A asserts both modal=open and Draft B value preservation after one committed A batch.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:C01",
+      "canonicalAssertionIds": [
+        "C01_EDIT_DURING_COMMIT_DRAFT_PRESERVED"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "R1_3_SAME_FORM_DRAFT_VALUE_PRESERVED",
+      "historicalInvariant": "Post-ACK Draft B must remain in current form",
+      "r1_3aAssertion": "C01_EDIT_DURING_COMMIT_DRAFT_PRESERVED",
+      "classification": "IDENTICAL",
+      "reason": "Both require the same-form post-commit Draft B to survive.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:C01",
+      "canonicalAssertionIds": [
+        "C01_EDIT_DURING_COMMIT_DRAFT_PRESERVED"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "R1_3_SAME_FORM_ONE_PRIMARY_BATCH",
+      "historicalInvariant": "Edit during commit must not create a second Admission primary batch",
+      "r1_3aAssertion": "C01_EDIT_DURING_COMMIT_ONE_A_COMMIT",
+      "classification": "IDENTICAL",
+      "reason": "Both assert exactly one A batch/commit for the scenario.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:C01",
+      "canonicalAssertionIds": [
+        "C01_EDIT_DURING_COMMIT_ONE_A_COMMIT"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "R1_3_SAME_FORM_DOMAIN_TAIL_CONTINUES",
+      "historicalInvariant": "Committed Draft A may still execute legitimate same-context post-ACK domain projection",
+      "r1_3aAssertion": "C01_EDIT_DURING_COMMIT_DOMAIN_TAIL_CONTINUES",
+      "classification": "IDENTICAL",
+      "reason": "R1.3A1 adds the exact existing financeMerge(A) observable from historical R1.3 without production instrumentation.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:C01",
+      "canonicalAssertionIds": [
+        "C01_EDIT_DURING_COMMIT_DOMAIN_TAIL_CONTINUES"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "R1.2C harness marker available",
+      "historicalInvariant": "Historical gate composes on canonical R1.2C behavioral harness",
+      "r1_3aAssertion": "R1.2C behavioral harness available",
+      "classification": "NON_BEHAVIORAL_METADATA_ONLY",
+      "reason": "This is harness-structure metadata; canonical R1.3A retains the same R1.2C harness availability check.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:17",
+      "canonicalAssertionIds": [
+        "R1.2C behavioral harness available"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "Behavioral same-form draft matrix",
+      "historicalInvariant": "Injected same-form scenario must execute successfully",
+      "r1_3aAssertion": "Behavioral R1.3A green matrix",
+      "classification": "OBSOLETE_BY_STRONGER_INVARIANT",
+      "reason": "The old subprocess aggregate is superseded by the three explicit canonical C01 assertions proving one A commit, legitimate same-context A domain tail, and Draft B preservation.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:182",
+      "canonicalAssertionIds": [
+        "C01_EDIT_DURING_COMMIT_ONE_A_COMMIT",
+        "C01_EDIT_DURING_COMMIT_DOMAIN_TAIL_CONTINUES",
+        "C01_EDIT_DURING_COMMIT_DRAFT_PRESERVED"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "Root/public students parity",
+      "historicalInvariant": "Admission source mirror remains identical",
+      "r1_3aAssertion": "Root/public students parity",
+      "classification": "IDENTICAL",
+      "reason": "Exact parity assertion is retained.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:201",
+      "canonicalAssertionIds": [
+        "Root/public students parity"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "Draft fingerprint helper exists",
+      "historicalInvariant": "Admission has one semantic draft capture/fingerprint owner",
+      "r1_3aAssertion": "Structured semantic draft helper exists",
+      "classification": "R1_3A_STRONGER",
+      "reason": "R1.3A requires the structured semantic snapshot helper and deterministic fingerprint function.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:202",
+      "canonicalAssertionIds": [
+        "Structured semantic draft helper exists"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "Fingerprint captured at Admission save boundary",
+      "historicalInvariant": "Original save-entry draft is captured before async preflight",
+      "r1_3aAssertion": "Original draft captured once before async prepare",
+      "classification": "R1_3A_STRONGER",
+      "reason": "R1.3A additionally enforces exactly one original draft capture before prepare.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:207",
+      "canonicalAssertionIds": [
+        "Original draft captured once before async prepare"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "Modal close requires same form and same draft",
+      "historicalInvariant": "Old ACK cannot close a changed/reopened form",
+      "r1_3aAssertion": "Post-ACK draft continuity preserved",
+      "classification": "IDENTICAL",
+      "reason": "Same form-instance + same draft predicate remains required in production source.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:223",
+      "canonicalAssertionIds": [
+        "Post-ACK draft continuity preserved"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "Fingerprint is UI-only and does not call Firestore/service writers",
+      "historicalInvariant": "Draft token must not become business/server authority",
+      "r1_3aAssertion": "Semantic draft helper is local/pure",
+      "classification": "R1_3A_STRONGER",
+      "reason": "R1.3A forbids Firestore, plan builders, Debt sync and receipt side effects from the helper.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:206",
+      "canonicalAssertionIds": [
+        "Semantic draft helper is local/pure"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "Existing one-batch Admission writer preserved",
+      "historicalInvariant": "One Save uses one canonical writeBatch/commit owner",
+      "r1_3aAssertion": "Existing one-batch writer preserved",
+      "classification": "IDENTICAL",
+      "reason": "Exact one writeBatch + one batch.commit source assertion remains.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:220",
+      "canonicalAssertionIds": [
+        "Existing one-batch writer preserved"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "No new Admission Firestore reads/listeners",
+      "historicalInvariant": "Admission draft continuity adds no read/listener owner",
+      "r1_3aAssertion": "No Admission Firestore read/listener added",
+      "classification": "IDENTICAL",
+      "reason": "Same source-level no getDoc/getDocs/onSnapshot invariant.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:221",
+      "canonicalAssertionIds": [
+        "No Admission Firestore read/listener added"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    },
+    {
+      "historicalGate": "check:admission-ui-draft-r1-3",
+      "historicalAssertion": "Existing double-submit guard preserved",
+      "historicalInvariant": "Rapid Save cannot create parallel Admission primary flow",
+      "r1_3aAssertion": "Existing submit mutex preserved",
+      "classification": "R1_3A_STRONGER",
+      "reason": "R1.3A requires guard set and release, and its behavioral matrix also proves a subsequent Save can proceed after stale abort.",
+      "evidence": "tools/check-admission-draft-snapshot-r1-3a.mjs:222,161-166",
+      "canonicalAssertionIds": [
+        "Existing submit mutex preserved",
+        "STALE_ABORT_RELEASES_SUBMIT_LOCK"
+      ],
+      "canonicalReferenceMode": "ACTUAL_R1_3A_CHECK_ID"
+    }
+  ],
+  "summary": {
+    "historicalAssertionCount": 14,
+    "mappedAssertionCount": 14,
+    "IDENTICAL": 7,
+    "R1_3A_STRONGER": 5,
+    "OBSOLETE_BY_STRONGER_INVARIANT": 1,
+    "NON_BEHAVIORAL_METADATA_ONLY": 1,
+    "R1_3_ONLY_MISSING": 0,
+    "unresolvedCanonicalReferences": 0
+  }
+}

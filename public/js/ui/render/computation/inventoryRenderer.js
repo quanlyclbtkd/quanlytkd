@@ -29,6 +29,7 @@
 import { formatDate } from "../../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 import { TransactionDeleteIntegrity } from '../../../core/transactionDeleteIntegrity.js';
+import { escapeHtml } from '../../../utils/helpers.js';
 
 // ── Phase 4K-2B: Fallback inv blob builder (used when getInventorySearchBlob unavailable) ──
 function _fallbackInvBlob(t) {
@@ -148,8 +149,11 @@ export function renderInventoryRow(key, stock) {
         'Áo thun': 'bg-purple-50 text-purple-700 border-purple-200',
         'Bảo hộ':  'bg-orange-50 text-orange-700 border-orange-200',
     };
-    const catBadge = `<span class="badge ${catColors[stock.category] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${stock.category}</span>`;
-    return `<tr data-inv-key="${key}"><td>${catBadge}</td><td class="font-bold text-slate-800">${stock.size}</td><td class="text-emerald-600 font-bold">+${inQty}</td><td class="text-rose-600 font-bold">-${outQty}</td><td class="${bal < 3 ? 'text-rose-600' : 'text-emerald-600'} font-black text-base">${bal}</td></tr>`;
+    const safeKey = escapeHtml(String(key || ''));
+    const safeCategory = escapeHtml(String(stock.category || ''));
+    const safeSize = escapeHtml(String(stock.size || ''));
+    const catBadge = `<span class="badge ${catColors[stock.category] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${safeCategory}</span>`;
+    return `<tr data-inv-key="${safeKey}"><td>${catBadge}</td><td class="font-bold text-slate-800">${safeSize}</td><td class="text-emerald-600 font-bold">+${inQty}</td><td class="text-rose-600 font-bold">-${outQty}</td><td class="${bal < 3 ? 'text-rose-600' : 'text-emerald-600'} font-black text-base">${bal}</td></tr>`;
 }
 
 /**
@@ -179,19 +183,26 @@ export function renderUniformTxRow(t, opts = {}) {
     const amountHtml = displayAmt > 0
         ? `<span class="font-bold ${isInc ? 'text-rose-600' : (isUnpaid ? 'text-orange-500' : 'text-emerald-600')}">${isInc ? '-' : '+'}${displayAmt.toLocaleString()}</span>`
         : `<span class="font-bold text-slate-400">0</span>`;
-    const descHtml   = (displayDesc || (isInc ? `Nhập ${t.size}` : `Xuất ${t.size}`)) + unpaidBadge;
+    const rawDesc = displayDesc || (isInc ? `Nhập ${t.size}` : `Xuất ${t.size}`);
+    const descHtml = escapeHtml(String(rawDesc || '')) + unpaidBadge;
     const txIdForDel = relTx && relTx.id ? String(relTx.id) : '';
     const txCat      = t.category || 'Võ phục';
+    const safeTxCat = escapeHtml(String(txCat || ''));
+    const safeSize = escapeHtml(String(t.size || ''));
+    const safeInvIdAttr = escapeHtml(String(t.id || ''));
+    const _token = (value) => encodeURIComponent(String(value || '')).replace(/'/g, '%27');
+    const invIdToken = _token(t.id);
+    const txIdToken = _token(txIdForDel);
     const txCatColors = {
         'Võ phục': 'bg-blue-50 text-blue-700 border-blue-200',
         'Áo thun': 'bg-purple-50 text-purple-700 border-purple-200',
         'Bảo hộ':  'bg-orange-50 text-orange-700 border-orange-200',
     };
-    const txCatBadge = `<span class="badge ${txCatColors[txCat] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${txCat}</span>`;
+    const txCatBadge = `<span class="badge ${txCatColors[txCat] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${safeTxCat}</span>`;
     const markPaidBtn = (isUnpaid && isAdmin)
-        ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="markInvPaid('${t.id}')">✅ Đã thu</button>`
+        ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="markInvPaid(decodeURIComponent('${invIdToken}'))">✅ Đã thu</button>`
         : '';
-    return `<tr data-inv-id="${t.id || ''}" class="${isUnpaid ? 'inv-unpaid-row' : ''}"><td class="text-slate-500 text-[0.85rem]">${formatDate(t.date)}</td><td class="font-bold text-blue-700 text-[0.9rem]">${descHtml}</td><td>${typeBadge}</td><td>${txCatBadge} <span class="badge bg-slate-50 text-slate-700 border border-slate-200 text-[0.75rem] ml-1">${t.size}</span></td><td>${amountHtml}</td><td class="action-btns">${markPaidBtn}${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white" onclick="deleteTx('${txIdForDel}', '${t.id}')">🗑</button>` : ''}</td></tr>`;
+    return `<tr data-inv-id="${safeInvIdAttr}" class="${isUnpaid ? 'inv-unpaid-row' : ''}"><td class="text-slate-500 text-[0.85rem]">${formatDate(t.date)}</td><td class="font-bold text-blue-700 text-[0.9rem]">${descHtml}</td><td>${typeBadge}</td><td>${txCatBadge} <span class="badge bg-slate-50 text-slate-700 border border-slate-200 text-[0.75rem] ml-1">${safeSize}</span></td><td>${amountHtml}</td><td class="action-btns">${markPaidBtn}${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white" onclick="deleteTx(decodeURIComponent('${txIdToken}'), decodeURIComponent('${invIdToken}'))">🗑</button>` : ''}</td></tr>`;
 }
 
 // ── Core computation ──────────────────────────────────────────────────────────

@@ -524,6 +524,566 @@ const V11R6_A9R18_USABILITY_PERF_R2R4_R6 = Object.freeze({
 
 
 
+// R1.4B reachable production DOM trust-boundary security closure.
+// Append-only reviewed source identity; prior pins remain immutable.
+const V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B = Object.freeze({
+  "id": "V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "21134a6e5a8bb624842ace091602632f1871e8bb4835051495bdd965415efcb5",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B.json",
+  "manifestSHA256": "f8f870ecc6ba7e49a469668fbe2980fcdf053ed73b8cbb4cb7da16a42d03c359",
+  "runtimeSHA256": "d4ab70385aea52654e475a13b5f34c1f7528e8be3f890793417a3194d1ac92f8",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+  "cacheLineageScopes": [
+      {
+          "token": "a9r18-reachable-dom-trust-r1-4b-20261105",
+          "edges": [
+              [
+                  "index.html",
+                  "app.js"
+              ],
+              [
+                  "index.html",
+                  "js/main.js"
+              ],
+              [
+                  "js/main.js",
+                  "js/core/superAdminServerRefresh.js"
+              ],
+              [
+                  "js/main.js",
+                  "js/ui/render.js"
+              ],
+              [
+                  "js/main.js",
+                  "js/core/multiItemInventorySafety.js"
+              ],
+              [
+                  "js/main.js",
+                  "js/modules/students.js"
+              ],
+              [
+                  "js/main.js",
+                  "js/modules/inventory.js"
+              ],
+              [
+                  "js/main.js",
+                  "js/modules/dashboard.js"
+              ],
+              [
+                  "js/ui/render.js",
+                  "js/modules/dashboard.js"
+              ],
+              [
+                  "js/ui/render.js",
+                  "js/ui/render/computation/inventoryRenderer.js"
+              ]
+          ]
+      },
+      {
+          "token": "a9r18-qr-month-r1-2d1-20261103",
+          "edges": [
+              [
+                  "js/main.js",
+                  "app.js"
+              ]
+          ]
+      },
+      {
+          "token": "a9r18-qr-memo-r1-2d-20261103",
+          "edges": [
+              [
+                  "js/main.js",
+                  "js/modules/finance.js"
+              ],
+              [
+                  "js/main.js",
+                  "js/ui/render/renderFinance.js"
+              ],
+              [
+                  "js/modules/finance.js",
+                  "js/modules/finance/finance.pagination.js"
+              ],
+              [
+                  "js/modules/finance.js",
+                  "js/ui/render/renderFinance.js"
+              ]
+          ]
+      },
+      {
+          "token": "a9r18-fin-nontuition-r1-2b-20261103",
+          "edges": [
+              [
+                  "js/main.js",
+                  "js/core/tuitionCommandBoundary.js"
+              ],
+              [
+                  "js/core/tuitionCommandBoundary.js",
+                  "js/services/finance.service.js"
+              ],
+              [
+                  "js/modules/finance.js",
+                  "js/services/finance.service.js"
+              ],
+              [
+                  "js/modules/students.js",
+                  "js/services/finance.service.js"
+              ],
+              [
+                  "js/modules/students.js",
+                  "js/services/inventory.service.js"
+              ],
+              [
+                  "js/services/finance.service.js",
+                  "js/services/inventory.service.js"
+              ],
+              [
+                  "js/modules/inventory.js",
+                  "js/services/inventory.service.js"
+              ],
+              [
+                  "js/modules/students.js",
+                  "js/modules/students.js"
+              ]
+          ]
+      },
+      {
+          "token": "att-history-r1-1-20261031",
+          "edges": [
+              [
+                  "js/main.js",
+                  "js/modules/attendance.js"
+              ],
+              [
+                  "js/main.js",
+                  "js/modules/reports/reportExportFacade.js"
+              ],
+              [
+                  "js/modules/attendance.js",
+                  "js/services/attendance.service.js"
+              ],
+              [
+                  "js/modules/reports/reportExportFacade.js",
+                  "js/modules/reports/attendanceExcelReport.js"
+              ]
+          ]
+      }
+  ]
+});
+
+// R1.4A canonical Student/Profile DOM trust-boundary security fix.
+// Append-only reviewed source identity; prior pins remain immutable.
+const V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A = Object.freeze({
+  "id": "V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "7269276d5cdb9a9b392a33eeb2f2bc0bd7826a857ab03e299cf4e9d72b22a870",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A.json",
+  "manifestSHA256": "7d026eaa699152fd563db53998948af009bb18fc036c4ee1f75edf92d84e9098",
+  "runtimeSHA256": "01e2c493977032dd9fa6bbc785679d93fefe209d107fa06034f271756cd17d32",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+  "cacheLineageScopes": [
+    {
+      "token": "a9r18-student-profile-dom-trust-r1-4a-20261103",
+      "edges": [
+        [
+          "index.html",
+          "js/main.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/students.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-qr-month-r1-2d1-20261103",
+      "edges": [
+        [
+          "index.html",
+          "app.js"
+        ],
+        [
+          "js/main.js",
+          "app.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-qr-memo-r1-2d-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/modules/finance.js"
+        ],
+        [
+          "js/main.js",
+          "js/ui/render/renderFinance.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/modules/finance/finance.pagination.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/ui/render/renderFinance.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-fin-nontuition-r1-2b-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/core/tuitionCommandBoundary.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/inventory.js"
+        ],
+        [
+          "js/core/tuitionCommandBoundary.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/services/finance.service.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/inventory.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/modules/students.js"
+        ]
+      ]
+    },
+    {
+      "token": "att-history-r1-1-20261031",
+      "edges": [
+        [
+          "js/main.js",
+          "js/modules/attendance.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/reports/reportExportFacade.js"
+        ],
+        [
+          "js/modules/attendance.js",
+          "js/services/attendance.service.js"
+        ],
+        [
+          "js/modules/reports/reportExportFacade.js",
+          "js/modules/reports/attendanceExcelReport.js"
+        ]
+      ]
+    }
+  ]
+});
+
+const V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A = Object.freeze({
+  "id": "V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "33d7a7935d170d4e03166d6a6430307029d71e552d7f08dca21bfc747653277b",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A.json",
+  "manifestSHA256": "00861c3f943afd9925b529f505d0ecf374153b0274951778dd1defa72affceec",
+  "runtimeSHA256": "ab010037049e0903dfe300364dcd2057bc89a45bc11eeddad0465b66329f8f20",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+  "cacheLineageScopes": [
+    {
+      "token": "a9r18-admission-draft-r1-3a-20261103",
+      "edges": [
+        [
+          "index.html",
+          "js/main.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/students.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-qr-month-r1-2d1-20261103",
+      "edges": [
+        [
+          "index.html",
+          "app.js"
+        ],
+        [
+          "js/main.js",
+          "app.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-qr-memo-r1-2d-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/modules/finance.js"
+        ],
+        [
+          "js/main.js",
+          "js/ui/render/renderFinance.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/modules/finance/finance.pagination.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/ui/render/renderFinance.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-fin-nontuition-r1-2b-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/core/tuitionCommandBoundary.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/inventory.js"
+        ],
+        [
+          "js/core/tuitionCommandBoundary.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/services/finance.service.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/inventory.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/modules/students.js"
+        ]
+      ]
+    },
+    {
+      "token": "att-history-r1-1-20261031",
+      "edges": [
+        [
+          "js/main.js",
+          "js/modules/attendance.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/reports/reportExportFacade.js"
+        ],
+        [
+          "js/modules/attendance.js",
+          "js/services/attendance.service.js"
+        ],
+        [
+          "js/modules/reports/reportExportFacade.js",
+          "js/modules/reports/attendanceExcelReport.js"
+        ]
+      ]
+    }
+  ]
+});
+
+const V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3 = Object.freeze({
+  "id": "V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "fd29342d75e3ac1a7b9dc479cb67411f8de643564788255f077b65111336f992",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3.json",
+  "manifestSHA256": "8fa987c2ccf7f94e6c0a0e5b2c99f16185f96f4d22c7ad3716bb8054e84cf306",
+  "runtimeSHA256": "620fa9d0fd015c846c70895d16e918d7eb1d4015296ad2087fad53415612bfd0",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+  "cacheLineageScopes": [
+    {
+      "token": "a9r18-sync-startup-r1-3-20261103",
+      "edges": [
+        [
+          "index.html",
+          "js/main.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/students.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-qr-month-r1-2d1-20261103",
+      "edges": [
+        [
+          "index.html",
+          "app.js"
+        ],
+        [
+          "js/main.js",
+          "app.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-qr-memo-r1-2d-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/modules/finance.js"
+        ],
+        [
+          "js/main.js",
+          "js/ui/render/renderFinance.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/modules/finance/finance.pagination.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/ui/render/renderFinance.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-fin-nontuition-r1-2b-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/core/tuitionCommandBoundary.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/inventory.js"
+        ],
+        [
+          "js/core/tuitionCommandBoundary.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/services/finance.service.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/inventory.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/modules/students.js"
+        ]
+      ]
+    },
+    {
+      "token": "att-history-r1-1-20261031",
+      "edges": [
+        [
+          "js/main.js",
+          "js/modules/attendance.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/reports/reportExportFacade.js"
+        ],
+        [
+          "js/modules/attendance.js",
+          "js/services/attendance.service.js"
+        ],
+        [
+          "js/modules/reports/reportExportFacade.js",
+          "js/modules/reports/attendanceExcelReport.js"
+        ]
+      ]
+    }
+  ]
+});
+
+const V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1 = Object.freeze({
+  id:'V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1',
+  canonicalFileCount:129,
+  coachAssignmentContract:'server-verified-multi-branch-v1',
+  inputZIP_SHA256:'5cedefabf59628030132eaf1198254bac063a402dc4ad8d651cfd9e9102caf6d',
+  manifest:'tools/v11r2/manifests/V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1.json',
+  manifestSHA256:'bc0780dfcf61b668c299e3fda91d9e36012ac5c5d71daad6c4a04f92a0ee1ea9',
+  runtimeSHA256:'9ff4b711cbf7abbd8b48c4ef43a3e5eb260038e6ae9d80fadf0442d40bd32e48',
+  rulesSHA256:'1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3',
+  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
+  buildTag:'qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029',
+  cacheLineageScopes:[
+    {token:'a9r18-qr-month-r1-2d1-20261103',edges:[
+      ['index.html','app.js'],['index.html','js/main.js'],['js/main.js','app.js']
+    ]},
+    {token:'a9r18-qr-memo-r1-2d-20261103',edges:[
+      ['js/main.js','js/modules/finance.js'],['js/main.js','js/ui/render/renderFinance.js'],
+      ['js/modules/finance.js','js/modules/finance/finance.pagination.js'],
+      ['js/modules/finance.js','js/ui/render/renderFinance.js']
+    ]},
+    {token:'a9r18-admission-r1-2c-20261103',edges:[['js/main.js','js/modules/students.js']]},
+    {token:'a9r18-fin-nontuition-r1-2b-20261103',edges:[
+      ['js/main.js','js/core/tuitionCommandBoundary.js'],['js/main.js','js/modules/inventory.js'],
+      ['js/core/tuitionCommandBoundary.js','js/services/finance.service.js'],
+      ['js/modules/finance.js','js/services/finance.service.js'],['js/modules/students.js','js/services/finance.service.js'],
+      ['js/modules/students.js','js/services/inventory.service.js'],['js/services/finance.service.js','js/services/inventory.service.js'],
+      ['js/modules/inventory.js','js/services/inventory.service.js'],['js/modules/students.js','js/modules/students.js']
+    ]},
+    {token:'att-history-r1-1-20261031',edges:[
+      ['js/main.js','js/modules/attendance.js'],['js/main.js','js/modules/reports/reportExportFacade.js'],
+      ['js/modules/attendance.js','js/services/attendance.service.js'],
+      ['js/modules/reports/reportExportFacade.js','js/modules/reports/attendanceExcelReport.js']
+    ]}
+  ]
+});
+
 const V11R6_A9R18_QR_MULTIITEM_MEMO_RECONCILIATION_UI_R1_2D = Object.freeze({
   id:'V11R6_A9R18_QR_MULTIITEM_MEMO_RECONCILIATION_UI_R1_2D',
   canonicalFileCount:129,
@@ -956,8 +1516,162 @@ const V11R6_A9R18_USABILITY_PERF_R2R5_2 = Object.freeze({
   "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
 });
 
+// Exact partial feedback candidate; source authentication is not phase completion or deployment approval.
+const V11R6_A9R18_FINANCE_WRITE_LATENCY_R1 = Object.freeze({
+  "id": "V11R6_A9R18_FINANCE_WRITE_LATENCY_R1",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "529930bd95bc0e25f29e045bc957f9a88de48d49e74adf0d99372aeb8a0b85e2",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_FINANCE_WRITE_LATENCY_R1.json",
+  "manifestSHA256": "81416ca5f5d94cd57a0b02b0700575a374ce3cb9120d57016b36a9c6455019e3",
+  "runtimeSHA256": "e949f421e4851af6d178630f5da64a7b2d31f3120641ca9d49b6d539d237ccf6",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029",
+  "cacheLineageScopes": [
+    {
+      "token": "a9r18-finance-write-latency-r1-20261105",
+      "edges": [
+        [
+          "index.html",
+          "js/main.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/finance.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-reachable-dom-trust-r1-4b-20261105",
+      "edges": [
+        [
+          "index.html",
+          "app.js"
+        ],
+        [
+          "js/main.js",
+          "js/core/superAdminServerRefresh.js"
+        ],
+        [
+          "js/main.js",
+          "js/ui/render.js"
+        ],
+        [
+          "js/main.js",
+          "js/core/multiItemInventorySafety.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/students.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/inventory.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/dashboard.js"
+        ],
+        [
+          "js/ui/render.js",
+          "js/modules/dashboard.js"
+        ],
+        [
+          "js/ui/render.js",
+          "js/ui/render/computation/inventoryRenderer.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-qr-month-r1-2d1-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "app.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-qr-memo-r1-2d-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/ui/render/renderFinance.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/modules/finance/finance.pagination.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/ui/render/renderFinance.js"
+        ]
+      ]
+    },
+    {
+      "token": "a9r18-fin-nontuition-r1-2b-20261103",
+      "edges": [
+        [
+          "js/main.js",
+          "js/core/tuitionCommandBoundary.js"
+        ],
+        [
+          "js/core/tuitionCommandBoundary.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/finance.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/finance.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/services/finance.service.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/inventory.js",
+          "js/services/inventory.service.js"
+        ],
+        [
+          "js/modules/students.js",
+          "js/modules/students.js"
+        ]
+      ]
+    },
+    {
+      "token": "att-history-r1-1-20261031",
+      "edges": [
+        [
+          "js/main.js",
+          "js/modules/attendance.js"
+        ],
+        [
+          "js/main.js",
+          "js/modules/reports/reportExportFacade.js"
+        ],
+        [
+          "js/modules/attendance.js",
+          "js/services/attendance.service.js"
+        ],
+        [
+          "js/modules/reports/reportExportFacade.js",
+          "js/modules/reports/attendanceExcelReport.js"
+        ]
+      ]
+    }
+  ]
+});
+
 export function verifySourceIdentity(root, actualRuntimeSHA256) {
- const pinned=[V11R6_A9R18_QR_MULTIITEM_MEMO_RECONCILIATION_UI_R1_2D,V11R6_A9R18_ADMISSION_POSTCOMMIT_CONTEXT_R1_2C,V11R6_A9R18_FINANCE_REMAINING_FORM_TAIL_R1_2B1,V11R6_A9R18_FINANCE_NONTUITION_CONTEXT_TAIL_R1_2B,V11R6_A9R18_FINANCE_DELETE_CONTEXT_TAIL_R1_2A1,V11R6_A9R18_FINANCE_TUITION_INTENT_CONTEXT_R1_2A,V11R6_A9R18_FINANCE_TUITION_QUICKPAY_MONTH_AUTHORITY_R1_2,V11R6_A9R18_FINANCE_TUITION_SETTLEMENT_R1_1A,V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1,V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1,V11R6_A9R18_FINANCE_CANONICAL_POLICY_R1_2,V11R6_A9R18_ATTENDANCE_HISTORY_R1_1,V11R6_A9R18_ATTENDANCE_HISTORY_R1,V11R6_A9R18_USABILITY_PERF_R2R5_2B,V11R6_A9R18_USABILITY_PERF_R2R5_2,V11R6_A9R18_USABILITY_PERF_R2R5_1_SYNC,V11R6_A9R18_USABILITY_PERF_R2R5,V11R6_A9R18_USABILITY_PERF_R2R4_R6,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE,V11R6_A9R18_USABILITY_PERF_R2R2_C1,V11R6_A9R18_USABILITY_PERF_R2_RCACHE,V11R6_A9R18_USABILITY_SYNC_R1_U2,V11R6_A9R18_USABILITY_SYNC_R1_U1,V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+ const pinned=[V11R6_A9R18_FINANCE_WRITE_LATENCY_R1,V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B,V11R6_A9R18_STUDENT_PROFILE_DOM_TRUST_BOUNDARY_R1_4A,V11R6_A9R18_ADMISSION_DRAFT_SNAPSHOT_R1_3A,V11R6_A9R18_SYNC_STARTUP_STABILITY_R1_3,V11R6_A9R18_QR_MULTIITEM_MONTH_AUTHORITY_R1_2D1,V11R6_A9R18_QR_MULTIITEM_MEMO_RECONCILIATION_UI_R1_2D,V11R6_A9R18_ADMISSION_POSTCOMMIT_CONTEXT_R1_2C,V11R6_A9R18_FINANCE_REMAINING_FORM_TAIL_R1_2B1,V11R6_A9R18_FINANCE_NONTUITION_CONTEXT_TAIL_R1_2B,V11R6_A9R18_FINANCE_DELETE_CONTEXT_TAIL_R1_2A1,V11R6_A9R18_FINANCE_TUITION_INTENT_CONTEXT_R1_2A,V11R6_A9R18_FINANCE_TUITION_QUICKPAY_MONTH_AUTHORITY_R1_2,V11R6_A9R18_FINANCE_TUITION_SETTLEMENT_R1_1A,V11R6_A9R18_FINANCE_WRITE_EVIDENCE_R1_1,V11R6_A9R18_FINANCE_STUDENTS_BSTATS_OWNERSHIP_R1_1,V11R6_A9R18_FINANCE_CANONICAL_POLICY_R1_2,V11R6_A9R18_ATTENDANCE_HISTORY_R1_1,V11R6_A9R18_ATTENDANCE_HISTORY_R1,V11R6_A9R18_USABILITY_PERF_R2R5_2B,V11R6_A9R18_USABILITY_PERF_R2R5_2,V11R6_A9R18_USABILITY_PERF_R2R5_1_SYNC,V11R6_A9R18_USABILITY_PERF_R2R5,V11R6_A9R18_USABILITY_PERF_R2R4_R6,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE,V11R6_A9R18_USABILITY_PERF_R2R2_C1,V11R6_A9R18_USABILITY_PERF_R2_RCACHE,V11R6_A9R18_USABILITY_SYNC_R1_U2,V11R6_A9R18_USABILITY_SYNC_R1_U1,V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

@@ -73,6 +73,55 @@ function _comboValidatedIntents(rows){const out=[],seen=new Set();for(const raw 
         const amount=_positiveAmount(raw.amountRaw),profile=_profiles()[studentName];if(!studentName||amount==null||!_vMonth(month)||!profile)throw Object.assign(new Error('Thu gộp không hợp lệ.'),{code:'combo/invalid-row'});
         const profileId=_profileKey(studentName,profile);if(!profileId||seen.has(profileId))throw Object.assign(new Error('Võ sinh bị trùng trong thu gộp.'),{code:'combo/duplicate-profile'});seen.add(profileId);out.push({profileId,studentName,amount,month,profile,order:raw.order})}if(!out.length)throw Object.assign(new Error('Chưa có khoản thu.'),{code:'combo/no-active-row'});return out}
 function _detachFeeAudit(d){try{void Promise.resolve(FinanceService.addFeeAuditSilent(d)).catch(e=>console.warn('[fee-audit]',e))}catch(e){console.warn('[fee-audit]',e)}}
+
+// Presentation only. The existing command, ACK and profile listener retain
+// financial authority. Completion never depends on a timer or Debt readiness.
+const _tuitionFeedbackTokens = new Set();
+let _tuitionFeedbackNode = null;
+let _tuitionFeedbackRevision = 0;
+function _beginTuitionFeedback() {
+    const token = {};
+    _tuitionFeedbackTokens.add(token);
+    _tuitionFeedbackRevision++;
+    try {
+        if (!_tuitionFeedbackNode && typeof document !== 'undefined' && document.body) {
+            const node = document.createElement('div');
+            node.id = 'tuitionWriteStatus';
+            node.setAttribute('role', 'status');
+            node.setAttribute('aria-live', 'polite');
+            node.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom, 0px));width:fit-content;max-width:calc(100vw - 24px);margin:auto;padding:12px 16px;border-radius:12px;background:#0f172a;color:#fff;font-size:14px;line-height:1.5;box-shadow:0 4px 18px #0003;z-index:10050;pointer-events:none;';
+            node.textContent = 'Đang xác minh và ghi khoản thu…';
+            document.body.appendChild(node);
+            _tuitionFeedbackNode = node;
+        }
+    } catch (error) { console.warn('[finance.js] Tuition feedback unavailable:', error); }
+    return () => {
+        _tuitionFeedbackTokens.delete(token);
+        if (!_tuitionFeedbackTokens.size) {
+            try { _tuitionFeedbackNode?.remove(); } catch (_) {}
+            _tuitionFeedbackNode = null;
+        }
+    };
+}
+function _queueTuitionReceipt(name, result, expectedContext, revision) {
+    // Invoke the existing receipt owner now so it captures the ACK's context.
+    // Only its completion is detached; its QR validation and queue are intact.
+    const current = () => _finCtxCurrent(expectedContext) && revision === _tuitionFeedbackRevision;
+    const unavailable = error => {
+        console.warn('[finance.js] Canonical payment preserved; receipt unavailable:', error);
+        if (current()) window.showToast('✅ Đã thu học phí thành công. Biên lai chưa tạo được. Không thu lại khoản tiền này. Có thể xuất lại biên lai từ giao dịch đã lưu.', 6500);
+    };
+    // Preserve every valid request to the existing queue; revision scopes only
+    // the adapter's late warning, not whether an acknowledged receipt is made.
+    if (!_finCtxCurrent(expectedContext) || !window.exportReceipt) return;
+    try {
+        const breakdown = [{ label: 'Học phí ' + result.monthLabel, amount: result.amount }];
+        const receipt = window.exportReceipt(name, result.amount, 'Học phí', result.txDate || getLocalToday(), result.paidMonths.join(','), result.branch, '', 'BIÊN LAI THU TIỀN', breakdown);
+        void Promise.resolve(receipt).then(value => {
+            if (value?.ok === false) unavailable(value.reason || value.error);
+        }).catch(unavailable);
+    } catch (error) { unavailable(error); }
+}
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang FinanceService / StudentService */
 
 
@@ -261,17 +310,19 @@ export function initFinance() {
         let amount;
         if(skipPrompt&&defaultFee&&Number(String(defaultFee).replace(/\D/g,''))>0)amount=Number(String(defaultFee).replace(/\D/g,''));
         else{const d=defaultFee?parseInt(defaultFee,10).toLocaleString('vi-VN'):'0',input=prompt(`XÁC NHẬN THU HỌC PHÍ\nVõ sinh: ${cleanName}\nKỳ học phí: ${monthLabel}\n\nNhập số tiền thu (VNĐ):`,d);if(input===null)return false;amount=Number(input.replace(/\D/g,''));if(amount<=0){window.showToast('⚠️ Số tiền không hợp lệ!',2500);return false;}}
+        const endFeedback = _beginTuitionFeedback(), receiptRevision = _tuitionFeedbackRevision;
         try{
             if(!window.TuitionCommandBoundary?.collectTuition)throw new Error('[V5U-2] TuitionCommandBoundary chưa sẵn sàng.');
             const result=await window.TuitionCommandBoundary.collectTuition({studentName:cleanName,months:monthsList,branch:branch||'CS1',amount,source:'finance.quickPay',expectedContext:intent.financialContext,intentProfileId:intent.profileId,tuitionFeeSnapshot:intent.tuitionFee});
-            if(!result||result.cancelled||result.ok===false){if(/context-stale|intent-/.test(String(result?.reason||'')))_staleTuitionToast();return false;}
+            if(!result||result.cancelled||result.ok===false){if(/context-stale|intent-/.test(String(result?.reason||'')))_staleTuitionToast();else if(_finCtxCurrent(intent.financialContext))window.showToast('⚠️ Khoản thu chưa được thực hiện. Chưa xác minh được dữ liệu hoặc kỳ học phí không còn hợp lệ. Vui lòng kiểm tra lại trước khi thu.',6000);return false;}
             if(result.alreadySettled===true&&!result.txId){window.showToast('ℹ️ Khoản học phí này đã được ghi nhận là đã đóng. Không thu thêm tiền. Hãy dùng giao dịch đã lưu để In lại biên lai.',6500);return true;}
             if(result.primaryCommitted===true&&(result.postCommitContextCurrent===false||!_finCtxCurrent(intent.financialContext))){window.showToast('✅ Khoản thu đã được ghi thành công tại CLB trước. Phiên hiện tại đã thay đổi nên dữ liệu hiển thị/biên lai chưa được cập nhật tại màn hình này. Không thu lại khoản tiền này.',7500);return true;}
             const monthsLabel=result.paidMonths.map(m=>{const[y,mo]=String(m).split('-');return`tháng ${parseInt(mo,10)}/${y}`}).join(', ');
             window.showToast(result.completedReplay?'ℹ️ Khoản học phí này đã được thu. Đang mở lại biên lai, không thu thêm tiền.':(result.paidMonths.length>1?`✅ ${cleanName} đóng học phí ${monthsLabel} (${result.paidMonths.length} tháng)!`:`✅ ${cleanName} đóng học phí ${monthsLabel}!`));
-            if(window.exportReceipt){try{const breakdown=[{label:'Học phí '+result.monthLabel,amount:result.amount}],receiptResult=await window.exportReceipt(cleanName,result.amount,'Học phí',result.txDate||getLocalToday(),result.paidMonths.join(','),result.branch,'','BIÊN LAI THU TIỀN',breakdown);if(receiptResult&&receiptResult.ok===false){console.warn('[finance.js] Canonical payment preserved; receipt unavailable:',receiptResult.reason,receiptResult.error||'');window.showToast('✅ Đã thu học phí thành công. Biên lai chưa tạo được. Không thu lại khoản tiền này. Có thể xuất lại biên lai từ giao dịch đã lưu.',6500)}}catch(receiptError){console.warn('[finance.js] Thu học phí thành công nhưng xuất biên lai lỗi:',receiptError);window.showToast('✅ Đã thu học phí. Biên lai chưa xuất được, có thể in lại trong tab Học phí.',4500)}}
+            _queueTuitionReceipt(cleanName, result, intent.financialContext, receiptRevision);
             return true;
         }catch(error){console.error('[finance.js] quickPay lỗi:',error);if(error?.code==='finance/write-context-stale'){_staleTuitionToast();return false;}if(error?.partialWrite===true)window.showToast('⚠️ Giao dịch đã được ghi nhưng hồ sơ học phí chưa cập nhật. Hệ thống đã làm mới dữ liệu để đối chiếu.',5000);else window.showToast('⚠️ Lỗi hệ thống, vui lòng thử lại!',4000);return false;}
+        finally { endFeedback(); }
     };
 
     window.openQuickPayModal = (name, owedMonthsStr, branch) => {
@@ -459,6 +510,7 @@ export function initFinance() {
             return false;
         }
         _txFormEl.dataset.atomicSubmitInFlight = '1';
+        const endFeedback = isTuition ? _beginTuitionFeedback() : () => {};
         try {
             const monthsToRecord = [];
             if (isTuition) {
@@ -590,6 +642,7 @@ export function initFinance() {
                 : '❌ Không thể lưu khoản thu. Chưa có dữ liệu tài chính dở dang được ghi.');
             return false;
         } finally {
+            endFeedback();
             delete _txFormEl.dataset.atomicSubmitInFlight;
         }
     };

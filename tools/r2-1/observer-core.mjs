@@ -1,0 +1,196 @@
+// Staging-only observation of EXISTING owners. No SDK creation, query mutation,
+// Firestore listener, telemetry, timer, financial decision or persisted state.
+export function installObserver(w, options, createRecorder) {
+  options=options||{};
+  const level=options.environment;
+  if(!['STAGING','UNIT_TEST'].includes(level))throw Error('R21_EXPLICIT_ENVIRONMENT_REQUIRED');
+  const F=w.FinanceService;
+  if(!F||typeof w.quickPay!=='function'||typeof F.getCompleteMonthEvidence!=='function'||typeof F.commitAtomicWritePlan!=='function')throw Error('R21_EXISTING_OWNER_NOT_READY');
+  if(level==='STAGING'){
+    const actual=w.__store?.db?.app?.options?.projectId,host=w.location?.hostname;
+    if(!options.expectedProjectId||actual!==options.expectedProjectId||actual==='quanly-tst'||!Array.isArray(options.allowedHosts)||!options.allowedHosts.includes(host))throw Error('R21_STAGING_PROJECT_AND_HOST_NOT_VERIFIED');
+  }
+  if(w.__financeLatencyObserverR21Active)throw Error('R21_ALREADY_INSTALLED');
+  const nativeThen=w.Promise?.prototype?.then||Promise.prototype.then;
+  const traces=[],active=new Set(),flights=new Set(),untracked=new Set(),restores=[],gaps=new Set();
+  let restored=false,domObserver=null;
+  const now=()=>({performanceNow:w.performance.now(),dateNow:w.Date.now()});
+  const safe=(fn,fallback=null)=>{try{return fn();}catch(_){gaps.add('DIAGNOSTIC_FAILURE');return fallback;}};
+  const notify=()=>safe(()=>{if(typeof options.onEvent==='function')options.onEvent();});
+  const core=()=>F.captureFinancialWriteContext();
+  const keyName=value=>String(value||'').replace(/\\'/g,"'").trim();
+  const profileId=name=>{const p=w.__store?.profiles?.[name]||{};return String(p.profileId||p.id||p.uid||p.memberId||p.memberID||p.studentId||name);};
+  const contextFor=t=>({...core(),profileId:profileId(t.name),ready:w.__verifiedAuthContextState?.ready,role:w.userRole});
+  const sameCore=(a,b)=>!!a&&!!b&&['clubId','uid','generation','sessionEpoch','authGeneration'].every(k=>a[k]===b[k]);
+  const current=t=>sameCore(t.core,core())&&t.ownerRole===w.userRole&&t.profileId===profileId(t.name)&&F.isFinancialWriteContextCurrent(t.core)===true;
+  const diagRows=()=>{const d=w.getDebtSyncDiagnostics?.()||{};const map=new Map();for(const r of [...(d.history||[]),...(d.active||[])])if(r?.operationId)map.set(r.operationId,r);return Array.from(map.values());};
+  const metrics=()=>{const m=F.getWriteEvidenceMetrics?.();return m?{reads:m.reads,singleFlightHits:m.singleFlightHits,requests:(m.requests||[]).map(r=>({...r}))}:null;};
+  const cleanSource=s=>['canonical','byTxMonth','byDate','byPackageMonth'].includes(s)?s:null;
+  const finite=x=>Number.isFinite(x)?x:null;
+  const elapsed=(a,b,k)=>a&&b&&Number.isFinite(a[k])&&Number.isFinite(b[k])?b[k]-a[k]:null;
+  const dateDelta=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)?b-a:null;
+  // Same presentation key as the existing Debt diagnostic owner; RAM only.
+  // Never export this key because it contains the search/filter values.
+  const debtContext=()=>JSON.stringify([String(w.__store?.clubId||w.currentClubId||''),String(w.document?.getElementById('filterMonth')?.value||w.__store?.selectedMonth||''),String(w.document?.getElementById('filterBranch')?.value||w.__store?.selectedBranch||'all'),String(w.document?.getElementById('searchInput')?.value||w.__store?.search||''),String(w.getDebtOverdueFilterValue?.()??w.__store?._debtOverdueFilter??'')]);
+  function observeReturn(value,resolve,reject){
+    const ok=v=>safe(()=>{if(!restored)resolve(v);});
+    const bad=e=>safe(()=>{if(!restored)reject(e);});
+    if(value&&(typeof value==='object'||typeof value==='function')){
+      // Do not inspect or assimilate arbitrary thenables: even a getter could
+      // have business side effects. Native Promise reactions preserve the
+      // original returned promise. A non-native object remains unobserved.
+      try{Reflect.apply(nativeThen,value,[ok,bad]);return;}catch(_){gaps.add('NON_NATIVE_RETURN_NOT_OBSERVED');return;}
+    }
+    ok(value);
+  }
+  function patch(object,name,make){
+    if(!object||typeof object[name]!=='function'){gaps.add('HOOK_UNAVAILABLE_'+name);return;}
+    const original=object[name],wrapped=make(original);
+    try{object[name]=wrapped;if(object[name]!==wrapped)throw Error();restores.push(()=>{if(object[name]===wrapped)object[name]=original;else gaps.add('OWNER_CHANGED_'+name);});}
+    catch(_){gaps.add('HOOK_READONLY_'+name);}
+  }
+  function oneActive(){
+    if(active.size!==1){if(active.size>1)for(const t of active){t.ambiguous=true;t.rec.setAmbiguous();}return null;}
+    return active.values().next().value;
+  }
+  function visible(){const el=w.document?.getElementById('debtList');if(!el?.isConnected)return false;return !!el.getClientRects?.().length&&w.getComputedStyle?.(el)?.visibility!=='hidden';}
+  function refreshSync(t){
+    if(!current(t)){t.syncState='SYNC_STALE_CONTEXT';t.rec.setSyncStatus(t.syncState);return;}
+    const rows=diagRows();
+    if(t.debtContextAtStart!==debtContext()){t.syncState='SYNC_STALE_CONTEXT';t.rec.setSyncStatus(t.syncState);return;}
+    const eligible=rows.filter(r=>r.action==='tuition.collect'&&r.club===t.core.clubId&&Number(r.authGeneration||0)===Number(t.core.generation||0)&&r.debtContextKey===t.debtContextAtStart&&!t.beforeIds.has(r.operationId));
+    if(!t.operationId){
+      if(eligible.length>1){t.syncAmbiguous=true;t.syncState='SYNC_PENDING';return;}
+      if(eligible.length===1)t.operationId=eligible[0].operationId;
+    }
+    const row=rows.find(r=>r.operationId===t.operationId);
+    if(row){
+      if(t.operationContextKey!==null&&t.operationContextKey!==row.debtContextKey){t.syncState='SYNC_STALE_CONTEXT';t.rec.setSyncStatus(t.syncState);return;}
+      t.operationContextKey=row.debtContextKey;
+      t.diag=Object.fromEntries(['actionStart','primaryWriteStart','primaryWriteAckAt','profilePendingSnapshotAt','profileServerFreshAt','debtRefreshRequestedAt','debtComputeStartAt','debtComputeEndAt','debtRenderAt','syncClearedAt'].map(k=>[k,finite(row[k])]));
+      if(row.cancelled||row.planningRetireReason==='authority-or-context-changed'){t.syncState='SYNC_STALE_CONTEXT';t.rec.setSyncStatus(t.syncState);return;}
+    }
+    const isVisible=visible();t.rec.setSyncVisibility(isVisible);
+    if(t.commandReturnAt&&!t.primaryAckAt)t.syncState='SYNC_NOT_APPLICABLE';
+    else if(!isVisible)t.syncState='SYNC_NOT_VISIBLE';
+    else if(t.diag?.profileServerFreshAt!==null&&Number.isFinite(t.diag?.profileServerFreshAt)&&Number.isFinite(t.diag?.debtComputeEndAt)&&t.debtDomMutationAt)t.syncState='SYNC_COMPLETE';
+    else t.syncState='SYNC_PENDING';
+    t.rec.setSyncStatus(t.syncState);
+  }
+  function begin(args){
+    const name=keyName(args[0]),months=String(args[1]||'').split(',').map(x=>x.trim()).filter(x=>/^\d{4}-(0[1-9]|1[0-2])$/.test(x));
+    const t={name,profileId:profileId(name),ownerRole:w.userRole,months,core:core(),debtContextAtStart:debtContext(),beforeIds:new Set(diagRows().map(r=>r.operationId)),metricsBefore:metrics(),metricsAfter:null,entries:[],pages:[],getDocsObserved:0,pageSamplingLost:false,strictCoverageObserved:0,ambiguous:active.size>0,syncAmbiguous:false,syncState:'SYNC_PENDING',operationId:null,operationContextKey:null,diag:null,actionStartAt:now(),commitStartAt:null,primaryAckAt:null,commitFailureAt:null,commandReturnAt:null,successFeedbackAt:null,receiptInvocationAt:null,receiptResolvedAt:null,receiptRejectedAt:null,debtDomMutationAt:null,commitAttempts:0,untrackedOverlap:untracked.size>0};
+    t.rec=createRecorder({enabled:true,clock:()=>w.performance.now(),context:()=>contextFor(t),level});
+    const modes=months.map(m=>F.captureWriteEvidenceContext?.(m,t.core)?.readMode);t.mode=modes.length&&modes.every(m=>m==='canonical')?'CANONICAL':modes.length&&modes.every(m=>m==='legacy')?'LEGACY':modes.every(m=>['canonical','legacy'].includes(m))?'MIXED':'UNKNOWN';
+    t.rec.begin({commandType:options.flow==='DebtCollect'?'DebtCollect':'QuickPay',monthCount:months.length,evidenceMode:t.mode});
+    if(active.size){for(const old of active){old.ambiguous=true;old.rec.setAmbiguous();}t.rec.setAmbiguous();}
+    traces.push(t);while(traces.length>80)traces.shift();active.add(t);notify();return t;
+  }
+  patch(w,'quickPay',original=>async function(...args){
+    const t=safe(()=>begin(args));
+    try{return await Reflect.apply(original,this,args);}
+    finally{if(t)active.delete(t);safe(()=>{if(!t)return;t.commandReturnAt=now();t.rec.mark('commandReturn');t.metricsAfter=metrics();refreshSync(t);notify();});}
+  });
+  patch(F,'getCurrentMonthEvidenceForWrite',original=>function(...args){
+    const value=Reflect.apply(original,this,args);
+    safe(()=>{const t=oneActive();if(t&&t.months.includes(args[0]?.month)&&value?.strictCurrentCoverageComplete===true&&value?.serverComplete===true&&value?.contextStillCurrent===true)t.strictCoverageObserved++;});
+    return value;
+  });
+  patch(F,'getCompleteMonthEvidence',original=>function(...args){
+    const t=safe(()=>oneActive()),stack=safe(()=>String(new Error().stack),'');
+    const appCaller=stack.includes('_resolveTuitionSettlementForWrite')&&stack.includes('tuitionCommandBoundary.js');
+    const tracked=t&&t.months.includes(args[0]?.month)&&(appCaller||(level==='UNIT_TEST'&&options.allowDirectUnitEvidence===true));
+    let entry=null,other=null;
+    safe(()=>{
+      if(tracked){entry={trace:t,start:now(),end:null,status:'PENDING',source:null,serverComplete:null,contextStillCurrent:null,pageCount:null,documentCount:null,sources:[]};t.entries.push(entry);flights.add(entry);if(untracked.size)t.untrackedOverlap=true;}
+      else {other={};untracked.add(other);for(const candidate of active)candidate.untrackedOverlap=true;for(const f of flights)f.trace.untrackedOverlap=true;}
+    });
+    const finish=(value,error)=>safe(()=>{if(entry){entry.end=now();entry.status=error?'REJECTED':'RESOLVED';if(!error){entry.source=value?.source==='strict-current-coverage'?'strict-current-coverage':null;entry.serverComplete=value?.serverComplete===true;entry.contextStillCurrent=value?.contextStillCurrent===true;entry.pageCount=finite(value?.pageCount);entry.documentCount=finite(value?.documentCount);entry.sources=(value?.sources||[]).map(s=>({source:cleanSource(s.source),pageCount:finite(s.pageCount),documentCount:finite(s.documentCount),paginationComplete:s.paginationComplete===true,allPagesServerConfirmed:s.allPagesServerConfirmed===true}));}flights.delete(entry);}if(other)untracked.delete(other);});
+    try{const value=Reflect.apply(original,this,args);observeReturn(value,v=>finish(v,false),()=>finish(null,true));return value;}
+    catch(error){finish(null,true);throw error;}
+  });
+  if(options.sampleGetDocs!==false)patch(w._fb_init,'getDocs',original=>function(...args){
+    const item=safe(()=>{
+      const owners=new Set(Array.from(flights,x=>x.trace));if(owners.size!==1)return null;const t=owners.values().next().value;
+      const stack=String(new Error().stack);if(!stack.includes('_readCompleteQuerySource')||!stack.includes('finance.service.js'))return null;
+      if(t.untrackedOverlap){t.pageSamplingLost=true;return null;}
+      const page={sequence:++t.getDocsObserved,start:now(),end:null,status:'PENDING',returnedDocuments:null};if(t.pages.length<400)t.pages.push(page);else t.pageSamplingLost=true;return{t,page};
+    });
+    const finish=(value,error)=>safe(()=>{if(!item)return;item.page.end=now();item.page.status=error?'REJECTED':'RESOLVED';if(!error)item.page.returnedDocuments=finite(value?.docs?.length);});
+    try{const value=Reflect.apply(original,this,args);observeReturn(value,v=>finish(v,false),()=>finish(null,true));return value;}
+    catch(error){finish(null,true);throw error;}
+  });
+  patch(F,'commitAtomicWritePlan',original=>function(...args){
+    const t=safe(()=>{const x=oneActive(),plan=args[0];return x&&sameCore(x.core,plan?.expectedContext)&&plan?.transactions?.length>0&&plan?.profileUpdates?.some(p=>p.studentName===x.name)?x:null;});
+    safe(()=>{if(t){t.commitAttempts++;t.commitStartAt=now();t.rec.mark('commitStart');refreshSync(t);}});
+    try{const value=Reflect.apply(original,this,args);observeReturn(value,()=>safe(()=>{if(t){t.primaryAckAt=now();t.rec.mark('primaryAck');refreshSync(t);notify();}}),()=>safe(()=>{if(t)t.commitFailureAt=now();}));return value;}
+    catch(error){safe(()=>{if(t)t.commitFailureAt=now();});throw error;}
+  });
+  patch(w,'showToast',original=>function(...args){
+    const result=Reflect.apply(original,this,args);
+    safe(()=>{const t=oneActive(),text=String(args[0]||'');if(t&&t.primaryAckAt&&current(t)&&text.startsWith('✅')&&text.includes(t.name)&&text.includes('đóng học phí')){t.successFeedbackAt=now();t.rec.mark('successFeedback');}});return result;
+  });
+  patch(w,'exportReceipt',original=>function(...args){
+    const t=safe(()=>{const x=oneActive();return x&&x.primaryAckAt&&keyName(args[0])===x.name?x:null;});
+    safe(()=>{if(t){t.receiptInvocationAt=now();t.rec.mark('receiptQueued');}});
+    try{const value=Reflect.apply(original,this,args);observeReturn(value,()=>safe(()=>{if(t)t.receiptResolvedAt=now();}),()=>safe(()=>{if(t)t.receiptRejectedAt=now();}));return value;}
+    catch(error){safe(()=>{if(t)t.receiptRejectedAt=now();});throw error;}
+  });
+  safe(()=>{
+    const el=w.document?.getElementById('debtList');if(!el||typeof w.MutationObserver!=='function'){gaps.add('DEBT_DOM_OBSERVER_NOT_MOUNTED');return;}
+    domObserver=new w.MutationObserver(records=>safe(()=>{
+      if(restored||!records?.length||!visible())return;const stamp=now();
+      for(const t of traces){refreshSync(t);const d=t.diag;if(t.operationId&&!t.syncAmbiguous&&current(t)&&Number.isFinite(d?.profileServerFreshAt)&&Number.isFinite(d?.debtComputeEndAt)&&Number.isFinite(d?.debtRenderAt)&&stamp.dateNow>=d.debtComputeEndAt&&!t.debtDomMutationAt){t.debtDomMutationAt=stamp;refreshSync(t);}}
+      notify();
+    }));domObserver.observe(el,{childList:true,subtree:true,characterData:true});
+  });
+  function metricDelta(t){
+    const before=t.metricsBefore,after=t.metricsAfter||(t.commandReturnAt?null:metrics());
+    if(!before||!after)return{status:'UNAVAILABLE',pageCount:null,singleFlightHitsDelta:null,serverEvidenceRequestsAdded:null,requests:[]};
+    const reads=after.reads-before.reads,hits=after.singleFlightHits-before.singleFlightHits;if(reads<0||hits<0)return{status:'COUNTER_RESET',pageCount:null,singleFlightHitsDelta:null,serverEvidenceRequestsAdded:null,requests:[]};
+    const b=before.requests,a=after.requests;let overlap=0;
+    for(let n=Math.min(b.length,a.length);n>0;n--)if(JSON.stringify(b.slice(-n))===JSON.stringify(a.slice(0,n))){overlap=n;break;}
+    const compatible=!b.length||overlap>0||(!a.length&&reads===0);const added=compatible?a.slice(overlap):[];
+    const scoped=added.every(x=>x.club===t.core.clubId&&t.months.includes(x.month));
+    return{status:compatible&&scoped&&!t.untrackedOverlap?'SCOPED_OWNER_DELTA':'AMBIGUOUS_OWNER_DELTA',pageCount:reads,singleFlightHitsDelta:hits,serverEvidenceRequestsAdded:compatible?added.length:null,requests:added.map(r=>({semanticSources:(r.semanticSources||[]).map(cleanSource).filter(Boolean),pageCount:finite(r.pageCount),documentCount:finite(r.documentCount),serverConfirmed:r.serverConfirmed===true}))};
+  }
+  function exportTrace(t){
+    if(!restored)safe(()=>refreshSync(t));const row=t.rec.export()[0],delta=metricDelta(t);
+    const sourceSet=new Set([...delta.requests.flatMap(r=>r.semanticSources),...t.entries.flatMap(e=>e.sources.map(s=>s.source).filter(Boolean))]);
+    let classification='UNKNOWN';
+    if(!t.untrackedOverlap&&!t.ambiguous&&delta.status==='SCOPED_OWNER_DELTA'){
+      if(t.strictCoverageObserved&&delta.pageCount===0)classification='STRICT_CURRENT_COVERAGE';
+      else if(!t.entries.length&&delta.pageCount===0)classification='NO_SERVER_EVIDENCE';
+      else if(t.entries.length&&t.entries.every(e=>e.status==='RESOLVED'&&e.source==='strict-current-coverage'))classification='STRICT_CURRENT_COVERAGE';
+      else if(t.entries.some(e=>e.status==='REJECTED'||e.serverComplete===false||e.contextStillCurrent===false))classification='UNKNOWN';
+      else if(sourceSet.has('canonical')&&sourceSet.size>1)classification='MIXED';
+      else if(sourceSet.has('canonical'))classification='SERVER_CANONICAL';
+      else if(sourceSet.size)classification='SERVER_LEGACY';
+    }
+    const d=t.diag||{},ackDate=d.primaryWriteAckAt;
+    const observedDocs=t.pages.every(p=>p.returnedDocuments!==null)?t.pages.reduce((n,p)=>n+p.returnedDocuments,0):null;
+    const pageSamplingComplete=!t.pageSamplingLost&&!t.untrackedOverlap&&options.sampleGetDocs!==false&&!gaps.has('HOOK_READONLY_getDocs')&&!gaps.has('HOOK_UNAVAILABLE_getDocs')&&delta.status==='SCOPED_OWNER_DELTA'&&delta.pageCount===t.getDocsObserved;
+    // Union of observed request intervals; shared or overlapping calls must
+    // not double-count the same wall-clock interval.
+    let evidenceDuration=null;
+    if((t.entries.length||['NO_SERVER_EVIDENCE','STRICT_CURRENT_COVERAGE'].includes(classification))&&t.entries.every(e=>e.end)){let end=-Infinity,total=0;for(const [a,b]of t.entries.map(e=>[e.start.performanceNow,e.end.performanceNow]).sort((a,b)=>a[0]-b[0])){total+=Math.max(0,b-Math.max(end,a));end=Math.max(end,b);}evidenceDuration=total;}
+    const completePageAccounting=delta.status==='SCOPED_OWNER_DELTA'&&t.entries.every(e=>Number.isFinite(e.pageCount));
+    return{...row,evidenceLevel:level,observerGaps:Array.from(gaps),ambiguous:t.ambiguous||row.ambiguous,syncAmbiguous:t.syncAmbiguous,syncState:t.syncState,debtDomStatus:t.syncState==='SYNC_NOT_VISIBLE'?'DEBT_DOM_NOT_VISIBLE':t.syncAmbiguous?'DEBT_DOM_AMBIGUOUS':t.syncState==='SYNC_STALE_CONTEXT'?'DEBT_DOM_STALE_CONTEXT':t.debtDomMutationAt?'DEBT_DOM_OBSERVED':'DEBT_DOM_PENDING',operationId:/^sync-[A-Za-z0-9-]+$/.test(t.operationId||'')?t.operationId:null,
+      primaryWriteClassification:t.primaryAckAt?'PRIMARY_WRITE_ACKNOWLEDGED':t.ambiguous||row.financialStale||gaps.has('HOOK_READONLY_commitAtomicWritePlan')||gaps.has('HOOK_UNAVAILABLE_commitAtomicWritePlan')?'PRIMARY_WRITE_UNKNOWN':t.commitAttempts?(t.commitFailureAt?'PRIMARY_WRITE_FAILED':'PRIMARY_WRITE_PENDING'):t.commandReturnAt?'NO_PRIMARY_WRITE':'PRIMARY_WRITE_PENDING',
+      evidenceClassification:classification,exactFastSubsource:classification==='NO_SERVER_EVIDENCE'?'NOT_OBSERVED':null,readMode:t.mode,
+      serverEvidenceCallCount:t.entries.length,serverEvidenceRequestsAdded:delta.status==='SCOPED_OWNER_DELTA'?delta.serverEvidenceRequestsAdded:null,singleFlightHitsDelta:delta.status==='SCOPED_OWNER_DELTA'?delta.singleFlightHitsDelta:null,
+      semanticSources:Array.from(sourceSet),semanticSourceCount:sourceSet.size||['NO_SERVER_EVIDENCE','STRICT_CURRENT_COVERAGE'].includes(classification)?sourceSet.size:null,semanticSourceExecutions:delta.status==='SCOPED_OWNER_DELTA'?delta.requests.reduce((n,r)=>n+r.semanticSources.length,0):null,pageCount:completePageAccounting?delta.pageCount:null,documentCount:completePageAccounting&&delta.requests.every(r=>r.documentCount!==null)?delta.requests.reduce((n,r)=>n+r.documentCount,0):null,
+      getDocsInvocationCount:pageSamplingComplete?t.getDocsObserved:null,getDocsObservedInvocationCount:t.getDocsObserved,getDocsSamples:t.pages.map(p=>({...p,duration:elapsed(p.start,p.end,'performanceNow')})),getDocsSamplingComplete:pageSamplingComplete,returnedPageDocuments:pageSamplingComplete?observedDocs:null,ownerMetricsDelta:delta,
+      evidenceCalls:t.entries.map(e=>({start:e.start,end:e.end,status:e.status,source:e.source,serverComplete:e.serverComplete,contextStillCurrent:e.contextStillCurrent,pageCount:e.pageCount,documentCount:e.documentCount,sources:e.sources})),
+      receipt:{invocationAt:t.receiptInvocationAt,resolvedAt:t.receiptResolvedAt,rejectedAt:t.receiptRejectedAt},
+      debtDiagnosticsDateNow:{...d,debtHtmlRetrievedAt:d.debtRenderAt??null,debtRenderAt:undefined},debtDomMutationAt:t.debtDomMutationAt,
+      latency:{T_action_to_primaryAck:elapsed(t.actionStartAt,t.primaryAckAt,'performanceNow'),T_primaryAck_to_commandReturn:elapsed(t.primaryAckAt,t.commandReturnAt,'performanceNow'),T_primaryAck_to_successFeedback:elapsed(t.primaryAckAt,t.successFeedbackAt,'performanceNow'),T_serverEvidence_total:evidenceDuration,T_commit:elapsed(t.commitStartAt,t.primaryAckAt,'performanceNow'),T_ack_to_profileServerFresh:dateDelta(ackDate,d.profileServerFreshAt),T_profileServerFresh_to_computeStart:dateDelta(d.profileServerFreshAt,d.debtComputeStartAt),T_debtCompute:dateDelta(d.debtComputeStartAt,d.debtComputeEndAt),T_ack_to_debtHtmlRetrieved:dateDelta(ackDate,d.debtRenderAt),T_ack_to_actualDebtDomMutation:dateDelta(ackDate,t.debtDomMutationAt?.dateNow),T_observerAck_to_actualDebtDomMutation:elapsed(t.primaryAckAt,t.debtDomMutationAt,'performanceNow')},
+      clockDomains:{observer:'performance.now()',debt:'existing Date.now() diagnostics',dom:'both clocks at MutationObserver delivery; not physical paint'},actionStartDefinition:'confirmed QuickPay invocation; initial Debt button/modal dwell not included',domAttributionDefinition:'first visible Debt island mutation after matched operation server-fresh, compute-end and HTML-retrieval markers; coalesced operation renders can share one mutation',billing:'NOT MEASURED — invocation, page and document counts are distinct'};
+  }
+  const api=Object.freeze({
+    snapshot(){return safe(()=>({observer:'R2.1',evidenceLevel:level,installed:!restored,gaps:Array.from(gaps),traces:traces.map(exportTrace)}),{observer:'R2.1',evidenceLevel:level,installed:!restored,gaps:['DIAGNOSTIC_FAILURE'],traces:[]});},
+    exportJSON(){return JSON.stringify(api.snapshot(),null,2);},
+    restore(){if(restored)return;safe(()=>{for(const t of traces)refreshSync(t);});restored=true;safe(()=>domObserver?.disconnect());for(const restore of restores.reverse())safe(restore);if(w.__financeLatencyObserverR21Active===api)delete w.__financeLatencyObserverR21Active;}
+  });
+  w.__financeLatencyObserverR21Active=api;return api;
+}

@@ -114,7 +114,10 @@ export function initInventory() {
     window.getCategoryOptionHtml = () => {
         const cats = window.getInvCategories();
         const icons = { 'Võ phục': '🥋', 'Áo thun': '👕', 'Bảo hộ': '🛡️' };
-        return cats.map(c => `<option value="${c}">${icons[c] || '📦'} ${c}</option>`).join('');
+        return cats.map(c => {
+            const safeCategory = escapeHtml(String(c));
+            return `<option value="${safeCategory}">${icons[c] || '📦'} ${safeCategory}</option>`;
+        }).join('');
     };
 
     // ════════════════════════════════════════════════════════════

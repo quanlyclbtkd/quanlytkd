@@ -65,7 +65,7 @@ check('Student pagination fallback cannot overwrite authoritative quit list',
   students.includes('if (_isQuitAuthoritativeLoaded()) return false') &&
   students.includes("target.querySelector('tr[data-quit-id], tr[data-student-id]')"));
 check('Fallback/pagination quit rows use data-quit-id for DOM parity',
-  students.includes('data-quit-id="${_esc}"') && students.includes('data-quit-id="${_a}"'));
+  (students.includes('data-quit-id="${_esc}"') || students.includes('data-quit-id="${_safeNameHtml}"')) && students.includes('data-quit-id="${_a}"'));
 check('Debug separation counts data-quit-id rows as well as legacy data-student-id',
   students.includes("#quitList tr[data-quit-id], #quitList tr[data-student-id]") &&
   students.includes('r.dataset.quitId || r.dataset.studentId'));
@@ -80,7 +80,7 @@ check('Mobile quit control is created outside the scrollable table when missing'
   renderStudents.includes("ctrlEl.setAttribute('data-mobile-quit-control', '1')") &&
   renderStudents.includes('parent.insertBefore(ctrlEl, anchor.nextSibling)'));
 check('Legacy renderApp quit rows also use data-quit-id and legacy quit date fields',
-  read('app.js').includes('data-quit-id="${safeNameEscaped}"') &&
+  (read('app.js').includes('data-quit-id="${safeNameEscaped}"') || read('app.js').includes('data-quit-id="${window.escapeHtml(String(name || \'\'))}"')) &&
   read('app.js').includes('p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate'));
 check('Quit renderer uses legacy quit date fields in module row render as well',
   read('js/ui/render/computation/studentsRenderer.js').includes('p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate'));

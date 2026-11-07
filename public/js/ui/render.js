@@ -35,9 +35,10 @@ import {
     renderExamBranchFees,
     updateSummaryNumbers,
     getDashboardCanonicalStatsSnapshot,
-} from "../modules/dashboard.js?v=a9r18-bstats-r1-1-20261031";
+} from "../modules/dashboard.js?v=a9r18-reachable-dom-trust-r1-4b-20261105";
 
 import { store } from '../store.js';
+import { escapeHtml } from '../utils/helpers.js';
 import {
     formatDate,
     formatMonth,
@@ -66,7 +67,7 @@ import {
     getCachedLiveInvMap,
     getInventoryCachedHtml,
     getCachedUnpaidInvCount,
-} from "./render/computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+} from "./render/computation/inventoryRenderer.js?v=a9r18-reachable-dom-trust-r1-4b-20261105";
 
 // Phase 3.5B: Dashboard computation cache
 import { cacheDashboardData, composeDashboardBranchStats } from './render/computation/dashboardRenderer.js?v=a9r18-bstats-r1-1-20261031';
@@ -313,9 +314,10 @@ function renderApp() {
     _admissionStockRows.forEach(row => {
         const size = row.size || row.value;
         const bal = Number(row.balance) || 0;
+        const safeSize = escapeHtml(String(size || ''));
         sizeSelectHtml += bal > 0
-            ? `<option value="${size}">${size} (Còn: ${bal} bộ)</option>`
-            : `<option value="${size}" disabled>${size} (Hết hàng)</option>`;
+            ? `<option value="${safeSize}">${safeSize} (Còn: ${bal} bộ)</option>`
+            : `<option value="${safeSize}" disabled>${safeSize} (Hết hàng)</option>`;
     });
     const addSizeSelect = document.getElementById('add_uniform_size');
     if (addSizeSelect && sizeSelectHtml !== _lastSizeSelectHtml) {

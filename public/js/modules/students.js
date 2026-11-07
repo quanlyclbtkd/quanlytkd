@@ -190,6 +190,54 @@ function _admissionDateValid(value) {
     return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
 }
 
+
+function _captureAdmissionSemanticDraft() {
+    const raw = id => String(document.getElementById(id)?.value ?? '');
+    const trimmed = id => raw(id).trim();
+    const config = _config();
+    const isSingleBranch = Number(config.branchCount) === 1;
+    const rawBranch = isSingleBranch ? 'CS1' : raw('add_branch');
+    const branch = isSingleBranch
+        ? 'CS1'
+        : (window.BranchIdentity?.normalize?.(rawBranch, { fallback: '' }) || '');
+    const discount = !!document.getElementById('add_discount')?.checked;
+    const discountPctRaw = trimmed('add_discount_pct');
+    return {
+        name: trimmed('add_name'),
+        nickname: trimmed('add_nickname'),
+        date: raw('add_date'),
+        memberId: trimmed('add_memberId').toUpperCase(),
+        belt: raw('add_belt'),
+        dob: raw('add_dob'),
+        gender: raw('add_gender'),
+        phone: raw('add_phone'),
+        cccd: trimmed('add_cccd'),
+        notes: trimmed('add_notes'),
+        branch,
+        packageCount: Number(trimmed('add_package')),
+        defaultFee: _admissionAmount('add_fee_default_actual', 'add_fee_default_display'),
+        discount,
+        discountPct: discount && discountPctRaw ? Number(discountPctRaw) : null,
+        fee: _admissionAmount('add_fee_actual', 'add_fee_display'),
+        uniformSize: trimmed('add_uniform_size'),
+        uniformFee: _admissionAmount('add_uniform_actual', 'add_uniform_display'),
+        uniformGift: !!document.getElementById('add_uniform_gift')?.checked,
+        trainingShiftId: raw('add_shift'),
+        trainingDays: Array.from(document.querySelectorAll('.add_trainingDay:checked'))
+            .map(cb => Number(cb.value))
+            .filter(Number.isInteger)
+            .sort((a, b) => a - b),
+    };
+}
+
+function _admissionDraftFingerprint(draft = _captureAdmissionSemanticDraft()) {
+    return JSON.stringify(draft);
+}
+
+function _abortStaleAdmissionDraft() {
+    window.showToast?.('⚠️ Dữ liệu đã thay đổi trong lúc xác minh. Vui lòng kiểm tra lại và bấm Lưu.', 5000);
+}
+
 // ════════════════════════════════════════════════════════════════
 // MODULE-LEVEL STATE (thay thế closure vars trong app.js)
 // ════════════════════════════════════════════════════════════════
@@ -229,13 +277,13 @@ function renderAchievements(list) {
     const years = Object.keys(byYear).sort((a, b) => b - a);
     el.innerHTML = years.map(y => `
         <div style="margin-bottom:4px;">
-            <div style="font-size:0.65rem;font-weight:900;color:#854d0e;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Năm ${y}</div>
+            <div style="font-size:0.65rem;font-weight:900;color:#854d0e;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Năm ${escapeHtml(String(y))}</div>
             ${byYear[y].map(a => `
                 <div style="display:flex;align-items:center;gap:8px;background:white;border:1px solid #fde68a;border-radius:8px;padding:7px 10px;margin-bottom:3px;">
                     <span style="font-size:1rem;">🏅</span>
                     <div style="flex:1;min-width:0;">
-                        <span style="font-weight:700;font-size:0.82rem;color:#1e293b;">${a.tournament}</span>
-                        <span style="margin-left:8px;font-size:0.72rem;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:2px 7px;border-radius:5px;">${a.result}</span>
+                        <span style="font-weight:700;font-size:0.82rem;color:#1e293b;">${escapeHtml(String(a.tournament))}</span>
+                        <span style="margin-left:8px;font-size:0.72rem;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:2px 7px;border-radius:5px;">${escapeHtml(String(a.result))}</span>
                     </div>
                     <button type="button" onclick="removeAchievement(${a._idx})" style="color:#f87171;background:none;border:none;font-weight:900;font-size:0.9rem;cursor:pointer;padding:0 2px;" title="Xóa">✖</button>
                 </div>
@@ -459,6 +507,11 @@ export function initStudents() {
             return;
         }
 
+        // R1.3A: this Save click authorizes exactly one normalized semantic draft.
+        // The token is UI continuity only; financial/context authority remains R1.2C.
+        const admissionOriginalDraft = _captureAdmissionSemanticDraft();
+        const admissionDraftFingerprint = _admissionDraftFingerprint(admissionOriginalDraft);
+
         _addStudentInProgress = true;
         let primaryCommitted = false;
         let committedTxId = '';
@@ -544,6 +597,13 @@ export function initStudents() {
             await _prepareRegistrationSave('add');
             if (!FinanceService.isFinancialWriteContextCurrent(admissionContext)) {
                 window.showToast?.('⚠️ Phiên CLB đã thay đổi. Chưa có dữ liệu nhập học nào được ghi.', 5000);
+                return;
+            }
+            // Authoritative pre-write draft guard: any semantic edit made while the
+            // async registration preflight yielded invalidates this old Save click.
+            if (_registrationForms.get('add') !== admissionFormInstance
+                || _admissionDraftFingerprint() !== admissionDraftFingerprint) {
+                _abortStaleAdmissionDraft();
                 return;
             }
             const profilePlan = StudentService.prepareProfileMutation(_saveKey, {
@@ -642,6 +702,11 @@ export function initStudents() {
                 window.showToast?.('⚠️ Phiên CLB đã thay đổi. Chưa có dữ liệu nhập học nào được ghi.', 5000);
                 return;
             }
+            if (_registrationForms.get('add') !== admissionFormInstance
+                || _admissionDraftFingerprint() !== admissionDraftFingerprint) {
+                _abortStaleAdmissionDraft();
+                return;
+            }
             try {
                 syncOperationId = window.DebtProfileReadBoundary?.beginSyncOperation?.({
                     action: hasFinancialPayment ? 'student.addWithPayment' : 'student.add',
@@ -684,7 +749,8 @@ export function initStudents() {
             }
 
             try {
-                if (_registrationForms.get('add') === admissionFormInstance) window.closeAddModal();
+                const sameAdmissionDraft = _admissionDraftFingerprint() === admissionDraftFingerprint;
+                if (_registrationForms.get('add') === admissionFormInstance && sameAdmissionDraft) window.closeAddModal();
                 window.showToast(hasTuitionPayment
                     ? '🎉 Đã thêm võ sinh ' + _saveKey + ' thành công!'
                     : '✅ Đã thêm võ sinh ' + _saveKey + '. Học phí tháng nhập học chưa thu và đang được tính nợ.', 4000);
@@ -802,16 +868,21 @@ export function initStudents() {
             cb.checked = Array.isArray(p.trainingDays) && p.trainingDays.includes(parseInt(cb.value));
         });
 
-        // Tháng báo nghỉ
-        let skippedHtml = '';
+        // Tháng báo nghỉ — profile identity/month đi qua closure, không qua inline executable source.
+        const skippedEl = document.getElementById('m_skipped');
+        skippedEl.replaceChildren();
         if (p.skippedMonths && p.skippedMonths.length > 0) {
             p.skippedMonths.forEach(mo => {
-                skippedHtml += `<span class="bg-amber-200 text-amber-800 text-[0.7rem] px-2 py-1 rounded font-bold cursor-pointer hover:bg-rose-200 shadow-sm" onclick="removeSkip('${name}', '${mo}')" title="Bấm để xóa">Tháng ${formatMonth(mo)} ✖</span>`;
+                const skippedMonthEl = document.createElement('span');
+                skippedMonthEl.className = 'bg-amber-200 text-amber-800 text-[0.7rem] px-2 py-1 rounded font-bold cursor-pointer hover:bg-rose-200 shadow-sm';
+                skippedMonthEl.title = 'Bấm để xóa';
+                skippedMonthEl.textContent = `Tháng ${formatMonth(mo)} ✖`;
+                skippedMonthEl.addEventListener('click', () => window.removeSkip(name, mo));
+                skippedEl.appendChild(skippedMonthEl);
             });
         } else {
-            skippedHtml = '<span class="text-[0.7rem] text-amber-600/70 italic">Chưa có tháng báo nghỉ</span>';
+            skippedEl.innerHTML = '<span class="text-[0.7rem] text-amber-600/70 italic">Chưa có tháng báo nghỉ</span>';
         }
-        document.getElementById('m_skipped').innerHTML = skippedHtml;
 
         _openRegistrationForm('m',p);
         document.getElementById('profileModal').style.display = 'flex';
@@ -1455,12 +1526,16 @@ export function initStudentPagination() {
                     } else if (target.querySelector('tr[data-student-id]')) return false; // island đã render
                     const rows = _sortItems.map(item => {
                         const _rawName = item.id || item.name || '';
-                        const _esc     = _rawName.replace(/'/g, "\'");
+                        const _fallbackNameToken = encodeURIComponent(String(_rawName || '')).replace(/'/g, '%27');
+                        const _safeNameHtml = escapeHtml(String(_rawName || ''));
                         const p        = item;
+                        const _safeMemberId = escapeHtml(String(p.memberId || '-'));
                         if (_mode === 'quit') {
-                            return `<tr data-quit-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>-</td><td>-</td><td>${p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || '-'}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
+                            const _safeQuitDate = escapeHtml(String(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || '-'));
+                            return `<tr data-quit-id="${_safeNameHtml}"><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_fallbackNameToken}'))">${_safeNameHtml}</td><td class="text-[0.7rem] font-bold text-slate-500">${_safeMemberId}</td><td>-</td><td>-</td><td>${_safeQuitDate}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile(decodeURIComponent('${_fallbackNameToken}'))">👁️ Xem</button></td></tr>`;
                         }
-                        return `<tr data-student-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${p.phone || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
+                        const _safePhone = escapeHtml(String(p.phone || ''));
+                        return `<tr data-student-id="${_safeNameHtml}"><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_fallbackNameToken}'))">${_safeNameHtml}</td><td class="text-[0.7rem] font-bold text-slate-500">${_safeMemberId}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${_safePhone}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile(decodeURIComponent('${_fallbackNameToken}'))">👁️ Xem</button></td></tr>`;
                     }).join('');
                     if (!rows) return false;
                     target.innerHTML = rows;

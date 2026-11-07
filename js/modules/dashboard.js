@@ -25,6 +25,8 @@
  * ────────────────────────────────────────────────────────────────────────
  */
 
+import { escapeHtml } from '../utils/helpers.js';
+
 // ── Bridge helpers ────────────────────────────────────────────────
 function _config() { return (window.__store || {}).clubConfig || window.clubConfig || {}; }
 function _fmt(n)   { return (n || 0).toLocaleString('vi-VN'); }
@@ -227,7 +229,7 @@ export function renderBranchStats(bStats) {
             <div class="flex items-center gap-4">
                 <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-xl flex-shrink-0">🏢</div>
                 <div class="flex-1 min-w-0">
-                    <div class="font-black text-slate-800 text-sm truncate">${bName}</div>
+                    <div class="font-black text-slate-800 text-sm truncate">${escapeHtml(String(bName || ''))}</div>
                     <div class="text-emerald-600 font-bold text-base">${bd.income.toLocaleString()} ₫</div>
                     <div class="text-slate-500 text-xs mt-0.5">👥 ${bd.active} võ sinh đang tập</div>
                     ${debtHtml}
@@ -261,7 +263,7 @@ export function renderExamBranchFees(bExamStats, incExam) {
         const bn = cfg['branchName' + bi] || ('Cơ sở ' + bi);
         const bf = bExamStats[bc] || 0;
         if (bf > 0) html += `<div class="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-1.5">`
-            + `<span class="text-[0.7rem] font-bold text-orange-800 truncate max-w-[100px]">${bn}</span>`
+            + `<span class="text-[0.7rem] font-bold text-orange-800 truncate max-w-[100px]">${escapeHtml(String(bn || ''))}</span>`
             + `<span class="font-black text-orange-600 text-sm whitespace-nowrap">${bf.toLocaleString()} ₫</span></div>`;
     }
     html += '</div></div>';

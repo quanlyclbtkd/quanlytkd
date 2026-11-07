@@ -200,7 +200,7 @@ function _renderStatus(message, tone = 'info') {
       error: 'background:#fff1f2;border:1px solid #fecdd3;color:#be123c;'
     };
     el.style.cssText = 'grid-column:1/-1;margin-top:8px;font-size:0.72rem;border-radius:10px;padding:8px 10px;font-weight:700;' + (styles[tone] || styles.info);
-    el.innerHTML = message;
+    el.textContent = String(message || '');
   } catch (_) {}
 }
 

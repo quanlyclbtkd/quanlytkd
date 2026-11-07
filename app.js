@@ -928,15 +928,12 @@ window.invCustomCategories = [];
         for(let _i = 1; _i <= branchCountVal; _i++) {
             _branchNames.push(clubConfig['branchName' + _i] || ('Cơ sở ' + _i));
         }
-        // Update filterBranch dropdown
+        // Update filterBranch dropdown. Branch labels are Firestore/config data: keep them in DOM text context.
         const fb = document.getElementById('filterBranch');
         if(fb) {
             const a=window.__verifiedAuthContextState,k=JSON.stringify([currentClubId,a?.uid,a?.generation]),v=a?.ready&&fb.dataset.filterScope===k?fb.value:'all';
-            let fbHtml = `<option value="all">🏢 Tất cả cơ sở</option>`;
-            for(let _i = 1; _i <= branchCountVal; _i++) {
-                fbHtml += `<option value="CS${_i}">📍 ${_branchNames[_i-1]}</option>`;
-            }
-            fb.innerHTML = fbHtml;
+            fb.replaceChildren(new Option('🏢 Tất cả cơ sở', 'all'));
+            for(let _i = 1; _i <= branchCountVal; _i++) fb.add(new Option('📍 ' + String(_branchNames[_i-1] || ''), 'CS' + _i));
             fb.dataset.filterScope=k;if([...fb.options].some(o=>o.value===v))fb.value=v;
         }
         // Đồng bộ cơ sở cho tab Điểm danh (att_branch + att_month_branch)
@@ -945,43 +942,37 @@ window.invCustomCategories = [];
             if (!selEl) return;
             // [SỬA LỖI - KHÓA CƠ SỞ HLV] Nếu HLV được giao cơ sở cụ thể,
             // CHỈ tạo duy nhất 1 option cho cơ sở đó — không hiển thị cơ sở khác.
-            // Điều này ngăn HLV thấy danh sách điểm danh của cơ sở khác,
-            // dù Firestore snapshot có chạy lại để reset select hay không.
             if (window.userRole === 'coach') {
                 window.CoachBranchRuntimeRepair.renderCoachBranchSelectors();
             } else {
-                // Chỉ Admin được xem và lọc toàn bộ cơ sở
-                let html = '<option value="all">🏢 Tất cả cơ sở</option>';
-                for (let _i = 1; _i <= branchCountVal; _i++) {
-                    html += '<option value="CS' + _i + '">📍 ' + _branchNames[_i-1] + '</option>';
-                }
-                selEl.innerHTML = html;
+                const previousValue = selEl.value;
+                selEl.replaceChildren(new Option('🏢 Tất cả cơ sở', 'all'));
+                for (let _i = 1; _i <= branchCountVal; _i++) selEl.add(new Option('📍 ' + String(_branchNames[_i-1] || ''), 'CS' + _i));
+                if ([...selEl.options].some(o => o.value === previousValue)) selEl.value = previousValue;
             }
         });
-        // Rebuild each branch select dynamically for up to 10 branches
+        // Rebuild each branch select dynamically for up to 10 branches.
         const selectsToUpdate = ['branch', 'm_branch', 'add_branch', 'exp_branch', 'eexp_branch'];
         selectsToUpdate.forEach(id => {
             const el = document.getElementById(id);
             if(!el) return;
+            const previousValue = el.value;
             const hasChung = Array.from(el.options).some(o => o.value === 'Chung');
-            let html = '';
-            for(let _i = 1; _i <= branchCountVal; _i++) {
-                html += `<option value="CS${_i}">${_branchNames[_i-1]}</option>`;
-            }
-            if(hasChung) html += `<option value="Chung">Chung / Khác</option>`;
-            el.innerHTML = html;
+            const options = [];
+            for(let _i = 1; _i <= branchCountVal; _i++) options.push(new Option(String(_branchNames[_i-1] || ''), 'CS' + _i));
+            if(hasChung) options.push(new Option('Chung / Khác', 'Chung'));
+            el.replaceChildren(...options);
+            if ([...el.options].some(o => o.value === previousValue)) el.value = previousValue;
         });
         // Phase 4K-6V4B: mỗi HLV phải thuộc đúng một cơ sở.
-        // Không còn option "Tất cả cơ sở" vì đó không thể là security boundary an toàn.
         window.CoachBranchRuntimeRepair?.renderCreateBranchChoices?.();
         const coachBranchEl = document.getElementById('coach_branch');
         if (coachBranchEl) {
-            let cbHtml = '';
-            for (let _i = 1; _i <= branchCountVal; _i++) {
-                cbHtml += `<option value="CS${_i}">📍 ${_branchNames[_i-1]}</option>`;
-            }
-            coachBranchEl.innerHTML = cbHtml;
-            if (!coachBranchEl.value) coachBranchEl.value = 'CS1';
+            const previousValue = coachBranchEl.value;
+            const options = [];
+            for (let _i = 1; _i <= branchCountVal; _i++) options.push(new Option('📍 ' + String(_branchNames[_i-1] || ''), 'CS' + _i));
+            coachBranchEl.replaceChildren(...options);
+            coachBranchEl.value = [...coachBranchEl.options].some(o => o.value === previousValue) ? previousValue : 'CS1';
         }
     };
     // [THÊM] Hiển thị lỗi đăng nhập inline — không dùng alert(), tự ẩn sau 6 giây
@@ -4420,7 +4411,10 @@ window.invCustomCategories = [];
         const cats = window.getInvCategories();
         // Icon mặc định cho từng loại, tùy chỉnh dùng 📦
         const icons = { 'Võ phục': '🥋', 'Áo thun': '👕', 'Bảo hộ': '🛡️' };
-        return cats.map(c => `<option value="${c}">${icons[c] || '📦'} ${c}</option>`).join('');
+        return cats.map(c => {
+            const safeCategory = _legacyEscapeHtmlFailClosed(String(c));
+            return `<option value="${safeCategory}">${icons[c] || '📦'} ${safeCategory}</option>`;
+        }).join('');
     };
 
     /**
@@ -5198,26 +5192,30 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             cb.checked = Array.isArray(p.trainingDays) && p.trainingDays.includes(parseInt(cb.value));
         });
 
-        let skippedHtml = '';
+        const skippedEl = document.getElementById('m_skipped');
+        skippedEl.replaceChildren();
         if(p.skippedMonths && p.skippedMonths.length > 0) {
-            p.skippedMonths.forEach(m => {
-                skippedHtml += `<span class="bg-amber-200 text-amber-800 text-[0.7rem] px-2 py-1 rounded font-bold cursor-pointer hover:bg-rose-200 shadow-sm" onclick="removeSkip('${name}', '${m}')" title="Bấm để xóa">Tháng ${formatMonth(m)} ✖</span>`;
+            p.skippedMonths.forEach(mo => {
+                const skippedMonthEl = document.createElement('span');
+                skippedMonthEl.className = 'bg-amber-200 text-amber-800 text-[0.7rem] px-2 py-1 rounded font-bold cursor-pointer hover:bg-rose-200 shadow-sm';
+                skippedMonthEl.title = 'Bấm để xóa';
+                skippedMonthEl.textContent = `Tháng ${formatMonth(mo)} ✖`;
+                skippedMonthEl.addEventListener('click', () => window.removeSkip(name, mo));
+                skippedEl.appendChild(skippedMonthEl);
             });
         } else {
-            skippedHtml = '<span class="text-[0.7rem] text-amber-600/70 italic">Chưa có tháng báo nghỉ</span>';
+            skippedEl.innerHTML = '<span class="text-[0.7rem] text-amber-600/70 italic">Chưa có tháng báo nghỉ</span>';
         }
-        document.getElementById('m_skipped').innerHTML = skippedHtml;
         // [SỬA ĐỒNG BỘ] Đảm bảo shifts đã load kể cả khi chưa mở tab Điểm Danh
         const _mShiftSel = document.getElementById('m_shift');
         if (_mShiftSel) {
             const _savedShiftId = p.trainingShiftId || '';
             (window._ensureClubShiftsLoaded ? window._ensureClubShiftsLoaded() : Promise.resolve()).then(function() {
-                let _msHtml = '<option value="">-- Chọn ca tập --</option>';
+                _mShiftSel.replaceChildren(new Option('-- Chọn ca tập --', ''));
                 (window._getClubShifts ? window._getClubShifts() : []).forEach(function(s) {
                     const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
-                    _msHtml += '<option value="' + s.id + '">' + s.name + _t + '</option>';
+                    _mShiftSel.add(new Option(String(s.name || '') + _t, String(s.id || '')));
                 });
-                _mShiftSel.innerHTML = _msHtml;
                 _mShiftSel.value = _savedShiftId;
             });
         }
@@ -5251,13 +5249,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const years = Object.keys(byYear).sort((a, b) => b - a);
         el.innerHTML = years.map(y => `
             <div style="margin-bottom:4px;">
-                <div style="font-size:0.65rem;font-weight:900;color:#854d0e;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Năm ${y}</div>
+                <div style="font-size:0.65rem;font-weight:900;color:#854d0e;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Năm ${_legacyEscapeHtmlFailClosed(String(y))}</div>
                 ${byYear[y].map(a => `
                     <div style="display:flex;align-items:center;gap:8px;background:white;border:1px solid #fde68a;border-radius:8px;padding:7px 10px;margin-bottom:3px;">
                         <span style="font-size:1rem;">🏅</span>
                         <div style="flex:1;min-width:0;">
-                            <span style="font-weight:700;font-size:0.82rem;color:#1e293b;">${a.tournament}</span>
-                            <span style="margin-left:8px;font-size:0.72rem;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:2px 7px;border-radius:5px;">${a.result}</span>
+                            <span style="font-weight:700;font-size:0.82rem;color:#1e293b;">${_legacyEscapeHtmlFailClosed(String(a.tournament))}</span>
+                            <span style="margin-left:8px;font-size:0.72rem;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:2px 7px;border-radius:5px;">${_legacyEscapeHtmlFailClosed(String(a.result))}</span>
                         </div>
                         <button type="button" onclick="removeAchievement(${a._idx})" style="color:#f87171;background:none;border:none;font-weight:900;font-size:0.9rem;cursor:pointer;padding:0 2px;" title="Xóa">✖</button>
                     </div>
@@ -6894,13 +6892,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 const _tuitionComponent = Array.isArray(breakdown)
                     ? breakdown.find(row => row?.kind === 'tuition' && Array.isArray(row.packageMonths) && row.packageMonths.length > 0)
                     : null;
-                const _tuitionMemoMonths = type === 'Học phí' && txMonth
-                    ? String(txMonth)
-                    : (_tuitionComponent ? _tuitionComponent.packageMonths.join(',') : '');
+                const _tuitionMemoMonths = _tuitionComponent
+                    ? _tuitionComponent.packageMonths.join(',')
+                    : (type === 'Học phí' && txMonth ? String(txMonth) : '');
                 const _tuitionMemoLabel = _tuitionMemoMonths
                     ? (String(_tuitionMemoMonths).includes(',') ? window.formatMonthCompact(_tuitionMemoMonths) : formatMonth(_tuitionMemoMonths))
                     : '';
-                const _memoPaymentContent = _tuitionComponent && type !== 'Học phí'
+                const _memoPaymentContent = _tuitionComponent
                     ? `Hoc Phi Thang ${_tuitionMemoLabel}`
                     : paymentContent;
                 let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
@@ -7226,11 +7224,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const s = liveInvMap[key];
             let inQty = s.in, outQty = s.out, bal = inQty - outQty;
             const catColors = { 'Võ phục': 'bg-blue-50 text-blue-700 border-blue-200', 'Áo thun': 'bg-purple-50 text-purple-700 border-purple-200', 'Bảo hộ': 'bg-orange-50 text-orange-700 border-orange-200' };
-            const catBadge = `<span class="badge ${catColors[s.category] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${s.category}</span>`;
+            const catBadge = `<span class="badge ${catColors[s.category] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${window.escapeHtml(String(s.category || ''))}</span>`;
             if (inQty > 0 || outQty > 0) {
                 invListHtml += `<tr>
                     <td>${catBadge}</td>
-                    <td class="font-bold text-slate-800">${s.size}</td>
+                    <td class="font-bold text-slate-800">${window.escapeHtml(String(s.size || ''))}</td>
                     <td class="text-emerald-600 font-bold">+${inQty}</td>
                     <td class="text-rose-600 font-bold">-${outQty}</td>
                     <td class="${bal < 3 ? 'text-rose-600' : 'text-emerald-600'} font-black text-base">${bal}</td>
@@ -7247,7 +7245,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         });
         _admissionStockRows.forEach(row => {
             const size = row.size || row.value, bal = Number(row.balance) || 0;
-            sizeSelectHtml += `<option value="${size}"${bal > 0 ? '' : ' disabled'}>${size} (${bal > 0 ? `Còn: ${bal} bộ` : 'Hết hàng'})</option>`;
+            const _safeSizeOption = window.escapeHtml(String(size || ''));
+            sizeSelectHtml += `<option value="${_safeSizeOption}"${bal > 0 ? '' : ' disabled'}>${_safeSizeOption} (${bal > 0 ? `Còn: ${bal} bộ` : 'Hết hàng'})</option>`;
         });
 
         if(sizeSelectHtml !== _lastSizeSelectHtml) { _lastSizeSelectHtml = sizeSelectHtml; const addSizeSelect = document.getElementById('add_uniform_size'); if(addSizeSelect) addSizeSelect.innerHTML = sizeSelectHtml; }
@@ -7274,19 +7273,19 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 }
 
                 let amountHtml = displayAmt > 0 ? `<span class="font-bold ${isInc ? 'text-rose-600' : (isUnpaid ? 'text-orange-500' : 'text-emerald-600')}">${isInc ? '-' : '+'}${displayAmt.toLocaleString()}</span>` : `<span class="font-bold text-slate-400">0</span>`;
-                let descHtml = (displayDesc || (isInc ? `Nhập ${t.size}` : `Xuất ${t.size}`)) + unpaidBadge;
+                let descHtml = window.escapeHtml(String(displayDesc || (isInc ? `Nhập ${t.size}` : `Xuất ${t.size}`) || '')) + unpaidBadge;
 
                 let txIdForDelete = relatedTxForDesc && relatedTxForDesc.id ? String(relatedTxForDesc.id) : '';
 
                 const txCat = t.category || 'Võ phục';
                 const txCatColors = { 'Võ phục': 'bg-blue-50 text-blue-700 border-blue-200', 'Áo thun': 'bg-purple-50 text-purple-700 border-purple-200', 'Bảo hộ': 'bg-orange-50 text-orange-700 border-orange-200' };
-                const txCatBadge = `<span class="badge ${txCatColors[txCat] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${txCat}</span>`;
+                const txCatBadge = `<span class="badge ${txCatColors[txCat] || 'bg-slate-50 text-slate-700 border-slate-200'} border text-[0.65rem]">${window.escapeHtml(String(txCat || ''))}</span>`;
                 const markPaidBtn = (isUnpaid && window.userRole === 'admin') ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="markInvPaid('${t.id}')">✅ Đã thu</button>` : '';
                 uniformTxHtml += `<tr class="${isUnpaid ? 'inv-unpaid-row' : ''}">
                     <td class="text-slate-500 text-[0.85rem]">${formatDate(t.date)}</td>
                     <td class="font-bold text-blue-700 text-[0.9rem]">${descHtml}</td>
                     <td>${typeBadge}</td>
-                    <td>${txCatBadge} <span class="badge bg-slate-50 text-slate-700 border border-slate-200 text-[0.75rem] ml-1">${t.size}</span></td>
+                    <td>${txCatBadge} <span class="badge bg-slate-50 text-slate-700 border border-slate-200 text-[0.75rem] ml-1">${window.escapeHtml(String(t.size || ''))}</span></td>
                     <td>${amountHtml}</td>
                     <td class="action-btns">${markPaidBtn}${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white" onclick="deleteTx('${txIdForDelete}', '${t.id}')">🗑</button>`:''}</td>
                 </tr>`;
@@ -7412,8 +7411,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     else if(_normTxType === 'Học phí + Lệ phí thi') _bExamStats[_txBr] += (Number(t.examAmount) || 0);
                 }
 
-                let studentNameBase = cleanName.split(' (')[0]; let safeStudentNameBase = studentNameBase.replace(/'/g, "\\'");
-                let safeExamTitle = t.examTitle ? t.examTitle.replace(/'/g, "\\'") : '';
+                let studentNameBase = cleanName.split(' (')[0];
+                const _txNameToken = encodeURIComponent(String(studentNameBase || '')).replace(/'/g, '%27');
+                const _txTypeToken = encodeURIComponent(String(t.type || '')).replace(/'/g, '%27');
+                const _txDateToken = encodeURIComponent(String(t.date || '')).replace(/'/g, '%27');
+                const _txMonthsToken = encodeURIComponent(String(t.packageMonths ? t.packageMonths.join(',') : (t.txMonth || ''))).replace(/'/g, '%27');
+                const _txBranchToken = encodeURIComponent(String(t.branch || 'CS1')).replace(/'/g, '%27');
+                const _txExamTitleToken = encodeURIComponent(String(t.examTitle || '')).replace(/'/g, '%27');
                 let displayTxMonth = t.packageMonths && t.packageMonths.length > 1 ? `${t.packageMonths.length} Tháng` : (t.txMonth ? formatMonth(t.txMonth) : "-");
                 // Smart Name: gắn năm sinh vào tên nếu trùng; truyền profile theo key đầy đủ để lấy đúng DOB
                 const _txYrBadge = _getYearBadge(cleanName, allProfiles[cleanName] || allProfiles[studentNameBase]);
@@ -7421,16 +7425,16 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 // Build display name and type badge based on transaction type
                 let displayName, typeBadgeHtml;
                 if(t.type === 'Lệ phí thi') {
-                    displayName = studentNameBase + _txYrBadge + ' <span style="font-size:0.75rem;font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 6px;vertical-align:middle;">🏆 Thi lên đai</span>';
+                    displayName = window.escapeHtml(String(studentNameBase || '')) + _txYrBadge + ' <span style="font-size:0.75rem;font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 6px;vertical-align:middle;">🏆 Thi lên đai</span>';
                     typeBadgeHtml = '';
                 } else if(t.type === 'Học phí + Lệ phí thi') {
-                    displayName = studentNameBase + _txYrBadge + ' <span style="font-size:0.75rem;font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 6px;vertical-align:middle;">🏆 HP + Thi lên đai</span>';
+                    displayName = window.escapeHtml(String(studentNameBase || '')) + _txYrBadge + ' <span style="font-size:0.75rem;font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 6px;vertical-align:middle;">🏆 HP + Thi lên đai</span>';
                     typeBadgeHtml = '';
                 } else {
-                    displayName = cleanName + _txYrBadge;
+                    displayName = window.escapeHtml(String(cleanName || '')) + _txYrBadge;
                     let badgeTypeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
                     let printTypeBadge = t.type;
-                    typeBadgeHtml = `<span class="badge ${badgeTypeClass} border">${printTypeBadge}</span>`;
+                    typeBadgeHtml = `<span class="badge ${badgeTypeClass} border">${window.escapeHtml(String(printTypeBadge || ''))}</span>`;
                 }
 
                 let amountHTML = '';
@@ -7441,7 +7445,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     amountHTML = `<span class="text-emerald-600 font-black text-base">+${(Number(t.amount)||0).toLocaleString()}</span>`;
                 }
 
-                if(_curTabId === 'tx') txHtml += `<tr class="tx-mobile-card"><td class="tx-date-cell">${formatDate(t.date)}</td>${branchTdHTML}<td class="tx-month-cell"><span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">${displayTxMonth}</span></td><td class="tx-name-cell name-link text-[0.95rem]" onclick="openProfile('${safeStudentNameBase}')">${displayName}</td><td class="tx-type-cell">${typeBadgeHtml}</td><td class="tx-amount-cell">${amountHTML}</td><td class="tx-actions-cell action-btns"><button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white" onclick="exportReceipt('${safeStudentNameBase}', ${Number(t.amount)||0}, '${t.type}', '${t.date}', '${t.packageMonths ? t.packageMonths.join(',') : (t.txMonth||'')}', '${safeBranch}', '${safeExamTitle}', 'BIÊN LAI THU TIỀN')">🧾 In</button>${btnDel}</td></tr>`;
+                if(_curTabId === 'tx') txHtml += `<tr class="tx-mobile-card"><td class="tx-date-cell">${formatDate(t.date)}</td>${branchTdHTML}<td class="tx-month-cell"><span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">${displayTxMonth}</span></td><td class="tx-name-cell name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_txNameToken}'))">${displayName}</td><td class="tx-type-cell">${typeBadgeHtml}</td><td class="tx-amount-cell">${amountHTML}</td><td class="tx-actions-cell action-btns"><button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white" onclick="exportReceipt(decodeURIComponent('${_txNameToken}'), ${Number(t.amount)||0}, decodeURIComponent('${_txTypeToken}'), decodeURIComponent('${_txDateToken}'), decodeURIComponent('${_txMonthsToken}'), decodeURIComponent('${_txBranchToken}'), decodeURIComponent('${_txExamTitleToken}'), 'BIÊN LAI THU TIỀN')">🧾 In</button>${btnDel}</td></tr>`;
             }
         });
 
@@ -7470,9 +7474,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 _bStats[safeBranch].active++;
             }
             if(!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) return;
-            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(safeBranch)}</span></td>`;
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.escapeHtml(String(window.getBranchNameDisplay(safeBranch) || ''))}</span></td>`;
 
-            let safePhone = p.phone || ""; let safeBelt = p.belt || ""; let safeNotes = p.notes || ""; let safeNameEscaped = name.replace(/'/g, "\\'");
+            let safePhone = p.phone || ""; let safeBelt = p.belt || ""; let safeNotes = p.notes || "";
+            const _profileNameToken = encodeURIComponent(String(name || '')).replace(/'/g, '%27');
+            const _profilePhoneToken = encodeURIComponent(String(safePhone || '')).replace(/'/g, '%27');
             let matchesSearch = true;
             if (search) {
                 matchesSearch =
@@ -7498,7 +7504,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 // [THÊM] Badge biệt danh hiển thị ngay trong danh sách (không phải chỉ trong hồ sơ)
                 const _activeNickBadge = p.nickname ? ' <span style="font-size:0.65rem;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:4px;padding:1px 5px;font-weight:800;vertical-align:middle;">🏷 ' + window.escapeHtml(String(p.nickname)) + '</span>' : '';
                 // [PERF] Đếm tổng trước — badge count vẫn chính xác dù giới hạn render
-                if(_curTabId === 'active') { _activeTotalCount++; if(_activeRendered < _activeLimit) { _activeRendered++; activeHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${window.escapeHtml(String(_displayName(name) || ''))}${_listYrBadge}${_newBadge}${p.notes ? ' <span title="'+window.escapeHtml(String(p.notes))+'">📝</span>' : ''}${_activeNickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${window.escapeHtml(String(p.memberId || '-'))}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${window.escapeHtml(String(safePhone || ''))}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEscaped}')">${window.userRole === 'admin' ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`; } }
+                if(_curTabId === 'active') { _activeTotalCount++; if(_activeRendered < _activeLimit) { _activeRendered++; activeHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_profileNameToken}'))">${window.escapeHtml(String(_displayName(name) || ''))}${_listYrBadge}${_newBadge}${p.notes ? ' <span title="'+window.escapeHtml(String(p.notes))+'">📝</span>' : ''}${_activeNickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${window.escapeHtml(String(p.memberId || '-'))}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${window.escapeHtml(String(safePhone || ''))}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile(decodeURIComponent('${_profileNameToken}'))">${window.userRole === 'admin' ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`; } }
 
                 let isDebt = false;
                 let unpaidMonthsCount = 0;
@@ -7526,11 +7532,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
                     // [PERF] Debt list pagination — đếm tổng nợ vẫn chính xác
                     _debtTotalCount++;
-                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="ReceiptHelpers.withPendingReportButton(this,()=>generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}'))">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEscaped}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEscaped}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
+                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_profileNameToken}'))">${window.escapeHtml(String(_displayName(name) || ''))}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="ReceiptHelpers.withPendingReportButton(this,()=>generateMultiMonthPaymentRequest(decodeURIComponent('${_profileNameToken}'), '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}'))">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal(decodeURIComponent('${_profileNameToken}'), '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo(decodeURIComponent('${_profileNameToken}'), '${safeOwedMonths}', decodeURIComponent('${_profilePhoneToken}'))">💬 Zalo</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, decodeURIComponent('${_profileNameToken}'), '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, decodeURIComponent('${_profileNameToken}'), '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
                 }
             } else {
                 // [PERF] Quit list pagination
-                if(_curTabId === 'quit') { _quitTotalCount++; if(_quitRendered < _quitLimit) { _quitRendered++; const _quitDateDisplay = p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate; quitHtml += `<tr data-quit-id="${safeNameEscaped}" data-profile-name="${_displayName(name).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(_quitDateDisplay)}</td><td>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEscaped}')">🔄 Khôi phục</button>` : ''}</td></tr>`; } }
+                if(_curTabId === 'quit') { _quitTotalCount++; if(_quitRendered < _quitLimit) { _quitRendered++; const _quitDateDisplay = p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate; quitHtml += `<tr data-quit-id="${window.escapeHtml(String(name || ''))}" data-profile-name="${window.escapeHtml(String(_displayName(name) || ''))}"><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_profileNameToken}'))">${window.escapeHtml(String(_displayName(name) || ''))}${_listYrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${window.escapeHtml(String(p.memberId || '-'))}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(_quitDateDisplay)}</td><td>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile(decodeURIComponent('${_profileNameToken}'))">🔄 Khôi phục</button>` : ''}</td></tr>`; } }
             }
         });
 
@@ -7600,7 +7606,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 const _bc = 'CS' + _bi;
                 const _bn = clubConfig['branchName' + _bi] || ('Cơ sở ' + _bi);
                 const _bf = _bExamStats[_bc] || 0;
-                if(_bf > 0) _ebHtml += `<div class="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-1.5"><span class="text-[0.7rem] font-bold text-orange-800 truncate max-w-[100px]">${_bn}</span><span class="font-black text-orange-600 text-sm whitespace-nowrap">${_bf.toLocaleString()} ₫</span></div>`;
+                if(_bf > 0) _ebHtml += `<div class="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-1.5"><span class="text-[0.7rem] font-bold text-orange-800 truncate max-w-[100px]">${window.escapeHtml(String(_bn || ''))}</span><span class="font-black text-orange-600 text-sm whitespace-nowrap">${_bf.toLocaleString()} ₫</span></div>`;
             }
             _ebHtml += '</div></div>';
             _examBrFeeEl.innerHTML = _ebHtml;
@@ -7730,20 +7736,20 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const p = allProfiles[name];
             if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
 
-            let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
+            let isPaid = paidStudents[name]; const _examNameToken = encodeURIComponent(String(name || '')).replace(/'/g, '%27');
             const examDisplayName = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
                 ? window.ProfileCanonicalStore.resolveDisplayName(name, p)
                 : String(p.displayName || p.name || p.fullName || p.studentName || name || '').trim();
             let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.escapeHtml(String(window.getBranchNameDisplay(p.branch || 'CS1') || ''))}</span></td>`;
             let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${Number(isPaid.amount).toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
-            let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', '${safeName}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
+            let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', decodeURIComponent('${_examNameToken}'))">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam(decodeURIComponent('${_examNameToken}'))">💰 Thu phí</button>` : '');
 
             const isNewlyUpgraded = typeof window.isNewlyUpgradedExamStudent === 'function'
                 ? window.isNewlyUpgradedExamStudent(name, p, selMonth)
                 : (p.upgradedAt && String(p.upgradedAt).slice(0, 7) >= selMonth.substring(0, 7) && p.upgradedFrom);
             const newBadge = isNewlyUpgraded ? `<span class="ml-1 text-[0.65rem] font-black bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded uppercase" title="Vừa thăng từ ${window.escapeHtml(String(p.upgradedFrom || ''))} tháng ${window.escapeHtml(String(p.upgradedAt || ''))}">↑ Mới lên</span>` : '';
 
-            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}"></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeName}')">${window.escapeHtml(String(examDisplayName || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
+            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}"></td><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_examNameToken}'))">${window.escapeHtml(String(examDisplayName || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
 
             if(isNewlyUpgraded) { htmlNewlyUpgraded += row; newlyUpgradedCount++; }
             else { htmlOriginal += row; }
@@ -8680,10 +8686,27 @@ window._refreshMiHistoryBadges = async (name, profile) => {
                 div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #fff7ed;';
                 const label = (item.category || '') + (item.size ? ' ' + item.size : '') + (item.qty > 1 ? ' ×' + item.qty : '');
                 const amt = Number(item.amount || 0);
-                div.innerHTML = `<input type="checkbox" class="mi-inv-debt-check w-4 h-4 accent-orange-500 cursor-pointer rounded" data-inv-id="${item.id}" data-amount="${amt}" data-label="${label.replace(/"/g,'&quot;')}" checked>
-                    <div style="flex:1;min-width:0;"><div style="font-size:0.8rem;font-weight:700;color:#1e293b;">${label}</div><div style="font-size:0.65rem;color:#94a3b8;">${item.date || ''}</div></div>
-                    <span style="font-size:0.85rem;font-weight:900;color:#f97316;">${amt.toLocaleString('vi-VN')}₫</span>`;
-                div.querySelector('input').addEventListener('change', window.recalcMiInvDebt);
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.className = 'mi-inv-debt-check w-4 h-4 accent-orange-500 cursor-pointer rounded';
+                input.dataset.invId = String(item.id || '');
+                input.dataset.amount = String(amt);
+                input.dataset.label = label;
+                input.checked = true;
+                const info = document.createElement('div');
+                info.style.cssText = 'flex:1;min-width:0;';
+                const labelEl = document.createElement('div');
+                labelEl.style.cssText = 'font-size:0.8rem;font-weight:700;color:#1e293b;';
+                labelEl.textContent = label;
+                const dateEl = document.createElement('div');
+                dateEl.style.cssText = 'font-size:0.65rem;color:#94a3b8;';
+                dateEl.textContent = String(item.date || '');
+                info.append(labelEl, dateEl);
+                const amountEl = document.createElement('span');
+                amountEl.style.cssText = 'font-size:0.85rem;font-weight:900;color:#f97316;';
+                amountEl.textContent = amt.toLocaleString('vi-VN') + '₫';
+                input.addEventListener('change', window.recalcMiInvDebt);
+                div.append(input, info, amountEl);
                 invDebtList.appendChild(div);
             });
             window.recalcMiInvDebt();
@@ -8779,7 +8802,7 @@ window.loadMiPaymentHistory = async (name) => {
             const monthStr = t.txMonth ? formatMonth(t.txMonth) : (t.date || '').substring(0, 7).replace('-', '/');
             const pkgStr = t.packageMonths && t.packageMonths.length > 1 ? ' ×' + t.packageMonths.length : '';
             const dateStr = t.date ? formatDate(t.date) : '';
-            row.innerHTML = `<div style="min-width:0;flex:1;"><div style="font-size:0.68rem;color:#334155;font-weight:700;">${icon} ${t.type}${pkgStr} <span style="color:#94a3b8;font-weight:500;">${monthStr}</span></div><div style="font-size:0.6rem;color:#94a3b8;">${dateStr}</div></div><span style="font-size:0.72rem;font-weight:800;color:#1e40af;flex-shrink:0;margin-left:8px;">${Number(t.amount || 0).toLocaleString('vi-VN')}₫</span>`;
+            row.innerHTML = `<div style="min-width:0;flex:1;"><div style="font-size:0.68rem;color:#334155;font-weight:700;">${icon} ${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(String(t.type || ''))}${pkgStr} <span style="color:#94a3b8;font-weight:500;">${monthStr}</span></div><div style="font-size:0.6rem;color:#94a3b8;">${dateStr}</div></div><span style="font-size:0.72rem;font-weight:800;color:#1e40af;flex-shrink:0;margin-left:8px;">${Number(t.amount || 0).toLocaleString('vi-VN')}₫</span>`;
             list.appendChild(row);
         });
     } catch(err) {

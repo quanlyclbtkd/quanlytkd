@@ -588,10 +588,27 @@ export const MultiItemInventorySafety = {
                 div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #fff7ed;';
                 const label = (item.category || '') + (item.size ? ' ' + item.size : '') + (item.qty > 1 ? ' ×' + item.qty : '');
                 const amt   = Number(item.amount || 0);
-                div.innerHTML = `<input type="checkbox" class="mi-inv-debt-check w-4 h-4 accent-orange-500 cursor-pointer rounded" data-inv-id="${item.id}" data-amount="${amt}" data-label="${label.replace(/"/g, '&quot;')}" checked>
-                    <div style="flex:1;min-width:0;"><div style="font-size:0.8rem;font-weight:700;color:#1e293b;">${label}</div><div style="font-size:0.65rem;color:#94a3b8;">${item.date || ''}</div></div>
-                    <span style="font-size:0.85rem;font-weight:900;color:#f97316;">${amt.toLocaleString('vi-VN')}₫</span>`;
-                div.querySelector('input').addEventListener('change', window.recalcMiInvDebt);
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.className = 'mi-inv-debt-check w-4 h-4 accent-orange-500 cursor-pointer rounded';
+                input.dataset.invId = String(item.id || '');
+                input.dataset.amount = String(amt);
+                input.dataset.label = label;
+                input.checked = true;
+                const info = document.createElement('div');
+                info.style.cssText = 'flex:1;min-width:0;';
+                const labelEl = document.createElement('div');
+                labelEl.style.cssText = 'font-size:0.8rem;font-weight:700;color:#1e293b;';
+                labelEl.textContent = label;
+                const dateEl = document.createElement('div');
+                dateEl.style.cssText = 'font-size:0.65rem;color:#94a3b8;';
+                dateEl.textContent = String(item.date || '');
+                info.append(labelEl, dateEl);
+                const amountEl = document.createElement('span');
+                amountEl.style.cssText = 'font-size:0.85rem;font-weight:900;color:#f97316;';
+                amountEl.textContent = amt.toLocaleString('vi-VN') + '₫';
+                input.addEventListener('change', window.recalcMiInvDebt);
+                div.append(input, info, amountEl);
                 invDebtList.appendChild(div);
             });
 
