@@ -1,0 +1,59 @@
+{
+  "phase": "A9R18-FAMILY-COMBO-CORRECTNESS-QR-R1",
+  "decision": "PASS_SCOPED_FAMILY_TEST_CANDIDATE",
+  "productionDeploy": false,
+  "realStagingSamples": 0,
+  "evidenceLevel": "ACTUAL_SOURCE_VM_AND_SYNTHETIC_PROVIDER_PIXEL_FIXTURES",
+  "autofill": {
+    "passed": 53,
+    "failed": 0
+  },
+  "familyQrPay": {
+    "passed": 39,
+    "failed": 0
+  },
+  "requiredRegressionCommands": {
+    "passed": 10,
+    "failed": 0
+  },
+  "aggregateNpmCheck": {
+    "returncode": 1,
+    "failure": "R1 protected app SHA freeze",
+    "passedR1Assertions": 57,
+    "failedR1Assertions": 1
+  },
+  "historicalFrozenGates": {
+    "R2": {
+      "passed": 65,
+      "failed": 1
+    },
+    "R2_1": {
+      "passed": 102,
+      "failed": 1
+    },
+    "classification": "EXACT_PARENT_IDENTITY_FREEZE_NOT_REBASELINED"
+  },
+  "firestoreCounts": {
+    "baseline": {
+      "getDoc": 26,
+      "getDocs": 43,
+      "onSnapshot": 16
+    },
+    "candidate": {
+      "getDoc": 26,
+      "getDocs": 43,
+      "onSnapshot": 16
+    }
+  },
+  "parity": {
+    "pairs": 129,
+    "mismatches": []
+  },
+  "runtime": {
+    "id": "V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1",
+    "runtimeSHA256": "245bb80f1c4a77fe5013f4f5ad3873c61a83fe25873ee7046e00baf8d98f348f",
+    "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+  },
+  "appSHA256": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
+  "financeSHA256": "f652c2d896180654cf8f1534a916cb7f44ebff3599251070b0ef74eb998c809b"
+}

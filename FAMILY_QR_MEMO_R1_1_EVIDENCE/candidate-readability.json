@@ -1,0 +1,995 @@
+{
+  "sourceRoot": "/workspace/scratch/036ee6a06c71/family_r11/candidate",
+  "passed": 66,
+  "failed": 0,
+  "observations": [
+    {
+      "id": "F01 F02 F05 F09 long names / same month / member IDs / same account",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "previewMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F03 different months",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T10 T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T10 T11 2026",
+      "providerMemo": "GD HUYEN TRANG VAN MINH HP T10 T11 2026",
+      "previewMemo": "GD HUYEN TRANG VAN MINH HP T10 T11 2026",
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T10 T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T10 T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-10",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F04 different years",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD TRANG MINH HP T11 2026 T1 2027",
+      "visibleMemo": "GD TRANG MINH HP T11 2026 T1 2027",
+      "providerMemo": "GD TRANG MINH HP T11 2026 T1 2027",
+      "previewMemo": "GD TRANG MINH HP T11 2026 T1 2027",
+      "intents": [
+        {
+          "memo": "GD TRANG MINH HP T11 2026 T1 2027",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD TRANG MINH HP T11 2026 T1 2027",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2027-01"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F06 one member ID missing",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "previewMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F07 both IDs missing / longest cross-year periods",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD TRANG MINH HP T11 2026 T12 2027",
+      "visibleMemo": "GD TRANG MINH HP T11 2026 T12 2027",
+      "providerMemo": "GD TRANG MINH HP T11 2026 T12 2027",
+      "previewMemo": "GD TRANG MINH HP T11 2026 T12 2027",
+      "intents": [
+        {
+          "memo": "GD TRANG MINH HP T11 2026 T12 2027",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD TRANG MINH HP T11 2026 T12 2027",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2027-12"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F10 conflicting receiving accounts DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "ACCOUNT_ALIAS_CONFLICT",
+      "stage": "account",
+      "providerFetches": 0,
+      "memo": "",
+      "visibleMemo": null,
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F11 provider tail mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "QR_EMV_MISMATCH",
+      "stage": "provider-pixels",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F12 provider head mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "QR_EMV_MISMATCH",
+      "stage": "provider-pixels",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F13 provider case mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "QR_EMV_MISMATCH",
+      "stage": "provider-pixels",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F14 provider amount mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "QR_EMV_MISMATCH",
+      "stage": "provider-pixels",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F15 provider bank mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "QR_EMV_MISMATCH",
+      "stage": "provider-pixels",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F16 provider account mutation DENY",
+      "result": false,
+      "receiptOK": false,
+      "reason": "QR_EMV_MISMATCH",
+      "stage": "provider-pixels",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F21 identical normalized names and duplicate disambiguators fail closed",
+      "result": false,
+      "receiptOK": false,
+      "reason": "FAMILY_MEMO_REFERENCE_UNAVAILABLE",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "visibleMemo": null,
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [],
+      "studentNames": [
+        "Nguyễn Văn An",
+        "NGUYEN VAN AN"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F22 same-name disambiguator collision in cache fails closed",
+      "result": false,
+      "receiptOK": false,
+      "reason": "FAMILY_MEMO_REFERENCE_UNAVAILABLE",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "visibleMemo": null,
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [],
+      "studentNames": [
+        "Nguyễn Văn An",
+        "NGUYEN VAN AN"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F23 memberID/studentId only supplement identical names",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD AN ALT001 AN ST002 HP T11 2026",
+      "visibleMemo": "GD AN ALT001 AN ST002 HP T11 2026",
+      "providerMemo": "GD AN ALT001 AN ST002 HP T11 2026",
+      "previewMemo": "GD AN ALT001 AN ST002 HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD AN ALT001 AN ST002 HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD AN ALT001 AN ST002 HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Nguyễn Văn An",
+        "NGUYEN VAN AN"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F24 existing canonical name key fallback",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "previewMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "F25 identical names and actual derived-suffix hash collision fail closed",
+      "result": false,
+      "receiptOK": false,
+      "reason": "FAMILY_MEMO_REFERENCE_UNAVAILABLE",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "visibleMemo": null,
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [],
+      "studentNames": [
+        "Nguyễn Văn An",
+        "NGUYEN VAN AN"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "R01 R03 R04 R07 image names / accents / same month / Tier1",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD NGAN KHANH HAI DANG HP T11 2026",
+      "visibleMemo": "GD NGAN KHANH HAI DANG HP T11 2026",
+      "providerMemo": "GD NGAN KHANH HAI DANG HP T11 2026",
+      "previewMemo": "GD NGAN KHANH HAI DANG HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD NGAN KHANH HAI DANG HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD NGAN KHANH HAI DANG HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Lê Hoàng Ngân Khánh",
+        "Lê Hoàng Hải Đăng"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "R08 deterministic Tier2 when Tier1 exceeds40",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD THANHHUYEN MINHHOANG HP T11 2026",
+      "visibleMemo": "GD THANHHUYEN MINHHOANG HP T11 2026",
+      "providerMemo": "GD THANHHUYEN MINHHOANG HP T11 2026",
+      "previewMemo": "GD THANHHUYEN MINHHOANG HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD THANHHUYEN MINHHOANG HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD THANHHUYEN MINHHOANG HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Nguyễn Thiên ThanhHuyền",
+        "Trần Quốc MinhHoàng"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "R06 exact YYYYMM compaction keeps cross-year evidence",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD ALEXANDERA BENEDICTB HP 202611 202712",
+      "visibleMemo": "GD ALEXANDERA BENEDICTB HP 202611 202712",
+      "providerMemo": "GD ALEXANDERA BENEDICTB HP 202611 202712",
+      "previewMemo": "GD ALEXANDERA BENEDICTB HP 202611 202712",
+      "intents": [
+        {
+          "memo": "GD ALEXANDERA BENEDICTB HP 202611 202712",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD ALEXANDERA BENEDICTB HP 202611 202712",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "AlexanderA",
+        "BenedictB"
+      ],
+      "months": [
+        "2026-11",
+        "2027-12"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "R10 same last token expands to distinguishable human suffixes",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD CHUONG AN TRUONG AN HP 202611 202701",
+      "visibleMemo": "GD CHUONG AN TRUONG AN HP 202611 202701",
+      "providerMemo": "GD CHUONG AN TRUONG AN HP 202611 202701",
+      "previewMemo": "GD CHUONG AN TRUONG AN HP 202611 202701",
+      "intents": [
+        {
+          "memo": "GD CHUONG AN TRUONG AN HP 202611 202701",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD CHUONG AN TRUONG AN HP 202611 202701",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Nguyễn Chương An",
+        "Trần Trường An"
+      ],
+      "months": [
+        "2026-11",
+        "2027-01"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "R11 same LAST2 expands through full human names",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD NGUYEN VAN AN TRAN VAN AN HP T11 2026",
+      "visibleMemo": "GD NGUYEN VAN AN TRAN VAN AN HP T11 2026",
+      "providerMemo": "GD NGUYEN VAN AN TRAN VAN AN HP T11 2026",
+      "previewMemo": "GD NGUYEN VAN AN TRAN VAN AN HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD NGUYEN VAN AN TRAN VAN AN HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD NGUYEN VAN AN TRAN VAN AN HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Nguyễn Văn An",
+        "Trần Văn An"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "R12 R14 identical normalized full names need name plus ID",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD VAN AN A12 VAN AN B34 HP T11 2026",
+      "visibleMemo": "GD VAN AN A12 VAN AN B34 HP T11 2026",
+      "providerMemo": "GD VAN AN A12 VAN AN B34 HP T11 2026",
+      "previewMemo": "GD VAN AN A12 VAN AN B34 HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD VAN AN A12 VAN AN B34 HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD VAN AN A12 VAN AN B34 HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Nguyễn Văn An",
+        "NGUYEN VAN AN"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "R15 no ID uses name plus deterministic suffix",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD VAN AN XZSB VAN AN YE3C HP T11 2026",
+      "visibleMemo": "GD VAN AN XZSB VAN AN YE3C HP T11 2026",
+      "providerMemo": "GD VAN AN XZSB VAN AN YE3C HP T11 2026",
+      "previewMemo": "GD VAN AN XZSB VAN AN YE3C HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD VAN AN XZSB VAN AN YE3C HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD VAN AN XZSB VAN AN YE3C HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Nguyễn Văn An",
+        "NGUYEN VAN AN"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "R02 R09 R13 different names stay primary even if IDs duplicate",
+      "result": true,
+      "receiptOK": true,
+      "stage": "complete",
+      "providerFetches": 1,
+      "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "visibleMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "providerMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "previewMemo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+      "intents": [
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "provider-pixels"
+        },
+        {
+          "memo": "GD HUYEN TRANG VAN MINH HP T11 2026",
+          "stage": "preview-pixels"
+        }
+      ],
+      "studentNames": [
+        "Trần Thị Huyền Trang",
+        "Nguyễn Văn Minh"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    },
+    {
+      "id": "R22 irreducible names fail closed, no opaque fallback",
+      "result": false,
+      "receiptOK": false,
+      "reason": "FAMILY_MEMO_REFERENCE_UNAVAILABLE",
+      "stage": "intent",
+      "providerFetches": 0,
+      "memo": "",
+      "visibleMemo": null,
+      "providerMemo": null,
+      "previewMemo": null,
+      "intents": [],
+      "studentNames": [
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZA",
+        "ZYXWVUTSRQPONMLKJIHGFEDCBAZA"
+      ],
+      "months": [
+        "2026-11",
+        "2026-11"
+      ],
+      "writes": 0
+    }
+  ],
+  "outcomes": [
+    {
+      "name": "F01 F02 F05 F09 long names / same month / member IDs / same account actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "F17 report reaches zero SDK/business writers",
+      "result": "PASS"
+    },
+    {
+      "name": "F18 full names and participant-month mapping remain in receipt",
+      "result": "PASS"
+    },
+    {
+      "name": "F19 F20 human names, exact periods and local cap replace ID-first policy",
+      "result": "PASS"
+    },
+    {
+      "name": "single exact memo at addInfo, visible transfer and independently decoded provider/preview pixels",
+      "result": "PASS"
+    },
+    {
+      "name": "F03 different months actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "F03 both distinct months represented without false range",
+      "result": "PASS"
+    },
+    {
+      "name": "F04 different years actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "F04 both month/year pairs represented",
+      "result": "PASS"
+    },
+    {
+      "name": "F06 one member ID missing actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "F07 both IDs missing / longest cross-year periods actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "F07 human labels retain both exact periods",
+      "result": "PASS"
+    },
+    {
+      "name": "F08 repeated fallback build is deterministic",
+      "result": "PASS"
+    },
+    {
+      "name": "F10 conflicting receiving accounts DENY",
+      "result": "PASS"
+    },
+    {
+      "name": "F10 denial occurs before provider",
+      "result": "PASS"
+    },
+    {
+      "name": "F11 provider tail mutation DENY",
+      "result": "PASS"
+    },
+    {
+      "name": "F11 exactly one provider response is audited, no financial write",
+      "result": "PASS"
+    },
+    {
+      "name": "F12 provider head mutation DENY",
+      "result": "PASS"
+    },
+    {
+      "name": "F12 exactly one provider response is audited, no financial write",
+      "result": "PASS"
+    },
+    {
+      "name": "F13 provider case mutation DENY",
+      "result": "PASS"
+    },
+    {
+      "name": "F13 exactly one provider response is audited, no financial write",
+      "result": "PASS"
+    },
+    {
+      "name": "F14 provider amount mutation DENY",
+      "result": "PASS"
+    },
+    {
+      "name": "F14 exactly one provider response is audited, no financial write",
+      "result": "PASS"
+    },
+    {
+      "name": "F15 provider bank mutation DENY",
+      "result": "PASS"
+    },
+    {
+      "name": "F15 exactly one provider response is audited, no financial write",
+      "result": "PASS"
+    },
+    {
+      "name": "F16 provider account mutation DENY",
+      "result": "PASS"
+    },
+    {
+      "name": "F16 exactly one provider response is audited, no financial write",
+      "result": "PASS"
+    },
+    {
+      "name": "F21 identical normalized names and duplicate disambiguators fail closed",
+      "result": "PASS"
+    },
+    {
+      "name": "F22 same-name disambiguator collision in cache fails closed",
+      "result": "PASS"
+    },
+    {
+      "name": "F23 memberID/studentId only supplement identical names actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "F23 human-readable names remain before valid disambiguators",
+      "result": "PASS"
+    },
+    {
+      "name": "F24 existing canonical name key fallback actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "F24 fallback never persists or adds an ID to profiles",
+      "result": "PASS"
+    },
+    {
+      "name": "F25 identical names and actual derived-suffix hash collision fail closed",
+      "result": "PASS"
+    },
+    {
+      "name": "F25 hash collision is rejected before provider",
+      "result": "PASS"
+    },
+    {
+      "name": "R01 R03 R04 R07 image names / accents / same month / Tier1 actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "R01 exact image canonical memo is 34 characters",
+      "result": "PASS"
+    },
+    {
+      "name": "R18 visible transfer memo exactly equals URL addInfo",
+      "result": "PASS"
+    },
+    {
+      "name": "R19 expected intent at both unchanged pixel-verifier calls exactly equals addInfo",
+      "result": "PASS"
+    },
+    {
+      "name": "R20 independent provider pixels decode to exact canonical memo",
+      "result": "PASS"
+    },
+    {
+      "name": "R21 independent preview pixels decode to exact canonical memo",
+      "result": "PASS"
+    },
+    {
+      "name": "R01 receipt keeps full names and exact participant/month labels",
+      "result": "PASS"
+    },
+    {
+      "name": "R08 deterministic Tier2 when Tier1 exceeds40 actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "R08 last human tokens replace long LAST2 without substring truncation",
+      "result": "PASS"
+    },
+    {
+      "name": "R06 exact YYYYMM compaction keeps cross-year evidence actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "R06 compact period retains both months and years",
+      "result": "PASS"
+    },
+    {
+      "name": "R10 same last token expands to distinguishable human suffixes actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "R10 never collapses both students to AN AN",
+      "result": "PASS"
+    },
+    {
+      "name": "R11 same LAST2 expands through full human names actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "R11 no disambiguator while full names can distinguish",
+      "result": "PASS"
+    },
+    {
+      "name": "R12 R14 identical normalized full names need name plus ID actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "R14 IDs only supplement human names",
+      "result": "PASS"
+    },
+    {
+      "name": "R15 no ID uses name plus deterministic suffix actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "R15 both participants still have a human name token",
+      "result": "PASS"
+    },
+    {
+      "name": "R17 identical-name fallback is byte-deterministic",
+      "result": "PASS"
+    },
+    {
+      "name": "R02 R09 R13 different names stay primary even if IDs duplicate actual Family handler/receipt succeeds",
+      "result": "PASS"
+    },
+    {
+      "name": "R13 available IDs do not replace readable names",
+      "result": "PASS"
+    },
+    {
+      "name": "R17 repeated image input byte-identical",
+      "result": "PASS"
+    },
+    {
+      "name": "R16 no successful opaque-only participant identity; every last name remains recognizable",
+      "result": "PASS"
+    },
+    {
+      "name": "R05 R06 R18 R19 R20 R21 all successes keep URL/UI/intent/provider/preview byte-identical",
+      "result": "PASS"
+    },
+    {
+      "name": "R22 irreducible names fail closed, no opaque fallback",
+      "result": "PASS"
+    },
+    {
+      "name": "R22 no provider call when full human tokens cannot fit",
+      "result": "PASS"
+    },
+    {
+      "name": "PAY01 concurrent settlement PAID blocks entire atomic plan",
+      "result": "PASS"
+    },
+    {
+      "name": "PAY02 one atomic plan / two transactions / two profile updates",
+      "result": "PASS"
+    },
+    {
+      "name": "PAY03 pending ACK has no financial success/local promotion/receipt; double tap one writer",
+      "result": "PASS"
+    },
+    {
+      "name": "PAY04 rejected primary creates no local partial success or receipt",
+      "result": "PASS"
+    }
+  ]
+}

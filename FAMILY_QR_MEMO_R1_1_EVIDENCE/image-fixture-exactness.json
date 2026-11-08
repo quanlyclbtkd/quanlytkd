@@ -1,0 +1,68 @@
+{
+  "baseline": {
+    "id": "R01 R03 R04 R07 image names / accents / same month / Tier1",
+    "result": true,
+    "receiptOK": true,
+    "stage": "complete",
+    "providerFetches": 1,
+    "memo": "GD M1RTXZSB M1RJYE3C HP T11 2026",
+    "visibleMemo": "GD M1RTXZSB M1RJYE3C HP T11 2026",
+    "providerMemo": "GD M1RTXZSB M1RJYE3C HP T11 2026",
+    "previewMemo": "GD M1RTXZSB M1RJYE3C HP T11 2026",
+    "intents": [
+      {
+        "memo": "GD M1RTXZSB M1RJYE3C HP T11 2026",
+        "stage": "provider-pixels"
+      },
+      {
+        "memo": "GD M1RTXZSB M1RJYE3C HP T11 2026",
+        "stage": "preview-pixels"
+      }
+    ],
+    "studentNames": [
+      "Lê Hoàng Ngân Khánh",
+      "Lê Hoàng Hải Đăng"
+    ],
+    "months": [
+      "2026-11",
+      "2026-11"
+    ],
+    "writes": 0
+  },
+  "candidate": {
+    "id": "R01 R03 R04 R07 image names / accents / same month / Tier1",
+    "result": true,
+    "receiptOK": true,
+    "stage": "complete",
+    "providerFetches": 1,
+    "memo": "GD NGAN KHANH HAI DANG HP T11 2026",
+    "visibleMemo": "GD NGAN KHANH HAI DANG HP T11 2026",
+    "providerMemo": "GD NGAN KHANH HAI DANG HP T11 2026",
+    "previewMemo": "GD NGAN KHANH HAI DANG HP T11 2026",
+    "intents": [
+      {
+        "memo": "GD NGAN KHANH HAI DANG HP T11 2026",
+        "stage": "provider-pixels"
+      },
+      {
+        "memo": "GD NGAN KHANH HAI DANG HP T11 2026",
+        "stage": "preview-pixels"
+      }
+    ],
+    "studentNames": [
+      "Lê Hoàng Ngân Khánh",
+      "Lê Hoàng Hải Đăng"
+    ],
+    "months": [
+      "2026-11",
+      "2026-11"
+    ],
+    "writes": 0
+  },
+  "expectedMemo": "GD NGAN KHANH HAI DANG HP T11 2026",
+  "asciiLength": 34,
+  "allFiveSurfacesExact": true,
+  "checkerSHA256": "d09d96b5e2ac5cabb176c5019c0e3dbeb1c8caa12c1e8c4e56af7fa4fc4afbcb",
+  "baselineAppSHA256": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
+  "candidateAppSHA256": "0a5aae9518fe265283db47aea2b89fd25f98c50baf85eaaa45c5caadf1e2cc10"
+}

@@ -1,0 +1,115 @@
+[
+  {
+    "name": "family-autofill",
+    "command": [
+      "node",
+      "tools/check-family-combo-autofill-r1.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 0.316
+  },
+  {
+    "name": "family-readable",
+    "command": [
+      "node",
+      "tools/check-family-combo-qr-r1.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 11.826
+  },
+  {
+    "name": "finance-writer",
+    "command": [
+      "node",
+      "tools/check-finance-write-writer-matrix-r1-1.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 0.194
+  },
+  {
+    "name": "finance-evidence",
+    "command": [
+      "npm",
+      "run",
+      "check:finance-write-evidence-r1-1"
+    ],
+    "returncode": 0,
+    "seconds": 1.084
+  },
+  {
+    "name": "tuition-month",
+    "command": [
+      "npm",
+      "run",
+      "check:finance-tuition-month-authority-r1-2"
+    ],
+    "returncode": 0,
+    "seconds": 0.499
+  },
+  {
+    "name": "tuition-context",
+    "command": [
+      "npm",
+      "run",
+      "check:finance-tuition-intent-context-r1-2a"
+    ],
+    "returncode": 0,
+    "seconds": 0.414
+  },
+  {
+    "name": "debt-authority",
+    "command": [
+      "npm",
+      "run",
+      "check:debt-authoritative-tuition-coverage"
+    ],
+    "returncode": 0,
+    "seconds": 0.33
+  },
+  {
+    "name": "tuition-source",
+    "command": [
+      "npm",
+      "run",
+      "check:tuition-debt-source-of-truth"
+    ],
+    "returncode": 0,
+    "seconds": 0.315
+  },
+  {
+    "name": "qr-intent",
+    "command": [
+      "node",
+      "tools/check-qr-report-render-payment-intent.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 1.563
+  },
+  {
+    "name": "qr-account",
+    "command": [
+      "node",
+      "tools/check-qr-v4-payment-account-authority.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 3.759
+  },
+  {
+    "name": "generic-multiitem",
+    "command": [
+      "node",
+      "tools/check-qr-multiitem-memo-r1-2d1.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 2.115
+  },
+  {
+    "name": "a9r6",
+    "command": [
+      "node",
+      "tools/a9r6/qr-provider-memo-regression.test.mjs"
+    ],
+    "returncode": 0,
+    "seconds": 0.103
+  }
+]

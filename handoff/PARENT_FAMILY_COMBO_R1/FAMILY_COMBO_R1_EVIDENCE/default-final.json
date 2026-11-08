@@ -1,0 +1,10 @@
+{
+  "name": "default-final",
+  "command": [
+    "npm",
+    "run",
+    "check"
+  ],
+  "returncode": 1,
+  "seconds": 36.259
+}

@@ -1,0 +1,51 @@
+{
+  "baselineFileCount": 1457,
+  "candidateCodeFileCountBeforeReports": 1460,
+  "changedExistingFiles": [
+    "app.js",
+    "index.html",
+    "js/main.js",
+    "js/modules/finance.js",
+    "public/app.js",
+    "public/index.html",
+    "public/js/main.js",
+    "public/js/modules/finance.js",
+    "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs",
+    "tools/v11r2/source-identity.mjs"
+  ],
+  "addedFiles": [
+    "tools/check-family-combo-autofill-r1.mjs",
+    "tools/check-family-combo-qr-r1.mjs",
+    "tools/v11r2/manifests/V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1.json"
+  ],
+  "removedFiles": [],
+  "baselineHashes": {
+    "app.js": "a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4",
+    "index.html": "de7ab11450ce128fb7cc2b4fd3bb0dd4d9c058ae88c699fedec34f4cc8e9a9dc",
+    "js/main.js": "26f8c0076fbe51063732e7982c3a3e9c269bfa105e1d34c3d43c8725960cbd0a",
+    "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs": "1c1167217a7def1487b012c108a94a92cf7d064610f1218620394cc27e53624f",
+    "public/app.js": "a1a9990664a261fd0aaf343e9fb14c75c854530c6052d8b80882335b608c0ab4",
+    "public/index.html": "de7ab11450ce128fb7cc2b4fd3bb0dd4d9c058ae88c699fedec34f4cc8e9a9dc",
+    "js/modules/finance.js": "9868715dcde7e82bfb7499f87f56ffab0a40744df5ddb77ac4dd79192b4b6f26",
+    "tools/v11r2/source-identity.mjs": "9a539f3556b944274642330e4538e9691820edb38c76dfa4da1095150ba197b9",
+    "public/js/main.js": "26f8c0076fbe51063732e7982c3a3e9c269bfa105e1d34c3d43c8725960cbd0a",
+    "public/js/modules/finance.js": "9868715dcde7e82bfb7499f87f56ffab0a40744df5ddb77ac4dd79192b4b6f26"
+  },
+  "candidateHashes": {
+    "app.js": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
+    "index.html": "845a89d348c240401070b205bd0c2165115648484019e69c563635702a0c01e6",
+    "js/main.js": "c3ef9ba5e81e77c9d1f416c65748d4039099fe93bb503576c84fa507008b2118",
+    "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs": "9022f41501719d593e30d8d912ed85569c3a81dce6dbd76525524125b35cbce8",
+    "public/app.js": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
+    "public/index.html": "845a89d348c240401070b205bd0c2165115648484019e69c563635702a0c01e6",
+    "js/modules/finance.js": "f652c2d896180654cf8f1534a916cb7f44ebff3599251070b0ef74eb998c809b",
+    "tools/v11r2/source-identity.mjs": "a8e52e9d0098543300f8d8aa68683e409b1dc5f1fa8b6f280ac92e56eeff62ce",
+    "public/js/main.js": "c3ef9ba5e81e77c9d1f416c65748d4039099fe93bb503576c84fa507008b2118",
+    "public/js/modules/finance.js": "f652c2d896180654cf8f1534a916cb7f44ebff3599251070b0ef74eb998c809b",
+    "tools/check-family-combo-autofill-r1.mjs": "116d5a385f7d5e85f89af614bb8142317546276f0d37d4f9ef90a399511d5c90",
+    "tools/check-family-combo-qr-r1.mjs": "59a20ce8afd9e8e486480a3285b44b80f2885e89f7c7eeff18084662c99ea925",
+    "tools/v11r2/manifests/V11R6_A9R18_FAMILY_COMBO_CORRECTNESS_QR_R1.json": "d1a9770d690c9674644364a961206126b2e6bd82f3e49101bf743895d7375a8d"
+  },
+  "appBytes": 717487,
+  "appLines": 11300
+}

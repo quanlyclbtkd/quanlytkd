@@ -1,0 +1,30 @@
+[
+  {
+    "name": "default",
+    "command": [
+      "npm",
+      "run",
+      "check"
+    ],
+    "returncode": 1,
+    "seconds": 11.053
+  },
+  {
+    "name": "latency-r2",
+    "command": [
+      "node",
+      "tools/run-finance-write-latency-r2.mjs"
+    ],
+    "returncode": 1,
+    "seconds": 4.257
+  },
+  {
+    "name": "observer-r21",
+    "command": [
+      "node",
+      "tools/check-finance-write-latency-r2-1.mjs"
+    ],
+    "returncode": 1,
+    "seconds": 3.696
+  }
+]

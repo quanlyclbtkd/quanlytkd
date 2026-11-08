@@ -1,0 +1,50 @@
+{
+  "phase": "A9R18-FAMILY-QR-HUMAN-READABLE-MEMO-R1.1",
+  "decision": "PASS_SCOPED_TEST_CANDIDATE",
+  "memo": "GD NGAN KHANH HAI DANG HP T11 2026",
+  "memoAsciiLength": 34,
+  "allFiveSurfacesExact": true,
+  "baselineReadability": {
+    "passed": 45,
+    "failed": 21
+  },
+  "candidateFamilyQR": {
+    "passed": 66,
+    "failed": 0
+  },
+  "protectedAutofill": {
+    "passed": 53,
+    "failed": 0
+  },
+  "regressionCommands": {
+    "passed": 12,
+    "failed": 0
+  },
+  "financeUnchanged": true,
+  "outsideMemoFunctionUnchanged": true,
+  "firestoreBudget": {
+    "baseline": {
+      "getDoc": 26,
+      "getDocs": 43,
+      "onSnapshot": 16
+    },
+    "candidate": {
+      "getDoc": 26,
+      "getDocs": 43,
+      "onSnapshot": 16
+    }
+  },
+  "rootPublic": {
+    "pairs": 129,
+    "mismatches": []
+  },
+  "runtime": {
+    "id": "V11R6_A9R18_FAMILY_QR_HUMAN_READABLE_MEMO_R1_1",
+    "runtimeSHA256": "36743a31f66abfeca4ae46376faf653ba7759e1e839dfe35e9ab32762636a6df",
+    "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+  },
+  "evidenceLevel": "ACTUAL_SOURCE_VM_AND_SYNTHETIC_PROVIDER_PREVIEW_PIXELS",
+  "productionDeploy": false,
+  "realStagingOrMobileAcceptance": "NOT_RUN",
+  "historicalLatencyIdentityGates": "NOT_REBASELINED_NOT_RERUN"
+}

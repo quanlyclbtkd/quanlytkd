@@ -1,0 +1,12 @@
+{
+  "baseline": {
+    "getDoc": 26,
+    "getDocs": 43,
+    "onSnapshot": 16
+  },
+  "candidate": {
+    "getDoc": 26,
+    "getDocs": 43,
+    "onSnapshot": 16
+  }
+}

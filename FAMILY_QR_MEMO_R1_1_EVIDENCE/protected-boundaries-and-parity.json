@@ -1,0 +1,73 @@
+{
+  "outsideFamilyMemoFunctionByteIdentical": true,
+  "baselineFamilyFunctionSHA256": "08ad093be4e14e23b611977f5c68459ea61fa4a5dffa86991721c68d8a0ffb9e",
+  "candidateFamilyFunctionSHA256": "f4fcd7d682c51b09255fea2cd5230a17c40d822a622640c018ebc3a60d02d0d3",
+  "appSHA256": "0a5aae9518fe265283db47aea2b89fd25f98c50baf85eaaa45c5caadf1e2cc10",
+  "appLines": 11300,
+  "protectedFiles": [
+    {
+      "file": "js/modules/finance.js",
+      "sha256": "f652c2d896180654cf8f1534a916cb7f44ebff3599251070b0ef74eb998c809b",
+      "unchanged": true
+    },
+    {
+      "file": "js/services/finance.service.js",
+      "sha256": "c33428e1ada24f2aec428acd3d042141bdf33851c24fd75cfa8a142a9aea2314",
+      "unchanged": true
+    },
+    {
+      "file": "js/core/tuitionCommandBoundary.js",
+      "sha256": "1939bdcad2f8d21c03d88f182c1e21f237d4f7a4886a1f90933f29df550f75e7",
+      "unchanged": true
+    },
+    {
+      "file": "js/core/tuitionDebtCanonical.js",
+      "sha256": "3755b877d8e0be7cc72aa986eca3b3e723d493717fa6631de4fe1d367327e92e",
+      "unchanged": true
+    },
+    {
+      "file": "js/core/debtProfileReadBoundary.js",
+      "sha256": "92d22f373d6598afac786418f1a26e2f8514c2a4a589b24a38e8c2856356fa08",
+      "unchanged": true
+    },
+    {
+      "file": "js/listeners/profiles.listeners.js",
+      "sha256": "a63cac438c0dbe94fee97e8f828baab8ee7abce0a5420eda593b043a14d8bac5",
+      "unchanged": true
+    },
+    {
+      "file": "js/modules/qrBankingHelpers.js",
+      "sha256": "8fa10f05f306f5fe6384ef2898d77ad8f9c8e200cb50c9af126173dc2d935a0c",
+      "unchanged": true
+    },
+    {
+      "file": "firestore.rules",
+      "sha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "unchanged": true
+    },
+    {
+      "file": "firestore.indexes.json",
+      "sha256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+      "unchanged": true
+    },
+    {
+      "file": "tools/check-family-combo-autofill-r1.mjs",
+      "sha256": "116d5a385f7d5e85f89af614bb8142317546276f0d37d4f9ef90a399511d5c90",
+      "unchanged": true
+    },
+    {
+      "file": "package.json",
+      "sha256": "9712f76216000ef64f5ca012c04c8f9463b8aa109c899346972cf598e0912b78",
+      "unchanged": true
+    }
+  ],
+  "rootPublic": {
+    "pairs": 129,
+    "mismatches": []
+  },
+  "identity": {
+    "id": "V11R6_A9R18_FAMILY_QR_HUMAN_READABLE_MEMO_R1_1",
+    "runtimeSHA256": "36743a31f66abfeca4ae46376faf653ba7759e1e839dfe35e9ab32762636a6df",
+    "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+  }
+}

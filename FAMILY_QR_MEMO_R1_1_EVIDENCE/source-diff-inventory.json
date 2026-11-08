@@ -1,0 +1,42 @@
+{
+  "baselineFileCount": 1529,
+  "candidateCodeFileCountBeforeReports": 1530,
+  "changedExistingFiles": [
+    "app.js",
+    "index.html",
+    "js/main.js",
+    "public/app.js",
+    "public/index.html",
+    "public/js/main.js",
+    "tools/check-family-combo-qr-r1.mjs",
+    "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs",
+    "tools/v11r2/source-identity.mjs"
+  ],
+  "addedFiles": [
+    "tools/v11r2/manifests/V11R6_A9R18_FAMILY_QR_HUMAN_READABLE_MEMO_R1_1.json"
+  ],
+  "removedFiles": [],
+  "baselineHashes": {
+    "app.js": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
+    "index.html": "845a89d348c240401070b205bd0c2165115648484019e69c563635702a0c01e6",
+    "js/main.js": "c3ef9ba5e81e77c9d1f416c65748d4039099fe93bb503576c84fa507008b2118",
+    "public/app.js": "34eabb10a15e7b5261c489df8c3d6a20fa4f592e2268852bd330f8c185c196bf",
+    "public/index.html": "845a89d348c240401070b205bd0c2165115648484019e69c563635702a0c01e6",
+    "public/js/main.js": "c3ef9ba5e81e77c9d1f416c65748d4039099fe93bb503576c84fa507008b2118",
+    "tools/check-family-combo-qr-r1.mjs": "59a20ce8afd9e8e486480a3285b44b80f2885e89f7c7eeff18084662c99ea925",
+    "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs": "9022f41501719d593e30d8d912ed85569c3a81dce6dbd76525524125b35cbce8",
+    "tools/v11r2/source-identity.mjs": "a8e52e9d0098543300f8d8aa68683e409b1dc5f1fa8b6f280ac92e56eeff62ce"
+  },
+  "candidateHashes": {
+    "app.js": "0a5aae9518fe265283db47aea2b89fd25f98c50baf85eaaa45c5caadf1e2cc10",
+    "index.html": "69695d7ebe4031ca7179134afae21bb740b6a1e8182aef67232dd5b2b8b97921",
+    "js/main.js": "905a80fb3ce033842921a87063c5ef37a638ad8152370bfba70e3694f6e18fc9",
+    "public/app.js": "0a5aae9518fe265283db47aea2b89fd25f98c50baf85eaaa45c5caadf1e2cc10",
+    "public/index.html": "69695d7ebe4031ca7179134afae21bb740b6a1e8182aef67232dd5b2b8b97921",
+    "public/js/main.js": "905a80fb3ce033842921a87063c5ef37a638ad8152370bfba70e3694f6e18fc9",
+    "tools/check-family-combo-qr-r1.mjs": "d09d96b5e2ac5cabb176c5019c0e3dbeb1c8caa12c1e8c4e56af7fa4fc4afbcb",
+    "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs": "ea5726a76e8d67ebc5cc0623ba218869de5dab686fcff37c11963c090233d6af",
+    "tools/v11r2/source-identity.mjs": "c1911d7c05a8b1d8d2c513881c2caf46b22f2bd2950806684a2f309b699059e7",
+    "tools/v11r2/manifests/V11R6_A9R18_FAMILY_QR_HUMAN_READABLE_MEMO_R1_1.json": "5715b2a2721c9d69e90e32cf1598f7d8f736870c7409ccd547b0598aa0096662"
+  }
+}

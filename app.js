@@ -4969,39 +4969,39 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             !String(row.participantKey || '').trim() || !Array.isArray(row.packageMonths) || row.packageMonths.length !== 1 ||
             !/^20\d{2}-(0[1-9]|1[0-2])$/.test(row.packageMonths[0])
         )) throw _receiptError('FAMILY_MEMO_METADATA_INVALID','intent');
-        const reference = (key, profile) => {
-            for (const field of ['memberId','memberID','studentId']) {
-                const id = String(profile[field] ?? '').trim();
-                if (/^[A-Za-z0-9]{1,8}$/.test(id)) return id;
-            }
-            // FNV-1a reference from the existing key; collision-checked in current memory.
-            let hash = 2166136261;
-            for (let i=0;i<key.length;i++) hash = Math.imul(hash ^ key.charCodeAt(i),16777619) >>> 0;
-            return 'M'+hash.toString(36).toUpperCase().padStart(7,'0');
+        const normalizeName = name => removeVietnameseTonesForQR(String(name)).toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+        const names = rows.map(row=>normalizeName(row.studentName).split(' ').filter(Boolean)), keys = rows.map(row=>String(row.participantKey).trim());
+        if (names.some(tokens=>!tokens.length) || new Set(keys).size !== rows.length) failReference();
+        const full = names.map(tokens=>tokens.join(' ')), identical = rows.length === 2 && full[0] === full[1];
+        const suffix = (key,profile) => {
+            for (const field of ['memberId','memberID','studentId']) {const id=String(profile[field]??'').trim();if(/^[A-Za-z0-9]{1,8}$/.test(id))return id.toUpperCase();}
+            let hash=2166136261;for(let i=0;i<key.length;i++)hash=Math.imul(hash^key.charCodeAt(i),16777619)>>>0;
+            return (hash % 1679616).toString(36).toUpperCase().padStart(4,'0');
         };
-        const seenKeys = new Set(), seenRefs = new Map();
-        const refs = rows.map(row => {
-            const key = String(row.participantKey).trim(), ref = reference(key,row), folded = ref.toUpperCase();
-            if (seenKeys.has(key) || seenRefs.has(folded)) failReference();
-            seenKeys.add(key); seenRefs.set(folded,key); return ref;
-        });
-        // Finance _profileKey projection only; references never resolve student identity.
-        const profiles = window.__store?.profiles || allProfiles;
-        for (const [name,profile] of Object.entries(profiles || {})) {
-            const p = profile || {}, key = String(p.profileId||p.id||p.uid||p.memberId||p.memberID||p.studentId||name||'').trim();
-            const ref = reference(key,p).toUpperCase();
-            if (seenRefs.has(ref) && seenRefs.get(ref) !== key) failReference();
+        // ID/hash only supplements indistinguishable full names; never replaces a name.
+        const extras = identical ? rows.map((row,i)=>suffix(keys[i],row)) : [];
+        if (identical) {
+            if (new Set(extras).size !== rows.length) failReference();
+            const seen = new Map(extras.map((ref,i)=>[ref,keys[i]]));
+            for (const [name,profile] of Object.entries(window.__store?.profiles || allProfiles || {})) {
+                const p=profile||{}, key=String(p.profileId||p.id||p.uid||p.memberId||p.memberID||p.studentId||name||'').trim(), ref=suffix(key,p);
+                if (normalizeName(name) === full[0] && seen.has(ref) && seen.get(ref) !== key) failReference();
+            }
         }
+        const labelsFor = minimum => {
+            let counts=names.map(tokens=>Math.min(minimum,tokens.length));const label=i=>names[i].slice(-counts[i]).join(' ');
+            while (!identical && rows.length === 2 && label(0) === label(1) && counts.some((n,i)=>n<names[i].length)) counts=counts.map((n,i)=>Math.min(n+1,names[i].length));
+            return names.map((_,i)=>label(i)+(identical?' '+extras[i]:''));
+        };
         const months = [...new Set(rows.map(row => row.packageMonths[0]))].sort();
         const groups = new Map();
         months.forEach(month => {const year=month.slice(0,4);if(!groups.has(year))groups.set(year,[]);groups.get(year).push('T'+Number(month.slice(5)));});
         const periods = [...groups].map(([year,list])=>list.join(' ')+' '+year).join(' ');
-        const prefix = 'GD '+refs.join(' ')+' HP ';
-        let memo = prefix+periods;
-        // Exact YYYYMM tokens retain sparse cross-year periods if spacing is tight.
-        if (memo.length > 40) memo = prefix+months.map(month=>month.replace('-','')).join(' ');
-        if (!/^[A-Za-z0-9 ]+$/.test(memo) || memo.length > 40) failReference();
-        return memo;
+        const prefix = labels => 'GD '+labels.join(' ')+' HP ';
+        let labels=labelsFor(2), memo=prefix(labels)+periods;
+        if (memo.length > 40) {labels=labelsFor(1);memo=prefix(labels)+periods;}
+        if (memo.length > 40) memo=prefix(labels)+months.map(month=>month.replace('-','')).join(' ');
+        if (!/^[A-Z0-9 ]+$/.test(memo) || memo.length > 40) failReference(); return memo;
     }
     function _receiptPaymentMemo(name, detail, maxMemoLength = 48) {
         // Preserve all reference digits. The provider removes punctuation; make

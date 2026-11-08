@@ -2488,7 +2488,7 @@ function _loadLegacyApp() {
     if (window.__appLoaded) return Promise.resolve();
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = "app.js?v=a9r18-family-combo-correctness-qr-r1-20261107";
+        script.src = "app.js?v=a9r18-family-qr-human-readable-memo-r1-1-20261107";
         script.onload  = () => resolve();
         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
         document.head.appendChild(script);
