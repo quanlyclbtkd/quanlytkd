@@ -1,0 +1,44 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {createRequire} from 'node:module';
+import {spawnSync} from 'node:child_process';
+
+const work=path.dirname(new URL(import.meta.url).pathname),root=path.join(work,'source'),out=path.join(work,'evidence');
+const require=createRequire(path.join(root,'package.json'));
+const versions=[];
+for(const [command,args] of [['node',['--version']],['npm',['--version']],['npx',['--no-install','firebase','--version']],['npx',['--no-install','playwright','--version']],['java',['-version']]]){
+  const result=spawnSync(command,args,{cwd:root,encoding:'utf8'});
+  versions.push({command:[command,...args],exitCode:result.status,output:(result.stdout||'')+(result.stderr||'')});
+}
+fs.writeFileSync(path.join(out,'versions.json'),JSON.stringify({platform:os.platform(),release:os.release(),versions},null,2)+'\n');
+const gates=JSON.parse(fs.readFileSync(path.join(out,'baseline-focused-gates.json'),'utf8'));
+if(gates.some(g=>g.exitCode!==0))throw Error('BASELINE_GATE_NOT_GREEN');
+const model=fs.readFileSync(path.join(out,'R1_BEFORE.log'),'utf8').match(/INVENTORY_STOCK_AUTHORITY_R1_RESULT (\{[^\n]*\})/);
+if(!model||JSON.parse(model[1]).passed!==49||JSON.parse(model[1]).failed!==0)throw Error('R1_REGRESSION');
+const pw=require('playwright');
+const bundled=pw.chromium.executablePath();
+const executable=fs.existsSync(bundled)?bundled:'/usr/bin/chromium';
+const smoke={phase:'R1.1B',stage:'PREFLIGHT',platform:os.platform(),playwrightVersion:require('playwright/package.json').version,declaredChromiumExecutable:bundled,declaredChromiumInstalled:fs.existsSync(bundled),selectedExecutable:executable,selectedExecutableExists:fs.existsSync(executable),launchAttempted:false,launched:false,blankPageOpened:false,browserClosed:false,externalAttempts:[],expectedBrowserSdk:'10.7.1',observedBrowserSdk:null};
+let browser;
+try {
+  smoke.launchAttempted=true;
+  browser=await pw.chromium.launch({headless:true,executablePath:executable,args:['--no-sandbox']});
+  smoke.launched=true;smoke.chromiumVersion=browser.version();
+  const context=await browser.newContext({serviceWorkers:'block'});
+  await context.route('**/*',route=>{const request=route.request(),url=new URL(request.url());if(['localhost','127.0.0.1'].includes(url.hostname))return route.continue();smoke.externalAttempts.push(request.url());return route.abort();});
+  const page=await context.newPage();await page.goto('about:blank');smoke.blankPageOpened=true;
+  await browser.close();smoke.browserClosed=true;browser=null;
+}catch(error){smoke.error={message:error.message,stack:error.stack};}
+finally{if(browser)try{await browser.close();}catch{}fs.writeFileSync(path.join(out,'CHROMIUM_SMOKE.json'),JSON.stringify(smoke,null,2)+'\n');}
+if(!smoke.launched||!smoke.blankPageOpened||!smoke.browserClosed){
+  const previous=JSON.parse(fs.readFileSync(path.join(root,'evidence/INVENTORY_R1_1/final/ACCEPTANCE.json'),'utf8'));
+  const blocked={phase:'A9R18-INVENTORY-STOCK-INTEGRITY-R1.1B',classification:'BLOCKED_TEST_DEPENDENCY',stopStage:'CHROMIUM_PREFLIGHT',mandatoryRows:previous.results.map(r=>({id:r.id,status:'NOT_RUN',reason:'Chromium preflight did not pass'})),existingAcceptanceAlias:'npm run test:inventory-stock-emulator-r1-1',existingAcceptanceInvoked:false,emulatorStartedThisRun:false,rulesLoadedThisRun:false,browserSdkObserved:null,productionInventoryModuleImported:false,isolatedClients:0,realRetryObserved:false,transactionAttempts:null,browserAuthorityReads:null,productionSourceModified:false,r1Before:{passed:49,failed:0},focusedProtectedGates:{passed:gates.length-1,failed:0,runBeforeSmoke:true},blocker:(smoke.error?.message||'Chromium executable unavailable').split('\n').filter(l=>l.includes('socket() failed')||l.includes('Operation not permitted'))[0]||smoke.error?.message?.split('\n')[0]};
+  fs.writeFileSync(path.join(out,'ACCEPTANCE_R1_1B.json'),JSON.stringify(blocked,null,2)+'\n');
+  console.log(JSON.stringify({classification:blocked.classification,stopStage:blocked.stopStage,launched:smoke.launched,mandatoryRowsNotRun:blocked.mandatoryRows.length,emulatorStartedThisRun:false,blocker:blocked.blocker},null,2));
+  process.exitCode=1;
+} else {
+  const destination=path.join(out,'real-acceptance');fs.mkdirSync(destination,{recursive:true});
+  const file=fs.openSync(path.join(out,'existing-acceptance-run.log'),'w');
+  const result=spawnSync('npm',['run','test:inventory-stock-emulator-r1-1'],{cwd:root,env:{...process.env,PLAYWRIGHT_CHROMIUM_EXECUTABLE:executable,INVENTORY_R11_OUTPUT:destination},stdio:['ignore',file,file]});fs.closeSync(file);process.exitCode=result.status??1;
+}

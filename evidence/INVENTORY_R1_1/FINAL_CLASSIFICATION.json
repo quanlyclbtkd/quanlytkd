@@ -1,0 +1,18 @@
+{
+  "classification": "BLOCKED_TEST_DEPENDENCY",
+  "productionBusinessPatch": false,
+  "prodFileChanges": 0,
+  "frozenFileChecks": 261,
+  "rootPublicPairs": 129,
+  "rootPublicMismatches": 0,
+  "runtimeSHA256": "3e4e56fc385ef13bc74b5d6f2df1182137d38355d65eed4394a807de58f9e3da",
+  "sourcePin": "V11R6_A9R18_INVENTORY_STOCK_INTEGRITY_AUTHORITY_R1",
+  "allMandatoryRealRows": "NOT_RUN",
+  "existingR1Before": 49,
+  "existingR1After": 49,
+  "focusedProtectedGates": {
+    "passed": 12,
+    "failed": 0
+  },
+  "nextAction": "Run exact handoff in a standard Chromium-capable Emulator environment; do not advance to R2.2 until PASS_EMULATOR_ACCEPTED"
+}

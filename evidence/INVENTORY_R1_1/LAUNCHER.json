@@ -1,0 +1,20 @@
+{
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "D:\\A9R18_R1_1B_TEST\\source\\node_modules\\firebase-tools\\lib\\bin\\firebase.js",
+    "emulators:exec",
+    "--only",
+    "firestore",
+    "--project",
+    "demo-a9r18-inventory-r11",
+    "--config",
+    "firebase.json",
+    "--non-interactive",
+    "node tools/check-inventory-stock-emulator-r1-1.mjs"
+  ],
+  "project": "demo-a9r18-inventory-r11",
+  "config": "firebase.json unchanged",
+  "sameProcessNamespace": true,
+  "exitCode": 0,
+  "error": null
+}

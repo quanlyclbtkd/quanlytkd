@@ -1,0 +1,14 @@
+{
+  "evidenceLevel": "DETERMINISTIC_MVCC_CONFLICT_MODEL_ACTUAL_SOURCE",
+  "realFirestoreEmulator": "NOT RUN; no installed emulator JAR or Firebase CLI found in the supplied workspace",
+  "realStaging": "NOT RUN",
+  "productionWrites": 0,
+  "historicalProductionStock": "UNKNOWN",
+  "node": "v24.22.1",
+  "python": "Python 3.12.14",
+  "runtimeSdk": "Firebase modular SDK 10.7.1 (existing browser exports)",
+  "date": "2026-11-08",
+  "sourceSHA256": "dbb1f6c042a139baa3606a0ca78a0472959acd624ab4fceb6ba69ed4b6a40a90",
+  "workspaceTimezone": "Etc/UTC",
+  "reportingTimezone": "Asia/Ho_Chi_Minh"
+}

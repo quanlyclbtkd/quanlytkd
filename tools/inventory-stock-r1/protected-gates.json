@@ -1,0 +1,293 @@
+{
+  "phase": "A9R18-INVENTORY-STOCK-INTEGRITY-AUTHORITY-R1",
+  "gates": [
+    {
+      "name": "check-inventory-stock-authority-r1",
+      "command": [
+        "node",
+        "tools/check-inventory-stock-authority-r1.mjs"
+      ]
+    },
+    {
+      "name": "check-inventory-finance-rollup",
+      "command": [
+        "node",
+        "tools/check-inventory-finance-rollup.mjs"
+      ]
+    },
+    {
+      "name": "check-inventory-history-pagination-active-debt",
+      "command": [
+        "node",
+        "tools/check-inventory-history-pagination-active-debt.mjs"
+      ]
+    },
+    {
+      "name": "check-inventory-multiitem-readonly-ui",
+      "command": [
+        "node",
+        "tools/check-inventory-multiitem-readonly-ui.mjs"
+      ]
+    },
+    {
+      "name": "check-inventory-consumer-hydration-hotfix",
+      "command": [
+        "node",
+        "tools/check-inventory-consumer-hydration-hotfix.mjs"
+      ]
+    },
+    {
+      "name": "check-inventory-ledger-reconciliation",
+      "command": [
+        "node",
+        "tools/check-inventory-ledger-reconciliation.mjs"
+      ]
+    },
+    {
+      "name": "check-inventory-dynamic-size-catalog",
+      "command": [
+        "node",
+        "tools/check-inventory-dynamic-size-catalog.mjs"
+      ]
+    },
+    {
+      "name": "check-h8r2-1c1f1d1-multiitem-inventory-closure",
+      "command": [
+        "node",
+        "tools/check-h8r2-1c1f1d1-multiitem-inventory-closure.mjs"
+      ]
+    },
+    {
+      "name": "check-multiitem-inventory-hydration",
+      "command": [
+        "node",
+        "tools/check-multiitem-inventory-hydration.mjs"
+      ]
+    },
+    {
+      "name": "check-admission-postcommit-context-r1-2c",
+      "command": [
+        "node",
+        "tools/check-admission-postcommit-context-r1-2c.mjs"
+      ]
+    },
+    {
+      "name": "check-admission-draft-snapshot-r1-3a",
+      "command": [
+        "node",
+        "tools/check-admission-draft-snapshot-r1-3a.mjs"
+      ]
+    },
+    {
+      "name": "check-admission-r1-3a1-test-superset",
+      "command": [
+        "node",
+        "tools/check-admission-r1-3a1-test-superset.mjs"
+      ]
+    },
+    {
+      "name": "check-payment-bundle-runtime-hotfix",
+      "command": [
+        "node",
+        "tools/check-payment-bundle-runtime-hotfix.mjs"
+      ]
+    },
+    {
+      "name": "check-admission-bundle-unification",
+      "command": [
+        "node",
+        "tools/check-admission-bundle-unification.mjs"
+      ]
+    },
+    {
+      "name": "check-admission-tuition-package",
+      "command": [
+        "node",
+        "tools/check-admission-tuition-package.mjs"
+      ]
+    },
+    {
+      "name": "check-admission-uniform-size",
+      "command": [
+        "node",
+        "tools/check-admission-uniform-size.mjs"
+      ]
+    },
+    {
+      "name": "check-finance-write-writer-matrix-r1-1",
+      "command": [
+        "node",
+        "tools/check-finance-write-writer-matrix-r1-1.mjs"
+      ]
+    },
+    {
+      "name": "check-finance-write-evidence-r1-1",
+      "command": [
+        "node",
+        "tools/check-finance-write-evidence-r1-1.mjs"
+      ]
+    },
+    {
+      "name": "check-finance-tuition-month-authority-r1-2",
+      "command": [
+        "node",
+        "tools/check-finance-tuition-month-authority-r1-2.mjs"
+      ]
+    },
+    {
+      "name": "check-finance-tuition-intent-context-r1-2a",
+      "command": [
+        "node",
+        "tools/check-finance-tuition-intent-context-r1-2a.mjs"
+      ]
+    },
+    {
+      "name": "check-debt-authoritative-tuition-coverage",
+      "command": [
+        "node",
+        "tools/check-debt-authoritative-tuition-coverage.mjs"
+      ]
+    },
+    {
+      "name": "check-family-combo-autofill-r1",
+      "command": [
+        "node",
+        "tools/check-family-combo-autofill-r1.mjs"
+      ]
+    },
+    {
+      "name": "check-family-combo-qr-r1",
+      "command": [
+        "node",
+        "tools/check-family-combo-qr-r1.mjs"
+      ]
+    },
+    {
+      "name": "check-production-security-trust-boundary",
+      "command": [
+        "node",
+        "tools/check-production-security-trust-boundary.mjs"
+      ]
+    },
+    {
+      "name": "check-security-coach-branch-boundary",
+      "command": [
+        "node",
+        "tools/check-security-coach-branch-boundary.mjs"
+      ]
+    },
+    {
+      "name": "check-tuition-debt-source-of-truth-v4c",
+      "command": [
+        "node",
+        "tools/check-tuition-debt-source-of-truth-v4c.mjs"
+      ]
+    },
+    {
+      "name": "check-finance-nontuition-context-tail-r1-2b",
+      "command": [
+        "node",
+        "tools/check-finance-nontuition-context-tail-r1-2b.mjs"
+      ]
+    },
+    {
+      "name": "check-finance-delete-context-tail-r1-2a1",
+      "command": [
+        "node",
+        "tools/check-finance-delete-context-tail-r1-2a1.mjs"
+      ]
+    },
+    {
+      "name": "check-finance-remaining-form-tail-r1-2b1",
+      "command": [
+        "node",
+        "tools/check-finance-remaining-form-tail-r1-2b1.mjs"
+      ]
+    },
+    {
+      "name": "check-qr-report-render-payment-intent",
+      "command": [
+        "node",
+        "tools/check-qr-report-render-payment-intent.mjs"
+      ]
+    },
+    {
+      "name": "check-qr-v4-payment-account-authority",
+      "command": [
+        "node",
+        "tools/check-qr-v4-payment-account-authority.mjs"
+      ]
+    },
+    {
+      "name": "check-qr-multiitem-memo-r1-2d1",
+      "command": [
+        "node",
+        "tools/check-qr-multiitem-memo-r1-2d1.mjs"
+      ]
+    },
+    {
+      "name": "check-qr-multiitem-memo-r1-2d",
+      "command": [
+        "node",
+        "tools/check-qr-multiitem-memo-r1-2d.mjs"
+      ]
+    },
+    {
+      "name": "check-qr-multiitem-memo-r1-2d-app-guard",
+      "command": [
+        "node",
+        "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs"
+      ]
+    },
+    {
+      "name": "check-multiitem-tuition-package-fix",
+      "command": [
+        "node",
+        "tools/check-multiitem-tuition-package-fix.mjs"
+      ]
+    },
+    {
+      "name": "check-multiitem-skipped-months",
+      "command": [
+        "node",
+        "tools/check-multiitem-skipped-months.mjs"
+      ]
+    },
+    {
+      "name": "check-admission-tuition-type-normalization",
+      "command": [
+        "node",
+        "tools/check-admission-tuition-type-normalization.mjs"
+      ]
+    },
+    {
+      "name": "check-mobile-startup-performance",
+      "command": [
+        "node",
+        "tools/check-mobile-startup-performance.mjs"
+      ]
+    },
+    {
+      "name": "check-attendance-canonical-ownership",
+      "command": [
+        "node",
+        "tools/check-attendance-canonical-ownership.mjs"
+      ]
+    },
+    {
+      "name": "check-root-public-parity",
+      "command": [
+        "node",
+        "tools/check-root-public-parity.mjs"
+      ]
+    },
+    {
+      "name": "a9r6-qr-provider-memo",
+      "command": [
+        "node",
+        "tools/a9r6/qr-provider-memo-regression.test.mjs"
+      ]
+    }
+  ],
+  "additionalHistoricalChecks": "Unmodified npm run check / R1.3 System Sync / Finance Latency R1,R2,R2.1 are reported separately; exact ancestor freezes do not accept this authorized descendant."
+}

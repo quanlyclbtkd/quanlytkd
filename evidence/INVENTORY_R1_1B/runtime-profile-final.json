@@ -1,0 +1,7 @@
+{
+  "sourcePin": "V11R6_A9R18_INVENTORY_STOCK_INTEGRITY_AUTHORITY_R1",
+  "runtimeSHA256": "3e4e56fc385ef13bc74b5d6f2df1182137d38355d65eed4394a807de58f9e3da",
+  "canonicalFiles": 129,
+  "rootPublicParity": true,
+  "testToolingProductionReachable": false
+}

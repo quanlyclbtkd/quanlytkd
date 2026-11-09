@@ -16,8 +16,8 @@ function _clubId()  { const id = (window.__store || {}).clubId; if (!id) throw n
 function _invRef()  { return (window.__store || {}).invRef; }
 function _colRef()  { return (window.__store || {}).colRef; }
 
-// Runtime projection scope only. This never authorizes a Firestore write;
-// it only prevents a confirmed operation from mutating a newly active UI.
+// Runtime continuity only, never a replacement for Auth/Rules authorization.
+// Reject stale stock commands before commit and stale UI projections after ACK.
 function _projectionScope() {
     const st = window.__store || {}, auth = window.__verifiedAuthContextState || {};
     return [
@@ -81,11 +81,7 @@ function _accumulateLedgerDelta(deltaMap, item, direction) {
 }
 
 function _buildLedgerIncrementPatch(mutations, incrementFn) {
-    const deltaMap = new Map();
-    for (const mutation of (Array.isArray(mutations) ? mutations : [])) {
-        if (!mutation || !mutation.item) continue;
-        _accumulateLedgerDelta(deltaMap, mutation.item, mutation.direction === -1 ? -1 : 1);
-    }
+    const deltaMap = _ledgerDeltas(mutations);
     const patch = {};
     deltaMap.forEach((delta, base) => {
         if (delta.balance) patch[base + '_balance'] = incrementFn(delta.balance);
@@ -93,6 +89,46 @@ function _buildLedgerIncrementPatch(mutations, incrementFn) {
         if (delta.out) patch[base + '_out'] = incrementFn(delta.out);
     });
     return patch;
+}
+
+function _ledgerDeltas(mutations) {
+    const deltaMap = new Map();
+    for (const mutation of (Array.isArray(mutations) ? mutations : [])) {
+        if (!mutation || !mutation.item) continue;
+        _accumulateLedgerDelta(deltaMap, mutation.item, mutation.direction === -1 ? -1 : 1);
+    }
+    return deltaMap;
+}
+function _stockError(code, message, details = {}) { return Object.assign(new Error(message), { code, ...details }); }
+async function _runStockTransaction(run, db, callback) {
+    try { return await run(db, callback); }
+    catch (error) {
+        // Let the SDK finish its own conflict retries before mapping final errors.
+        if (error?.code?.startsWith('INVENTORY_') || error?.code === 'finance/write-context-stale' || error?.code === 'ADMISSION_DRAFT_STALE') throw error;
+        throw _stockError('INVENTORY_WRITE_UNCONFIRMED', 'Chưa xác nhận được thao tác Kho. Vui lòng kiểm tra dữ liệu trước khi thử lại.', { cause: error });
+    }
+}
+function _assertInventoryQuantity(item) {
+    if (!Number.isSafeInteger(_inventoryQty(item)) || _inventoryQty(item) <= 0)
+        throw _stockError('INVENTORY_INVALID_QUANTITY', 'Số lượng Kho phải là số nguyên dương hợp lệ.');
+}
+function _assertMutationScope(scope) {
+    if (!_projectionScopeCurrent(scope)) throw _stockError('finance/write-context-stale', 'CLB hoặc phiên đã thay đổi. Kho chưa được ghi.');
+}
+function _itemMutationSignature(item) {
+    return JSON.stringify([_inventoryBase(item)?.base, _isInventoryIn(item), _inventoryQty(item),
+        Number(item?.amount || 0), item?.unpaid === true, item?.paidTxId || '', item?.paymentBundleId || '']);
+}
+function _assertCurrentInventoryItem(previous, current) {
+    if (previous && _itemMutationSignature(previous) !== _itemMutationSignature(current))
+        throw _stockError('INVENTORY_ITEM_STALE', 'Phiếu Kho đã thay đổi. Vui lòng mở lại phiếu trước khi sửa hoặc xóa.');
+}
+// Snapshot plain payloads at queue time, preserving SDK FieldValue/Reference instances.
+function _copyMutationValue(value) {
+    if (Array.isArray(value)) return value.map(_copyMutationValue);
+    if (value && (Object.getPrototypeOf(value) === null || Object.getPrototypeOf(value)?.constructor?.name === 'Object'))
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, _copyMutationValue(item)]));
+    return value;
 }
 
 function _mergeRuntimeInventory(item, reason) {
@@ -180,6 +216,59 @@ function _canonicalTemporalPatch(item) {
 
 export const InventoryService = {
 
+    /** Read authoritative stock inside the caller's transaction, on EVERY attempt. */
+    async validateStockTransaction(transaction, mutations, writeClubId) {
+        const negative = [..._ledgerDeltas(mutations)].filter(([, delta]) => delta.balance < 0);
+        if (!negative.length) return;
+        const { doc } = _sdk();
+        const snapshot = await transaction.get(doc(_db(), 'clubs', writeClubId, 'settings', 'inventory_stats'));
+        const stats = snapshot.exists() ? snapshot.data() : {};
+        for (const [base, delta] of negative) {
+            const balance = stats[base + '_balance'];
+            if (!Number.isFinite(balance) || !Number.isFinite(delta.balance))
+                throw _stockError('INVENTORY_STOCK_UNVERIFIED', 'Chưa xác minh được tồn Kho. Vui lòng kiểm tra tồn trước khi xuất hoặc sửa phiếu.', { sku: base });
+            if (!Number.isFinite(balance + delta.balance) || balance + delta.balance < 0)
+                throw _stockError('INVENTORY_INSUFFICIENT_STOCK', 'Không thể xuất kho: số lượng tồn hiện tại không đủ.', {
+                    sku: base, available: balance, required: -delta.balance,
+                    reason: balance < 0 ? 'HISTORICAL_NEGATIVE_BALANCE' : 'INSUFFICIENT_STOCK',
+                });
+        }
+    },
+
+    /**
+     * Caller-owned atomic envelope: caller queues its existing Profile/Finance/
+     * Inventory plan. Only transport/stock validation lives here, never Finance
+     * payload policy. No separate Inventory commit precedes the caller's writes.
+     */
+    createStockMutationBatch({ mutations, writeClubId = _clubId(), projectionScope = _projectionScope(), beforeCommit } = {}) {
+        const { writeBatch, runTransaction } = _sdk(), db = _db(), owner = this;
+        const stockMutations = _copyMutationValue(mutations || []), operations = [];
+        const needsStockRead = [..._ledgerDeltas(stockMutations).values()].some(delta => delta.balance < 0);
+        let started = false;
+        const assertCurrent = () => { _assertMutationScope(projectionScope); beforeCommit?.(); };
+        const apply = writer => { for (const [method, args] of operations) writer[method](...args); };
+        const writer = {
+            set(...args) { if (started) throw Error('Inventory atomic plan already submitted'); operations.push(['set', _copyMutationValue(args)]); return writer; },
+            update(...args) { if (started) throw Error('Inventory atomic plan already submitted'); operations.push(['update', _copyMutationValue(args)]); return writer; },
+            delete(...args) { if (started) throw Error('Inventory atomic plan already submitted'); operations.push(['delete', _copyMutationValue(args)]); return writer; },
+            async commit() {
+                if (started) throw Error('Inventory atomic plan already submitted'); started = true;
+                assertCurrent();
+                if (needsStockRead) {
+                    if (typeof runTransaction !== 'function') throw _stockError('INVENTORY_TRANSACTION_UNAVAILABLE', 'Chưa tải được chức năng lưu Kho an toàn. Vui lòng tải lại.');
+                    await _runStockTransaction(runTransaction, db, async transaction => {
+                        assertCurrent();
+                        await owner.validateStockTransaction(transaction, stockMutations, writeClubId);
+                        assertCurrent(); apply(transaction);
+                    });
+                } else {
+                    const batch = writeBatch(db); apply(batch); await batch.commit();
+                }
+            },
+        };
+        return writer;
+    },
+
     // ── CATEGORIES ───────────────────────────────────────────────
 
     /**
@@ -240,6 +329,7 @@ export const InventoryService = {
             throw new Error('[InventoryService] Không thể chuẩn bị inventory mutation.');
         }
         const payload = { ...(data || {}) };
+        _assertInventoryQuantity(payload);
         if (!payload.timestamp) payload.timestamp = Date.now();
         if (!payload.date) payload.date = typeof window.getLocalToday === 'function' ? window.getLocalToday() : new Date().toISOString().slice(0, 10);
         if (payload.type === 'Xuất bán' && payload.desc && typeof window.resolveInventoryDebtIdentity === 'function') {
@@ -293,7 +383,8 @@ export const InventoryService = {
         }
 
         const prepared = this.prepareAddItemMutation(data);
-        const batch = writeBatch(_db());
+        const batch = this.createStockMutationBatch({ mutations: [{ item: prepared.payload, direction: 1 }],
+            writeClubId: prepared.writeClubId, projectionScope: prepared.projectionScope });
         batch.set(prepared.itemRef, prepared.payload);
         if (Object.keys(prepared.summaryPatch).length) batch.set(prepared.statsRef, prepared.summaryPatch, { merge: true });
         await batch.commit();
@@ -311,7 +402,8 @@ export const InventoryService = {
         if (!prepared?.itemRef || !prepared?.statsRef || !prepared?.runtimeItem
             || typeof writeBatch !== 'function') throw new Error('[InventoryService] Item plan không hợp lệ.');
         if (financeTx && (!financeTx.ref || !financeTx.payload)) throw new Error('[InventoryService] Finance plan không hợp lệ.');
-        const batch = writeBatch(_db());
+        const batch = this.createStockMutationBatch({ mutations: [{ item: prepared.payload, direction: 1 }],
+            writeClubId: prepared.writeClubId, projectionScope: prepared.projectionScope });
         batch.set(prepared.itemRef, prepared.payload);
         if (Object.keys(prepared.summaryPatch || {}).length)
             batch.set(prepared.statsRef, prepared.summaryPatch, { merge: true });
@@ -331,87 +423,71 @@ export const InventoryService = {
      * @param {Object} data  — fields cần update
      */
     async updateItem(invId, data, options = {}) {
-        const { doc, getDoc, writeBatch, increment } = _sdk();
-        const db = _db();
-        const writeClubId = _clubId();
-        const projectionScope = _projectionScope();
+        const { doc, runTransaction, increment } = _sdk();
+        const db = _db(), writeClubId = _clubId(), projectionScope = _projectionScope();
         const itemRef = doc(db, 'clubs', writeClubId, 'inventory', invId);
-        let previous = options.previous && typeof options.previous === 'object' ? options.previous : null;
-        if (!previous) {
-            const snap = await getDoc(itemRef); // one read only when the caller has no local original
-            if (!snap.exists()) throw new Error('[InventoryService] Inventory item not found: ' + invId);
-            previous = { id: snap.id, ...snap.data() };
-        }
-        const next = { ...previous, ...(data || {}), id: invId };
-        if (!next.timestamp) next.timestamp = Date.now();
-
-        const summaryPatch = _buildLedgerIncrementPatch([
-            { item: previous, direction: -1 },
-            { item: next, direction: 1 }
-        ], increment);
-        const batch = writeBatch(db);
-        batch.update(itemRef, data || {});
-        if (Object.keys(summaryPatch).length) {
-            batch.set(doc(db, 'clubs', writeClubId, 'settings', 'inventory_stats'), summaryPatch, { merge: true });
-        }
-        let relatedPatch = null;
-        if (options.relatedTransaction && options.relatedTransaction.id) {
-            relatedPatch = typeof window.canonicalizeTransactionPatch === 'function'
-                ? window.canonicalizeTransactionPatch(
-                    options.relatedTransaction.data || {},
-                    options.relatedTransaction.previous || null,
-                    'inventory-service-update-related-transaction'
-                )
-                : (options.relatedTransaction.data || {});
-            batch.update(
-                doc(db, 'clubs', writeClubId, 'transactions', options.relatedTransaction.id),
-                relatedPatch
-            );
-        }
-        await batch.commit();
-
+        if (typeof runTransaction !== 'function') throw _stockError('INVENTORY_TRANSACTION_UNAVAILABLE', 'Chưa tải được chức năng lưu Kho an toàn. Vui lòng tải lại.');
+        const relatedPatch = options.relatedTransaction?.id
+            ? (typeof window.canonicalizeTransactionPatch === 'function'
+                ? window.canonicalizeTransactionPatch(options.relatedTransaction.data || {}, options.relatedTransaction.previous || null, 'inventory-service-update-related-transaction')
+                : options.relatedTransaction.data || {}) : null;
+        const next = await _runStockTransaction(runTransaction, db, async transaction => {
+            _assertMutationScope(projectionScope);
+            const snapshot = await transaction.get(itemRef);
+            if (!snapshot.exists()) throw _stockError('INVENTORY_ITEM_MISSING', 'Phiếu Kho không còn tồn tại. Vui lòng tải lại.');
+            const previous = { id: snapshot.id, ...snapshot.data() };
+            _assertCurrentInventoryItem(options.previous, previous);
+            const currentNext = { ...previous, ...(data || {}), id: invId };
+            _assertInventoryQuantity(currentNext);
+            if (!currentNext.timestamp) currentNext.timestamp = Date.now();
+            const mutations = [{ item: previous, direction: -1 }, { item: currentNext, direction: 1 }];
+            await this.validateStockTransaction(transaction, mutations, writeClubId);
+            _assertMutationScope(projectionScope);
+            const summaryPatch = _buildLedgerIncrementPatch(mutations, increment);
+            transaction.update(itemRef, data || {});
+            if (Object.keys(summaryPatch).length)
+                transaction.set(doc(db, 'clubs', writeClubId, 'settings', 'inventory_stats'), summaryPatch, { merge: true });
+            if (relatedPatch) transaction.update(doc(db, 'clubs', writeClubId, 'transactions', options.relatedTransaction.id), relatedPatch);
+            return currentNext;
+        });
         if (_projectionScopeCurrent(projectionScope)) {
             _mergeRuntimeInventory(next, 'inventory-service-update-item');
-            if (relatedPatch && options.relatedTransaction?.previous) {
-                window.mergeTransactionIntoRuntimeStore?.({
-                    ...options.relatedTransaction.previous, ...relatedPatch,
-                    id: options.relatedTransaction.id
-                }, 'inventory-service-update-related-transaction');
-            }
+            if (relatedPatch && options.relatedTransaction?.previous) window.mergeTransactionIntoRuntimeStore?.({
+                ...options.relatedTransaction.previous, ...relatedPatch, id: options.relatedTransaction.id,
+            }, 'inventory-service-update-related-transaction');
             window.notifyInventoryMutation?.('inventory-service-update-item', { writeThrough: true });
         }
         return next;
     },
 
-    /** Delete inventory and reverse its stock contribution atomically. */
+    /** Current item CAS prevents stale/double reversals; stock-decreasing delete also reads stats. */
     async deleteItem(invId, options = {}) {
-        const { doc, getDoc, writeBatch, increment } = _sdk();
-        const db = _db();
-        const writeClubId = _clubId();
-        const projectionScope = _projectionScope();
+        const { doc, runTransaction, increment } = _sdk();
+        const db = _db(), writeClubId = _clubId(), projectionScope = _projectionScope();
         const itemRef = doc(db, 'clubs', writeClubId, 'inventory', invId);
-        let previous = options.previous && typeof options.previous === 'object' ? options.previous : null;
-        if (!previous) {
-            const snap = await getDoc(itemRef); // fallback read only on explicit delete
-            if (!snap.exists()) return { deleted: false, missing: true };
-            previous = { id: snap.id, ...snap.data() };
-        }
-        const summaryPatch = _buildLedgerIncrementPatch([{ item: previous, direction: -1 }], increment);
-        const batch = writeBatch(db);
-        batch.delete(itemRef);
-        if (Object.keys(summaryPatch).length) {
-            batch.set(doc(db, 'clubs', writeClubId, 'settings', 'inventory_stats'), summaryPatch, { merge: true });
-        }
-        const relatedTxId = String(options.relatedTxId || '').trim();
-        if (relatedTxId && relatedTxId !== 'undefined') {
-            batch.delete(doc(db, 'clubs', writeClubId, 'transactions', relatedTxId));
-        }
-        await batch.commit();
-        if (_projectionScopeCurrent(projectionScope)) {
+        if (typeof runTransaction !== 'function') throw _stockError('INVENTORY_TRANSACTION_UNAVAILABLE', 'Chưa tải được chức năng lưu Kho an toàn. Vui lòng tải lại.');
+        const result = await _runStockTransaction(runTransaction, db, async transaction => {
+            _assertMutationScope(projectionScope);
+            const snapshot = await transaction.get(itemRef);
+            if (!snapshot.exists()) return { deleted: false, missing: true };
+            const previous = { id: snapshot.id, ...snapshot.data() };
+            _assertCurrentInventoryItem(options.previous, previous);
+            const mutations = [{ item: previous, direction: -1 }];
+            await this.validateStockTransaction(transaction, mutations, writeClubId);
+            _assertMutationScope(projectionScope);
+            const summaryPatch = _buildLedgerIncrementPatch(mutations, increment);
+            transaction.delete(itemRef);
+            if (Object.keys(summaryPatch).length)
+                transaction.set(doc(db, 'clubs', writeClubId, 'settings', 'inventory_stats'), summaryPatch, { merge: true });
+            const relatedTxId = String(options.relatedTxId || '').trim();
+            if (relatedTxId && relatedTxId !== 'undefined') transaction.delete(doc(db, 'clubs', writeClubId, 'transactions', relatedTxId));
+            return { deleted: true, previous };
+        });
+        if (result.deleted && _projectionScopeCurrent(projectionScope)) {
             _removeRuntimeInventory(invId, 'inventory-service-delete-item');
             window.notifyInventoryMutation?.('inventory-service-delete-item', { writeThrough: true });
         }
-        return { deleted: true, previous };
+        return result;
     },
 
     /**

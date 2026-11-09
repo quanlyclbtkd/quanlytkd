@@ -1,0 +1,26 @@
+{
+  "canonicalAcceptance": "final/ACCEPTANCE.json",
+  "classification": "BLOCKED_TEST_DEPENDENCY",
+  "mandatoryRows": 30,
+  "executedBrowserRows": 0,
+  "notRunRows": 30,
+  "diagnosticAttempts": [
+    {
+      "path": "attempt01/ACCEPTANCE.json",
+      "status": "ENVIRONMENT_FAILURE_ONLY",
+      "reason": "Emulator and test were launched in separate managed network namespaces; loopback connection refused"
+    },
+    {
+      "path": "attempt02/ACCEPTANCE.json",
+      "status": "ENVIRONMENT_FAILURE_ONLY",
+      "reason": "Emulator+Rules ready in one process tree; Chromium startup denied. The old browserSdk field was an expected version label, not an observation; canonical final uses observedBrowserSdk=null."
+    },
+    {
+      "path": "final/ACCEPTANCE.json",
+      "status": "CANONICAL_BLOCKED_TEST_DEPENDENCY",
+      "reason": "Current tooling, Emulator+Rules ready, Chromium IPC socket denied before any browser business case"
+    }
+  ],
+  "realTransactionRetryEvidence": "NOT_OBSERVED",
+  "existingR1Evidence": "49/49 actual-source deterministic model only; not a real Emulator substitute"
+}

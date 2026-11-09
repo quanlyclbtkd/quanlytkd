@@ -1,0 +1,290 @@
+[
+  {
+    "file": "app.js",
+    "kind": "modified",
+    "beforeSHA256": "0a5aae9518fe265283db47aea2b89fd25f98c50baf85eaaa45c5caadf1e2cc10",
+    "afterSHA256": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+    "addedLines": 8,
+    "deletedLines": 51
+  },
+  {
+    "file": "index.html",
+    "kind": "modified",
+    "beforeSHA256": "69695d7ebe4031ca7179134afae21bb740b6a1e8182aef67232dd5b2b8b97921",
+    "afterSHA256": "18590383bef971e26b297118ee19d9032f16ccd3614bd613e66a6999a4685d13",
+    "addedLines": 2,
+    "deletedLines": 2
+  },
+  {
+    "file": "js/core/tuitionCommandBoundary.js",
+    "kind": "modified",
+    "beforeSHA256": "1939bdcad2f8d21c03d88f182c1e21f237d4f7a4886a1f90933f29df550f75e7",
+    "afterSHA256": "d0721d2d772797760b7c139b226c9b982d40c8bdd659b047d369d4da16752277",
+    "addedLines": 1,
+    "deletedLines": 1
+  },
+  {
+    "file": "js/main.js",
+    "kind": "modified",
+    "beforeSHA256": "905a80fb3ce033842921a87063c5ef37a638ad8152370bfba70e3694f6e18fc9",
+    "afterSHA256": "1b56d270635c857a7100d2d3ed891f43125b3f326c5b09bbbe5e49e9818e8322",
+    "addedLines": 5,
+    "deletedLines": 5
+  },
+  {
+    "file": "js/modules/finance.js",
+    "kind": "modified",
+    "beforeSHA256": "f652c2d896180654cf8f1534a916cb7f44ebff3599251070b0ef74eb998c809b",
+    "afterSHA256": "3db110afa06b6b69614973ad96c24eef2cc4a6c293e05ae84d0c3b2617bb4c16",
+    "addedLines": 2,
+    "deletedLines": 2
+  },
+  {
+    "file": "js/modules/inventory.js",
+    "kind": "modified",
+    "beforeSHA256": "309b8091cf2ed74338161d58f5a44d249f5293c6b6943334e05d3c20c5cc0858",
+    "afterSHA256": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235",
+    "addedLines": 8,
+    "deletedLines": 4
+  },
+  {
+    "file": "js/modules/students.js",
+    "kind": "modified",
+    "beforeSHA256": "7347ee2c05c57c9d969c1371b5832058e40e844f35f1dfb1803a71da214344e3",
+    "afterSHA256": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2",
+    "addedLines": 13,
+    "deletedLines": 4
+  },
+  {
+    "file": "js/services/finance.service.js",
+    "kind": "modified",
+    "beforeSHA256": "c33428e1ada24f2aec428acd3d042141bdf33851c24fd75cfa8a142a9aea2314",
+    "afterSHA256": "a4e671e9ced4c4ab94c668530d334634f8beab7426d55afe38c6aeb0dc2fc6fc",
+    "addedLines": 1,
+    "deletedLines": 1
+  },
+  {
+    "file": "js/services/inventory.service.js",
+    "kind": "modified",
+    "beforeSHA256": "503e49f07d3150dec0ce2d4ac23a1a3acb777c06c290e606098367393b85b307",
+    "afterSHA256": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484",
+    "addedLines": 153,
+    "deletedLines": 77
+  },
+  {
+    "file": "package.json",
+    "kind": "modified",
+    "beforeSHA256": "9712f76216000ef64f5ca012c04c8f9463b8aa109c899346972cf598e0912b78",
+    "afterSHA256": "6894cf8951c1a9ab8ad0557f13ee3c921b936abd4261ff5c37849014da1ac91f",
+    "addedLines": 4,
+    "deletedLines": 1
+  },
+  {
+    "file": "public/app.js",
+    "kind": "modified",
+    "beforeSHA256": "0a5aae9518fe265283db47aea2b89fd25f98c50baf85eaaa45c5caadf1e2cc10",
+    "afterSHA256": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+    "addedLines": 8,
+    "deletedLines": 51
+  },
+  {
+    "file": "public/index.html",
+    "kind": "modified",
+    "beforeSHA256": "69695d7ebe4031ca7179134afae21bb740b6a1e8182aef67232dd5b2b8b97921",
+    "afterSHA256": "18590383bef971e26b297118ee19d9032f16ccd3614bd613e66a6999a4685d13",
+    "addedLines": 2,
+    "deletedLines": 2
+  },
+  {
+    "file": "public/js/core/tuitionCommandBoundary.js",
+    "kind": "modified",
+    "beforeSHA256": "1939bdcad2f8d21c03d88f182c1e21f237d4f7a4886a1f90933f29df550f75e7",
+    "afterSHA256": "d0721d2d772797760b7c139b226c9b982d40c8bdd659b047d369d4da16752277",
+    "addedLines": 1,
+    "deletedLines": 1
+  },
+  {
+    "file": "public/js/main.js",
+    "kind": "modified",
+    "beforeSHA256": "905a80fb3ce033842921a87063c5ef37a638ad8152370bfba70e3694f6e18fc9",
+    "afterSHA256": "1b56d270635c857a7100d2d3ed891f43125b3f326c5b09bbbe5e49e9818e8322",
+    "addedLines": 5,
+    "deletedLines": 5
+  },
+  {
+    "file": "public/js/modules/finance.js",
+    "kind": "modified",
+    "beforeSHA256": "f652c2d896180654cf8f1534a916cb7f44ebff3599251070b0ef74eb998c809b",
+    "afterSHA256": "3db110afa06b6b69614973ad96c24eef2cc4a6c293e05ae84d0c3b2617bb4c16",
+    "addedLines": 2,
+    "deletedLines": 2
+  },
+  {
+    "file": "public/js/modules/inventory.js",
+    "kind": "modified",
+    "beforeSHA256": "309b8091cf2ed74338161d58f5a44d249f5293c6b6943334e05d3c20c5cc0858",
+    "afterSHA256": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235",
+    "addedLines": 8,
+    "deletedLines": 4
+  },
+  {
+    "file": "public/js/modules/students.js",
+    "kind": "modified",
+    "beforeSHA256": "7347ee2c05c57c9d969c1371b5832058e40e844f35f1dfb1803a71da214344e3",
+    "afterSHA256": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2",
+    "addedLines": 13,
+    "deletedLines": 4
+  },
+  {
+    "file": "public/js/services/finance.service.js",
+    "kind": "modified",
+    "beforeSHA256": "c33428e1ada24f2aec428acd3d042141bdf33851c24fd75cfa8a142a9aea2314",
+    "afterSHA256": "a4e671e9ced4c4ab94c668530d334634f8beab7426d55afe38c6aeb0dc2fc6fc",
+    "addedLines": 1,
+    "deletedLines": 1
+  },
+  {
+    "file": "public/js/services/inventory.service.js",
+    "kind": "modified",
+    "beforeSHA256": "503e49f07d3150dec0ce2d4ac23a1a3acb777c06c290e606098367393b85b307",
+    "afterSHA256": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484",
+    "addedLines": 153,
+    "deletedLines": 77
+  },
+  {
+    "file": "tools/check-admission-draft-snapshot-r1-3a.mjs",
+    "kind": "modified",
+    "beforeSHA256": "531ce9c90bb5d6fdd31c9eb1e22e4f9c246eff9b05b6bbf8fde5050c339260ea",
+    "afterSHA256": "74246274447a1166d26710db247a38f24c96bc7ca2038dab9d1d69102d9c6b2d",
+    "addedLines": 3,
+    "deletedLines": 1
+  },
+  {
+    "file": "tools/check-admission-postcommit-context-r1-2c.mjs",
+    "kind": "modified",
+    "beforeSHA256": "229b2d0447a16e68742b9e333b148d132e3d987f34d1c9fa1a4f1e531606c839",
+    "afterSHA256": "96e33f4acd70b711c35af1e26b50b52e55529fd7b4e20f7fb22366e1bfc39e5a",
+    "addedLines": 1,
+    "deletedLines": 1
+  },
+  {
+    "file": "tools/check-h8r2-1c1f1d1-multiitem-inventory-closure.mjs",
+    "kind": "modified",
+    "beforeSHA256": "dfc94d8e3172f4d0e276c45720a28761916228c52a24ab9e2c9b93f4daadf8bd",
+    "afterSHA256": "f015f2c609195ae916d60633bff83a356549ca25e45ddcbe29dbf84765131074",
+    "addedLines": 1,
+    "deletedLines": 1
+  },
+  {
+    "file": "tools/check-inventory-dynamic-size-catalog.mjs",
+    "kind": "modified",
+    "beforeSHA256": "735f6501bef47174de177599b0fa4f6aaec741789c13e4fad353839fed10c6a1",
+    "afterSHA256": "ef9e8cf56678ce1f437a89bcd44a0c4d2d8c1e48b7d74241fde6543c23287bba",
+    "addedLines": 1,
+    "deletedLines": 1
+  },
+  {
+    "file": "tools/check-inventory-ledger-reconciliation.mjs",
+    "kind": "modified",
+    "beforeSHA256": "df1e3de923bc3a866bf6b9a864e157d692ee7af6d5017aea9cb318ec47f05f9e",
+    "afterSHA256": "06b46d867cdc63073f2a0f3b2debe27b4c8f1c0362443e45d028eee4833bdcd5",
+    "addedLines": 5,
+    "deletedLines": 3
+  },
+  {
+    "file": "tools/check-inventory-stock-authority-r1.mjs",
+    "kind": "new",
+    "beforeSHA256": null,
+    "afterSHA256": "73ece598ad661b02df0de6a15c90380e93aac8193ce228fa41c14b026575fb84",
+    "addedLines": 63,
+    "deletedLines": 0
+  },
+  {
+    "file": "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs",
+    "kind": "modified",
+    "beforeSHA256": "ea5726a76e8d67ebc5cc0623ba218869de5dab686fcff37c11963c090233d6af",
+    "afterSHA256": "142a6d81ccb39ab9d430bfaec46d8c8dca6169916d4d37e8cff62804866adfdc",
+    "addedLines": 2,
+    "deletedLines": 1
+  },
+  {
+    "file": "tools/inventory-stock-r1/audit-source.mjs",
+    "kind": "new",
+    "beforeSHA256": null,
+    "afterSHA256": "df046b47712aafbcd4d010024c81980544e13c66d994b45531b9c2ae07dccbb4",
+    "addedLines": 64,
+    "deletedLines": 0
+  },
+  {
+    "file": "tools/inventory-stock-r1/freeze-source.mjs",
+    "kind": "new",
+    "beforeSHA256": null,
+    "afterSHA256": "0d6c8347c9c7fbfcc1cec3d8b46b43bf9f24a4b3b8330429bf2e026d7681ba17",
+    "addedLines": 91,
+    "deletedLines": 0
+  },
+  {
+    "file": "tools/inventory-stock-r1/harness.mjs",
+    "kind": "new",
+    "beforeSHA256": null,
+    "afterSHA256": "b5d44bfb9a86ea55d4069d5cae137c0359e778da64a6ffb78d6ed48180687db0",
+    "addedLines": 79,
+    "deletedLines": 0
+  },
+  {
+    "file": "tools/inventory-stock-r1/protected-gates.json",
+    "kind": "new",
+    "beforeSHA256": null,
+    "afterSHA256": "5b5937bded1acb67b54da9bdff6a5feb1be5835c7e185c24846a396c92d62729",
+    "addedLines": 293,
+    "deletedLines": 0
+  },
+  {
+    "file": "tools/inventory-stock-r1/run-gates.mjs",
+    "kind": "new",
+    "beforeSHA256": null,
+    "afterSHA256": "58cde6e4aa4930ab6974ff91737a1df296a5f7de7da6723f54cdbaed0e33e3b5",
+    "addedLines": 29,
+    "deletedLines": 0
+  },
+  {
+    "file": "tools/inventory-stock-r1/transaction-fixture.mjs",
+    "kind": "new",
+    "beforeSHA256": null,
+    "afterSHA256": "5cdf6f14949590e1bae45c36b8fda5cf5995f88152648f52df2d16050cece2a8",
+    "addedLines": 25,
+    "deletedLines": 0
+  },
+  {
+    "file": "tools/r1_2b/inventory-service-context.mjs",
+    "kind": "modified",
+    "beforeSHA256": "31841ab1c9babfd0114773f9c9f9c35229247c756ef93a9b82880e5a1a43ec70",
+    "afterSHA256": "5c51781f0ebe5e9ab2908362afc9e3253bef649cfe833775de7447d5a0b3401e",
+    "addedLines": 5,
+    "deletedLines": 4
+  },
+  {
+    "file": "tools/r1_2c/admission-postcommit-context-behavior.mjs",
+    "kind": "modified",
+    "beforeSHA256": "2a46a063b83dfad44de2186e7c8b2b216697e48c4ab345a68003965125dc8daf",
+    "afterSHA256": "aaecaf18e428a1bb5e2774ba7c9d7dad49a17ad7cc1039e3f05e26db13a89310",
+    "addedLines": 7,
+    "deletedLines": 1
+  },
+  {
+    "file": "tools/v11r2/manifests/V11R6_A9R18_INVENTORY_STOCK_INTEGRITY_AUTHORITY_R1.json",
+    "kind": "new",
+    "beforeSHA256": null,
+    "afterSHA256": "502924bf9952c736f800439e700853221c772d43520b738fea08182f957f3378",
+    "addedLines": 285,
+    "deletedLines": 0
+  },
+  {
+    "file": "tools/v11r2/source-identity.mjs",
+    "kind": "modified",
+    "beforeSHA256": "c1911d7c05a8b1d8d2c513881c2caf46b22f2bd2950806684a2f309b699059e7",
+    "afterSHA256": "7fa90cddeabd26fd0e12174feacc0a6915b1975c056373f08c60ef4a19b76ce4",
+    "addedLines": 147,
+    "deletedLines": 1
+  }
+]

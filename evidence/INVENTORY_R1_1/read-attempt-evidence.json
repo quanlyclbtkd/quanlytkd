@@ -1,0 +1,26 @@
+{
+  "staticProductionCounts": {
+    "baseline": {
+      "getDoc": 24,
+      "getDocs": 43,
+      "onSnapshot": 16
+    },
+    "handoff": {
+      "getDoc": 24,
+      "getDocs": 43,
+      "onSnapshot": 16
+    }
+  },
+  "browserTransactionAttempts": null,
+  "browserInventoryStatsTransactionReads": null,
+  "browserCurrentItemTransactionReads": null,
+  "reason": "Browser never launched; mandatory operations NOT_RUN. Do not infer zero correctness-read cost.",
+  "baselineR1CostModel": {
+    "negativeNewPlan": "one inventory_stats read per attempt",
+    "negativeEditOrInboundDelete": "one current-item read plus one stats read per attempt",
+    "positiveEditOrOutboundDelete": "one current-item read per attempt",
+    "inboundCreate": "no stock authority read"
+  },
+  "costModelStatus": "inherited source/model evidence, not observed R1.1 Emulator measurements",
+  "newProductionListeners": 0
+}

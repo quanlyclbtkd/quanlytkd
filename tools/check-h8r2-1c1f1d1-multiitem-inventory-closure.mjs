@@ -43,7 +43,7 @@ check('23. mixed Tuition+Inventory F1D fail-closed preserved',mixed.isMixedBundl
 check('24. finance pure-inventory execution consumes canonical refs',/impact\?\.isPureInventory===true[\s\S]*refs\[0\]/.test(fin));
 check('25. missing canonical local inventory state fails before destructive write',/Inventory local owner chưa sẵn sàng/.test(fin));
 check('26. existing InventoryService owner is reused',/window\.InventoryService\.deleteItem\(invId,\{previous,relatedTxId:(?:id|txId)/.test(fin));
-check('27. InventoryService can delete inventory + related tx in one existing batch',/batch\.delete\(itemRef\)[\s\S]*relatedTxId[\s\S]*batch\.delete\(doc\(db, 'clubs', (?:_clubId\(\)|writeClubId), 'transactions', relatedTxId\)\)[\s\S]*await batch\.commit\(\)/.test(inv));
+check('27. InventoryService deletes current item and related tx in one stock-validated transaction', /transaction\.delete\(itemRef\)[\s\S]*relatedTxId[\s\S]*transaction\.delete\(doc\(db, 'clubs', writeClubId, 'transactions', relatedTxId\)\)/.test(inv) && inv.includes('validateStockTransaction'));
 check('28. no new Inventory writer authority',!/InventoryRollbackService|MultiItemService|SecondInventoryWriter/.test(app+fin+tcb));
 check('29. no new Tuition writer authority',!/SecondTuitionWriter|MultiItemTuitionWriter/.test(app+fin+tcb));
 

@@ -1,0 +1,40 @@
+{
+  "phase": "A9R18-INVENTORY-STOCK-INTEGRITY-R1.1B",
+  "classification": "BLOCKED_TEST_DEPENDENCY",
+  "stoppedAt": "CHROMIUM_PREFLIGHT",
+  "noBusinessCandidateCreated": true,
+  "productionChanges": 0,
+  "existingR1_1ToolingChanges": 0,
+  "existingAcceptanceInvoked": false,
+  "emulatorStartedInR1_1B": false,
+  "rulesLoadedInR1_1B": false,
+  "browserSdk10_7_1Observed": false,
+  "realBrowserRows": {
+    "pass": 0,
+    "fail": 0,
+    "notRun": 30
+  },
+  "realTransactionRetryObserved": false,
+  "actualTransactionAttempts": null,
+  "actualStockReads": null,
+  "r1Before": {
+    "pass": 49,
+    "fail": 0
+  },
+  "r1AfterEmulator": null,
+  "focusedRegressions": {
+    "pass": 12,
+    "fail": 0,
+    "executedBeforeSmoke": true
+  },
+  "rootPublicPairs": 129,
+  "rootPublicMismatches": 0,
+  "frozenProductionFiles": 261,
+  "inventoryReleaseState": "NOT_EMULATOR_ACCEPTED",
+  "nextRoute": [
+    "Chromium-capable R1.1B acceptance",
+    "If full GREEN: FROZEN_PENDING_STAGING_SMOKE",
+    "Small UI staging smoke",
+    "Only after smoke GREEN: Finance latency R2.2"
+  ]
+}

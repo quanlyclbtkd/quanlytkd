@@ -1,0 +1,11 @@
+{
+  "checkerSHA256": "73ece598ad661b02df0de6a15c90380e93aac8193ce228fa41c14b026575fb84",
+  "harnessSHA256": "b5d44bfb9a86ea55d4069d5cae137c0359e778da64a6ffb78d6ed48180687db0",
+  "sameCheckerForBaselineAndCandidate": true,
+  "baselineRuntimeSHA256": "36743a31f66abfeca4ae46376faf653ba7759e1e839dfe35e9ab32762636a6df",
+  "candidateRuntimeSHA256": "3e4e56fc385ef13bc74b5d6f2df1182137d38355d65eed4394a807de58f9e3da",
+  "baselineResultSHA256": "9d9df4be065b065d4dd08ae2b9ff5c74e7e1fba2613343eb1a6962aa7e4614fe",
+  "candidateResultSHA256": "741e5407f76652aa4d083c9300dcb805106904a3e0d980ac99a381dd1444ef9d",
+  "evidenceLevel": "DETERMINISTIC_MVCC_CONFLICT_MODEL_ACTUAL_SOURCE",
+  "productionWrites": 0
+}

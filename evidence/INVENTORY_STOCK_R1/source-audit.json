@@ -1,0 +1,1122 @@
+{
+  "status": "PASS",
+  "parentRuntimeSHA256": "36743a31f66abfeca4ae46376faf653ba7759e1e839dfe35e9ab32762636a6df",
+  "runtimeSHA256": "3e4e56fc385ef13bc74b5d6f2df1182137d38355d65eed4394a807de58f9e3da",
+  "sourcePin": "V11R6_A9R18_INVENTORY_STOCK_INTEGRITY_AUTHORITY_R1",
+  "canonicalFiles": 129,
+  "cacheOnly": [
+    {
+      "file": "index.html",
+      "normalizedSHA256": "0b2de4eadce8053e3e6b1be392b1cf682f32476dbab4b913a64a3302339f0b30",
+      "equal": true
+    },
+    {
+      "file": "js/main.js",
+      "normalizedSHA256": "74e98a003ea6bebb89a2c7897fde7c832c89470b231ed80d28999c668f94240b",
+      "equal": true
+    },
+    {
+      "file": "js/core/tuitionCommandBoundary.js",
+      "normalizedSHA256": "16aa02651bbf8e01b15aa5ba672951cff872d4d487a45fe52649f1240898983c",
+      "equal": true
+    },
+    {
+      "file": "js/modules/finance.js",
+      "normalizedSHA256": "d6aab381d9d0adf869e281affe15e6234c420a3e0de073ba8be48aa56b33930a",
+      "equal": true
+    },
+    {
+      "file": "js/services/finance.service.js",
+      "normalizedSHA256": "ca265710908e581d71f7585565b4c5238d9e9e47edbd57471135dc4dc6bb1d31",
+      "equal": true
+    }
+  ],
+  "unchangedRuntimeFiles": [
+    ".nojekyll",
+    "css/tailwind-static.css",
+    "css/ui-mobile-shell.css",
+    "js/core/actionGuard.js",
+    "js/core/attendanceContract.js",
+    "js/core/branchIdentity.js",
+    "js/core/canonicalDomainCommandBoundary.js",
+    "js/core/clubStatsAutoCache.js",
+    "js/core/coachBranchRuntimeRepair.js",
+    "js/core/debtProfileReadBoundary.js",
+    "js/core/financialActionAuditGuard.js",
+    "js/core/financialFlowMap.js",
+    "js/core/globalOwnershipRegistry.js",
+    "js/core/inlineHandlerAudit.js",
+    "js/core/inventoryMultiItemReadOnlyUI.js",
+    "js/core/lazyAssetsBootstrap.js",
+    "js/core/legacyAppAudit.js",
+    "js/core/legacyRenderEntrypoints.js",
+    "js/core/listenerOwnershipBoundary.js",
+    "js/core/mobileStartupPerformance.js",
+    "js/core/multiItemInventorySafety.js",
+    "js/core/performanceMonitor.js",
+    "js/core/productionAuthorityPolicy.js",
+    "js/core/productionStabilityGate.js",
+    "js/core/profileCanonicalStore.js",
+    "js/core/roleReadBoundary.js",
+    "js/core/securityPosture.js",
+    "js/core/staticCssBuildHealth.js",
+    "js/core/studentSearchIndex.js",
+    "js/core/studentStatusCommandBoundary.js",
+    "js/core/superAdminQuotaGuard.js",
+    "js/core/superAdminServerRefresh.js",
+    "js/core/trainingRegistration.js",
+    "js/core/transactionCanonicalBoundary.js",
+    "js/core/transactionDeleteIntegrity.js",
+    "js/core/tuitionDebtCanonical.js",
+    "js/data/attendanceJournal.js",
+    "js/data/inventoryStore.js",
+    "js/data/profileStatusConfig.js",
+    "js/data/quitProfileBoundary.js",
+    "js/data/studentProfileStore.js",
+    "js/diagnostics/legacyDiagnostics.js",
+    "js/diagnostics/onboardingDiagnostics.js",
+    "js/diagnostics/runtimeReadinessDiagnostics.js",
+    "js/diagnostics/superAdminAuditDiagnostics.js",
+    "js/events/attendance.events.js",
+    "js/events/finance.events.js",
+    "js/events/inventory.events.js",
+    "js/events/students.events.js",
+    "js/firebase/config.js",
+    "js/firebase/paginatedQuery.js",
+    "js/legacy/legacyAttendanceFallbacks.js",
+    "js/legacy/legacyUiFallbacks.js",
+    "js/listeners/attendance.listeners.js",
+    "js/listeners/dashboard.listeners.js",
+    "js/listeners/exam.listeners.js",
+    "js/listeners/finance.listeners.js",
+    "js/listeners/global.listeners.js",
+    "js/listeners/inventory.listeners.js",
+    "js/listeners/profiles.listeners.js",
+    "js/listeners/students.listeners.js",
+    "js/migrations/migrate-legacy-to-primary.js",
+    "js/modules/attendance.js",
+    "js/modules/dashboard.js",
+    "js/modules/exam.js",
+    "js/modules/finance/finance.controller.js",
+    "js/modules/finance/finance.excel.js",
+    "js/modules/finance/finance.pagination.js",
+    "js/modules/finance/finance.receipt.js",
+    "js/modules/finance/index.js",
+    "js/modules/qrBankingHelpers.js",
+    "js/modules/receiptHelpers.js",
+    "js/modules/reports.js",
+    "js/modules/reports/attendanceExcelReport.js",
+    "js/modules/reports/reportExportFacade.js",
+    "js/modules/searchRuntime.js",
+    "js/modules/students/index.js",
+    "js/modules/students/students.controller.js",
+    "js/modules/students/students.modal.js",
+    "js/modules/students/students.pagination.js",
+    "js/modules/students/students.render.js",
+    "js/modules/students/students.search.js",
+    "js/modules/superadmin.js",
+    "js/services/attendance.service.js",
+    "js/services/students.service.js",
+    "js/store.js",
+    "js/ui/eventActionBridge.js",
+    "js/ui/legacyUiShell.js",
+    "js/ui/loading.js",
+    "js/ui/modal.js",
+    "js/ui/render.js",
+    "js/ui/render/computation/dashboardRenderer.js",
+    "js/ui/render/computation/financeRenderer.js",
+    "js/ui/render/computation/inventoryRenderer.js",
+    "js/ui/render/computation/studentsRenderer.js",
+    "js/ui/render/listComputationRefresh.js",
+    "js/ui/render/renderAttendance.js",
+    "js/ui/render/renderDashboard.js",
+    "js/ui/render/renderFinance.js",
+    "js/ui/render/renderInvalidation.js",
+    "js/ui/render/renderInventory.js",
+    "js/ui/render/renderRegistry.js",
+    "js/ui/render/renderScheduler.js",
+    "js/ui/render/renderStudents.js",
+    "js/ui/tabs.js",
+    "js/ui/toast.js",
+    "js/utils/constants.js",
+    "js/utils/event-guard.js",
+    "js/utils/firestore-guard.js",
+    "js/utils/format.js",
+    "js/utils/formatters.js",
+    "js/utils/helpers.js",
+    "js/utils/idb-cache.js",
+    "js/utils/listeners.js",
+    "js/utils/monthlyHelpers.js",
+    "js/utils/offline-queue.js",
+    "js/utils/pagination.js",
+    "js/vendor/jsqr-1.4.0.esm.js",
+    "js/vendor/jsqr-LICENSE.txt",
+    "style.css"
+  ],
+  "unchangedQrFunctions": {
+    "_receiptFamilyTuitionMemo": "f4fcd7d682c51b09255fea2cd5230a17c40d822a622640c018ebc3a60d02d0d3",
+    "_receiptPaymentMemo": "d4b21847b79e6d66bdaea4d235034e3219d43970cb779ff2ddb0fb0bdae6d58c",
+    "_receiptTuitionMemo": "c126212148607ba3819a6d72051f8ccf66ca4289dc3fa384bd2ad3758df35ac5",
+    "_receiptDecodeEMV": "40e6ff5f4c0ee91e4ebebdb3c574c8df053acce76e6e9cb7173b78801d9d0886",
+    "_verifyReceiptQrPixels": "ac755ac4df29102f1daf756a497456d22dc1dc73c22e14789f0464a9fb368bf1",
+    "generateVietQR": "1db17ee4245e37b5b803b94b7066e8e82a792db81909100e597702a27a35cd5a"
+  },
+  "staticCounts": {
+    "baseline": {
+      "getDoc": 26,
+      "getDocs": 43,
+      "onSnapshot": 16
+    },
+    "candidate": {
+      "getDoc": 24,
+      "getDocs": 43,
+      "onSnapshot": 16
+    }
+  },
+  "readSites": {
+    "baseline": [
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 1063
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 1336
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 1517
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 1890
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2226
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2229
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2285
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2288
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2343
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 2570
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2782
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2787
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 2938
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 2963
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 3713
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 3728
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 4205
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 4208
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 4209
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 4210
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 4445
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 4877
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 5781
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 5796
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 5821
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 8848
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 10041
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 10103
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 10171
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 10304
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 10366
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 10377
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 10522
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 10635
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 35
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 233
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 349
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/core/transactionCanonicalBoundary.js",
+        "line": 251
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/firebase/paginatedQuery.js",
+        "line": 211
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 840
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1051
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1267
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1485
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1661
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/main.js",
+        "line": 1208
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/main.js",
+        "line": 1225
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/main.js",
+        "line": 2761
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/modules/dashboard.js",
+        "line": 416
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/modules/dashboard.js",
+        "line": 1457
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/modules/dashboard.js",
+        "line": 1475
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/modules/dashboard.js",
+        "line": 1484
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/modules/dashboard.js",
+        "line": 1614
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/modules/superadmin.js",
+        "line": 427
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/modules/superadmin.js",
+        "line": 765
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/modules/superadmin.js",
+        "line": 1355
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 336
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/attendance.service.js",
+        "line": 442
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 539
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 581
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 622
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 706
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 129
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 299
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 437
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 476
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 566
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 707
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 725
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 752
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 774
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 192
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 223
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 341
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 395
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/inventory.service.js",
+        "line": 425
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 474
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/inventory.service.js",
+        "line": 485
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/inventory.service.js",
+        "line": 590
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 602
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/students.service.js",
+        "line": 53
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/students.service.js",
+        "line": 144
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/students.service.js",
+        "line": 304
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/students.service.js",
+        "line": 454
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/utils/firestore-guard.js",
+        "line": 123
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/utils/monthlyHelpers.js",
+        "line": 165
+      }
+    ],
+    "candidate": [
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 1063
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 1336
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 1517
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 1890
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2226
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2229
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2285
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2288
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2343
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 2570
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2782
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 2787
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 2938
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 2963
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 3713
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 3728
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 4205
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 4208
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 4209
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 4210
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 4445
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 4877
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 5734
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 5749
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 5774
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 8801
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 9998
+      },
+      {
+        "kind": "getDoc",
+        "file": "app.js",
+        "line": 10060
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 10128
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 10261
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 10323
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "app.js",
+        "line": 10334
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 10479
+      },
+      {
+        "kind": "getDocs",
+        "file": "app.js",
+        "line": 10592
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 35
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 233
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 349
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/core/transactionCanonicalBoundary.js",
+        "line": 251
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/firebase/paginatedQuery.js",
+        "line": 211
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 840
+      },
+      {
+        "kind": "onSnapshot",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1051
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1267
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1485
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1661
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/main.js",
+        "line": 1208
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/main.js",
+        "line": 1225
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/main.js",
+        "line": 2761
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/modules/dashboard.js",
+        "line": 416
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/modules/dashboard.js",
+        "line": 1457
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/modules/dashboard.js",
+        "line": 1475
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/modules/dashboard.js",
+        "line": 1484
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/modules/dashboard.js",
+        "line": 1614
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/modules/superadmin.js",
+        "line": 427
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/modules/superadmin.js",
+        "line": 765
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/modules/superadmin.js",
+        "line": 1355
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 336
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/attendance.service.js",
+        "line": 442
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 539
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 581
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 622
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/attendance.service.js",
+        "line": 706
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 129
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 299
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 437
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 476
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 566
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 707
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 725
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 752
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/finance.service.js",
+        "line": 774
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 281
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 312
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/inventory.service.js",
+        "line": 501
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 550
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/inventory.service.js",
+        "line": 561
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/inventory.service.js",
+        "line": 666
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/inventory.service.js",
+        "line": 678
+      },
+      {
+        "kind": "getDoc",
+        "file": "js/services/students.service.js",
+        "line": 53
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/students.service.js",
+        "line": 144
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/students.service.js",
+        "line": 304
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/services/students.service.js",
+        "line": 454
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/utils/firestore-guard.js",
+        "line": 123
+      },
+      {
+        "kind": "getDocs",
+        "file": "js/utils/monthlyHelpers.js",
+        "line": 165
+      }
+    ]
+  },
+  "rootPublic": {
+    "rootFiles": 129,
+    "publicFiles": 129,
+    "mismatches": [],
+    "extras": []
+  },
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "newCacheEdges": [
+    {
+      "from": "index.html",
+      "to": "app.js",
+      "kind": "html-script",
+      "url": "app.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "index.html",
+      "to": "js/main.js",
+      "kind": "script-loader",
+      "url": "./js/main.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/main.js",
+      "to": "js/core/tuitionCommandBoundary.js",
+      "kind": "static",
+      "url": "./core/tuitionCommandBoundary.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/main.js",
+      "to": "js/modules/students.js",
+      "kind": "static",
+      "url": "./modules/students.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/main.js",
+      "to": "js/modules/finance.js",
+      "kind": "static",
+      "url": "./modules/finance.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/main.js",
+      "to": "js/modules/inventory.js",
+      "kind": "static",
+      "url": "./modules/inventory.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/main.js",
+      "to": "app.js",
+      "kind": "script-loader",
+      "url": "app.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/core/tuitionCommandBoundary.js",
+      "to": "js/services/finance.service.js",
+      "kind": "static",
+      "url": "../services/finance.service.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/modules/students.js",
+      "to": "js/services/inventory.service.js",
+      "kind": "static",
+      "url": "../services/inventory.service.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/modules/students.js",
+      "to": "js/services/finance.service.js",
+      "kind": "static",
+      "url": "../services/finance.service.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/modules/students.js",
+      "to": "js/modules/students.js",
+      "kind": "dynamic",
+      "url": "./students.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/modules/finance.js",
+      "to": "js/services/finance.service.js",
+      "kind": "static",
+      "url": "../services/finance.service.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/modules/finance.js",
+      "to": "js/services/finance.service.js",
+      "kind": "dynamic",
+      "url": "../services/finance.service.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/modules/inventory.js",
+      "to": "js/services/inventory.service.js",
+      "kind": "static",
+      "url": "../services/inventory.service.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    },
+    {
+      "from": "js/services/finance.service.js",
+      "to": "js/services/inventory.service.js",
+      "kind": "static",
+      "url": "./inventory.service.js?v=a9r18-inventory-stock-authority-r1-20261108"
+    }
+  ]
+}

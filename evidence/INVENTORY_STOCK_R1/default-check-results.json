@@ -1,0 +1,16 @@
+[
+  {
+    "label": "baseline",
+    "command": "npm run check",
+    "exitCode": 1,
+    "TMPDIR": "/workspace/scratch/036ee6a06c71/inventory_stock_r1/baseline-test-tmp",
+    "log": "baseline-default-check.log"
+  },
+  {
+    "label": "candidate",
+    "command": "npm run check",
+    "exitCode": 1,
+    "TMPDIR": "/workspace/scratch/036ee6a06c71/inventory_stock_r1/candidate-test-tmp",
+    "log": "candidate-default-check.log"
+  }
+]

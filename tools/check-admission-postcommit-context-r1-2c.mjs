@@ -14,7 +14,7 @@ const debt = fs.readFileSync(path.join(ROOT,'js/core/debtProfileReadBoundary.js'
 check('Root/public students parity', students === publicStudents);
 check('FinanceService context API reused', students.includes('FinanceService.captureFinancialWriteContext()') && students.includes('FinanceService.isFinancialWriteContextCurrent(admissionContext)'));
 check('FinanceService context core not duplicated in students', !students.includes('financialWriteContextToken') && !students.includes('AdmissionContextStore'));
-check('Existing one-batch writer preserved', (students.match(/const batch = writeBatch\(_db\(\)\)/g)||[]).length === 1 && (students.match(/await batch\.commit\(\)/g)||[]).length === 1);
+check('Existing one atomic caller-owned commit preserved with stock-aware transport', students.includes('const batch = inventoryPlan ? InventoryService.createStockMutationBatch') && students.includes('}) : writeBatch(_db())') && (students.match(/await batch\.commit\(\)/g)||[]).length === 1);
 check('Debt authority core not rewritten by Admission', debt.includes('function beginSyncOperation(meta)') && debt.includes("planningRetireReason = 'authority-or-context-changed'"));
 check('Inventory projection owner remains service/runtime bridge', inventorySvc.includes('prepareAddItemMutation(data)'));
 check('Finance projection owner remains existing service', financeSvc.includes('prepareTransactionMutation(data'));

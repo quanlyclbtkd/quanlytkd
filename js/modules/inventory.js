@@ -40,7 +40,7 @@
 
 import { getLocalToday } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { escapeHtml } from '../utils/helpers.js';
-import { InventoryService } from "../services/inventory.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
+import { InventoryService } from "../services/inventory.service.js?v=a9r18-inventory-stock-authority-r1-20261108";
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time
@@ -531,7 +531,7 @@ export function initInventory() {
             window.showToast('✅ Đã cập nhật Kho!');
             } catch (error) {
                 console.error('[inventoryForm] Atomic write failed:', error);
-                window.showToast('❌ Chưa lưu Kho và chứng từ. Vui lòng kiểm tra lại.');
+                window.showToast(error?.code?.startsWith('INVENTORY_') ? '⚠️ ' + error.message : '❌ Chưa lưu Kho và chứng từ. Vui lòng kiểm tra lại.');
             } finally { delete _invFormEl.dataset.atomicSubmitInFlight; }
         };
     }
@@ -681,14 +681,18 @@ export function initInventory() {
             }
         }
         const txType = type === 'Nhập kho' ? `Chi ${eiCat}` : (amount === 0 ? `Tặng ${eiCat}` : `Thu ${eiCat}`);
-        await InventoryService.updateItem(invId, invPayload, {
+        try { await InventoryService.updateItem(invId, invPayload, {
             previous,
             relatedTransaction: {
                 id: txId,
                 data: { type: txType, description: desc, amount, date },
                 previous: previousTx
             }
-        });
+        }); } catch (error) {
+            console.error('[saveEditInv] Atomic write failed:', error);
+            window.showToast(error?.code?.startsWith('INVENTORY_') ? '⚠️ ' + error.message : '❌ Chưa thể sửa Kho và chứng từ. Vui lòng mở lại phiếu.');
+            return false;
+        }
         if (!_financialContextCurrent(operationContext)) {
             _staleInventorySuccess('✅ Dữ liệu Kho đã được cập nhật tại CLB trước. Phiên hiện tại đã thay đổi nên màn hình này không được làm mới. Không sửa lại thao tác.');
             return true;

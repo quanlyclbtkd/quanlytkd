@@ -1,0 +1,65 @@
+{
+  "zipSHA256": "926e7b3c32fde72229f84204e2ae2faa807f4d8e1cab104c6ac0632b7f45d010",
+  "frozen": [
+    {
+      "file": "js/services/inventory.service.js",
+      "expectedSHA256": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484",
+      "actualSHA256": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484",
+      "match": true
+    },
+    {
+      "file": "js/modules/inventory.js",
+      "expectedSHA256": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235",
+      "actualSHA256": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235",
+      "match": true
+    },
+    {
+      "file": "js/modules/students.js",
+      "expectedSHA256": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2",
+      "actualSHA256": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2",
+      "match": true
+    },
+    {
+      "file": "app.js",
+      "expectedSHA256": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+      "actualSHA256": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+      "match": true
+    },
+    {
+      "file": "firestore.rules",
+      "expectedSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "actualSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "match": true
+    },
+    {
+      "file": "firebase.json",
+      "expectedSHA256": "5a7aa67432f9601838edfc7e162e06fb7f9a9916b0109e3330b575b8d3b55814",
+      "actualSHA256": "5a7aa67432f9601838edfc7e162e06fb7f9a9916b0109e3330b575b8d3b55814",
+      "match": true
+    },
+    {
+      "file": "public/js/services/inventory.service.js",
+      "expectedSHA256": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484",
+      "actualSHA256": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484",
+      "match": true
+    },
+    {
+      "file": "public/js/modules/inventory.js",
+      "expectedSHA256": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235",
+      "actualSHA256": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235",
+      "match": true
+    },
+    {
+      "file": "public/js/modules/students.js",
+      "expectedSHA256": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2",
+      "actualSHA256": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2",
+      "match": true
+    },
+    {
+      "file": "public/app.js",
+      "expectedSHA256": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+      "actualSHA256": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+      "match": true
+    }
+  ]
+}

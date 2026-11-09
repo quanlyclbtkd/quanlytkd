@@ -50,7 +50,7 @@ check('New inventory items maintain inventory_stats using canonical prepared inc
   addItemSegment.includes('const prepared = this.prepareAddItemMutation(data)') &&
   /batch\.set\(prepared\.statsRef,\s*prepared\.summaryPatch,\s*\{\s*merge:\s*true\s*\}\)/.test(addItemSegment));
 check('Prepared inventory summary is committed in the same batch without a duplicate writer',
-  /const batch = writeBatch\(_db\(\)\)/.test(addItemSegment) &&
+  /const batch = this\.createStockMutationBatch\(/.test(addItemSegment) &&
   /batch\.set\(prepared\.itemRef,\s*prepared\.payload\)/.test(addItemSegment) &&
   (addItemSegment.match(/await\s+batch\.commit\(\)/g) || []).length === 1 &&
   /batch\.set\(prepared\.itemRef,\s*prepared\.payload\)/.test(preparedCommitSegment) &&

@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { installTransactionFixture, fixtureSnapshot } from './inventory-stock-r1/transaction-fixture.mjs';
 
 const root = process.cwd();
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
@@ -32,8 +33,8 @@ check('History page uses date-desc cursor so repaired legacy rows remain queryab
 check('New inventory writes always provide date and timestamp', service.includes('if (!payload.timestamp) payload.timestamp = Date.now()') && service.includes('if (!payload.date'));
 check('Add inventory uses an atomic Firestore batch', service.includes('async addItem(data)') && service.includes('batch.set(prepared.itemRef, prepared.payload)') && service.includes('batch.set(prepared.statsRef, prepared.summaryPatch, { merge: true })'));
 check('Add inventory does not silently continue after stock-summary failure', !service.slice(service.indexOf('async addItem(data)'), service.indexOf('async updateItem')).includes('catch'));
-check('Update reverses previous contribution and applies next contribution', service.includes('{ item: previous, direction: -1 }') && service.includes('{ item: next, direction: 1 }'));
-check('Delete reverses inventory contribution atomically', service.includes('async deleteItem') && service.includes("[{ item: previous, direction: -1 }]") && service.includes('batch.delete(itemRef)'));
+check('Update reverses authoritative previous and applies next inside its transaction', service.includes('{ item: previous, direction: -1 }') && service.includes('{ item: currentNext, direction: 1 }') && service.includes('transaction.update(itemRef'));
+check('Delete reverses inventory contribution atomically', service.includes('async deleteItem') && service.includes("[{ item: previous, direction: -1 }]") && service.includes('transaction.delete(itemRef)') && service.includes('validateStockTransaction'));
 check('Finance-related inventory deletion delegates to canonical ledger service', financeService.includes('InventoryService.deleteItem(invId'));
 check('Add-student inventory write batches history and inventory_stats', studentService.includes('async addInventoryEntry') && studentService.includes('const batch = writeBatch(db)') && studentService.includes("settings', 'inventory_stats'"));
 check('Add-student module no longer performs a second stock decrement', !studentModule.includes('decrementInventoryStock(uniformSize)'));
@@ -128,6 +129,7 @@ globalThis.window = {
   notifyInventoryMutation() {},
 };
 
+installTransactionFixture(window._fb_init, r => fixtureSnapshot(r, isStats(r) ? stats : inventory.get(r.id)));
 try {
   const url = pathToFileURL(path.join(root, 'js/services/inventory.service.js')).href + '?v2c-check=' + Date.now();
   const { InventoryService } = await import(url);
@@ -138,7 +140,7 @@ try {
   const previousOutput = { id: outputId, ...inventory.get(outputId) };
   await InventoryService.updateItem(outputId, { qty: 5 }, { previous: previousOutput });
   check('Dynamic: editing quantity reverses old out and applies new out', stats['Võ phục|||Size 1m9_balance'] === 5 && stats['Võ phục|||Size 1m9_out'] === 5);
-  check('Dynamic: edit with local original performs no document read', getDocCalls === 0);
+  check('Dynamic: edit uses transaction reads rather than a standalone getDoc', getDocCalls === 0 && window._fb_init.__transactionFixtureReads.some(p=>p.endsWith('/settings/inventory_stats')));
   await InventoryService.deleteItem(outputId, { previous: { id: outputId, ...inventory.get(outputId) } });
   check('Dynamic: delete reverses stock and removes history row', !inventory.has(outputId) && stats['Võ phục|||Size 1m9_balance'] === 10 && stats['Võ phục|||Size 1m9_out'] === 0);
 

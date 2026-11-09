@@ -1,0 +1,412 @@
+[
+  {
+    "name": "check-inventory-finance-rollup",
+    "command": [
+      "node",
+      "tools/check-inventory-finance-rollup.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08463327000026766,
+    "log": "baseline-final-check-inventory-finance-rollup.log"
+  },
+  {
+    "name": "check-inventory-history-pagination-active-debt",
+    "command": [
+      "node",
+      "tools/check-inventory-history-pagination-active-debt.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08522961600010603,
+    "log": "baseline-final-check-inventory-history-pagination-active-debt.log"
+  },
+  {
+    "name": "check-inventory-multiitem-readonly-ui",
+    "command": [
+      "node",
+      "tools/check-inventory-multiitem-readonly-ui.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.07801376299994445,
+    "log": "baseline-final-check-inventory-multiitem-readonly-ui.log"
+  },
+  {
+    "name": "check-inventory-consumer-hydration-hotfix",
+    "command": [
+      "node",
+      "tools/check-inventory-consumer-hydration-hotfix.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.0892762869998478,
+    "log": "baseline-final-check-inventory-consumer-hydration-hotfix.log"
+  },
+  {
+    "name": "check-inventory-ledger-reconciliation",
+    "command": [
+      "node",
+      "tools/check-inventory-ledger-reconciliation.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.09226760599995032,
+    "log": "baseline-final-check-inventory-ledger-reconciliation.log"
+  },
+  {
+    "name": "check-inventory-dynamic-size-catalog",
+    "command": [
+      "node",
+      "tools/check-inventory-dynamic-size-catalog.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.10187638099978358,
+    "log": "baseline-final-check-inventory-dynamic-size-catalog.log"
+  },
+  {
+    "name": "check-h8r2-1c1f1d1-multiitem-inventory-closure",
+    "command": [
+      "node",
+      "tools/check-h8r2-1c1f1d1-multiitem-inventory-closure.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.3122780319999947,
+    "log": "baseline-final-check-h8r2-1c1f1d1-multiitem-inventory-closure.log"
+  },
+  {
+    "name": "check-multiitem-inventory-hydration",
+    "command": [
+      "node",
+      "tools/check-multiitem-inventory-hydration.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08220025399987207,
+    "log": "baseline-final-check-multiitem-inventory-hydration.log"
+  },
+  {
+    "name": "check-admission-postcommit-context-r1-2c",
+    "command": [
+      "node",
+      "tools/check-admission-postcommit-context-r1-2c.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.19480204000046797,
+    "log": "baseline-final-check-admission-postcommit-context-r1-2c.log"
+  },
+  {
+    "name": "check-admission-draft-snapshot-r1-3a",
+    "command": [
+      "node",
+      "tools/check-admission-draft-snapshot-r1-3a.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.21853561900024943,
+    "log": "baseline-final-check-admission-draft-snapshot-r1-3a.log"
+  },
+  {
+    "name": "check-admission-r1-3a1-test-superset",
+    "command": [
+      "node",
+      "tools/check-admission-r1-3a1-test-superset.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.07693239199943491,
+    "log": "baseline-final-check-admission-r1-3a1-test-superset.log"
+  },
+  {
+    "name": "check-payment-bundle-runtime-hotfix",
+    "command": [
+      "node",
+      "tools/check-payment-bundle-runtime-hotfix.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08644183799970051,
+    "log": "baseline-final-check-payment-bundle-runtime-hotfix.log"
+  },
+  {
+    "name": "check-admission-bundle-unification",
+    "command": [
+      "node",
+      "tools/check-admission-bundle-unification.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08267146699927252,
+    "log": "baseline-final-check-admission-bundle-unification.log"
+  },
+  {
+    "name": "check-admission-tuition-package",
+    "command": [
+      "node",
+      "tools/check-admission-tuition-package.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08747418499933701,
+    "log": "baseline-final-check-admission-tuition-package.log"
+  },
+  {
+    "name": "check-admission-uniform-size",
+    "command": [
+      "node",
+      "tools/check-admission-uniform-size.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08249084500039316,
+    "log": "baseline-final-check-admission-uniform-size.log"
+  },
+  {
+    "name": "check-finance-write-writer-matrix-r1-1",
+    "command": [
+      "node",
+      "tools/check-finance-write-writer-matrix-r1-1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.10072729300009087,
+    "log": "baseline-final-check-finance-write-writer-matrix-r1-1.log"
+  },
+  {
+    "name": "check-finance-write-evidence-r1-1",
+    "command": [
+      "node",
+      "tools/check-finance-write-evidence-r1-1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.35100175000025047,
+    "log": "baseline-final-check-finance-write-evidence-r1-1.log"
+  },
+  {
+    "name": "check-finance-tuition-month-authority-r1-2",
+    "command": [
+      "node",
+      "tools/check-finance-tuition-month-authority-r1-2.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.11053248699954565,
+    "log": "baseline-final-check-finance-tuition-month-authority-r1-2.log"
+  },
+  {
+    "name": "check-finance-tuition-intent-context-r1-2a",
+    "command": [
+      "node",
+      "tools/check-finance-tuition-intent-context-r1-2a.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.1305252450001717,
+    "log": "baseline-final-check-finance-tuition-intent-context-r1-2a.log"
+  },
+  {
+    "name": "check-debt-authoritative-tuition-coverage",
+    "command": [
+      "node",
+      "tools/check-debt-authoritative-tuition-coverage.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.09002979900014907,
+    "log": "baseline-final-check-debt-authoritative-tuition-coverage.log"
+  },
+  {
+    "name": "check-family-combo-autofill-r1",
+    "command": [
+      "node",
+      "tools/check-family-combo-autofill-r1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.11635301899968908,
+    "log": "baseline-final-check-family-combo-autofill-r1.log"
+  },
+  {
+    "name": "check-family-combo-qr-r1",
+    "command": [
+      "node",
+      "tools/check-family-combo-qr-r1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 9.154245767999782,
+    "log": "baseline-final-check-family-combo-qr-r1.log"
+  },
+  {
+    "name": "check-production-security-trust-boundary",
+    "command": [
+      "node",
+      "tools/check-production-security-trust-boundary.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.5575616799997078,
+    "log": "baseline-final-check-production-security-trust-boundary.log"
+  },
+  {
+    "name": "check-security-coach-branch-boundary",
+    "command": [
+      "node",
+      "tools/check-security-coach-branch-boundary.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.8280516630002239,
+    "log": "baseline-final-check-security-coach-branch-boundary.log"
+  },
+  {
+    "name": "check-tuition-debt-source-of-truth-v4c",
+    "command": [
+      "node",
+      "tools/check-tuition-debt-source-of-truth-v4c.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08992808099992544,
+    "log": "baseline-final-check-tuition-debt-source-of-truth-v4c.log"
+  },
+  {
+    "name": "check-finance-nontuition-context-tail-r1-2b",
+    "command": [
+      "node",
+      "tools/check-finance-nontuition-context-tail-r1-2b.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.6271647189996656,
+    "log": "baseline-final-check-finance-nontuition-context-tail-r1-2b.log"
+  },
+  {
+    "name": "check-finance-delete-context-tail-r1-2a1",
+    "command": [
+      "node",
+      "tools/check-finance-delete-context-tail-r1-2a1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.40057425100076216,
+    "log": "baseline-final-check-finance-delete-context-tail-r1-2a1.log"
+  },
+  {
+    "name": "check-finance-remaining-form-tail-r1-2b1",
+    "command": [
+      "node",
+      "tools/check-finance-remaining-form-tail-r1-2b1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.22421776700048213,
+    "log": "baseline-final-check-finance-remaining-form-tail-r1-2b1.log"
+  },
+  {
+    "name": "check-qr-report-render-payment-intent",
+    "command": [
+      "node",
+      "tools/check-qr-report-render-payment-intent.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 1.2999535290000495,
+    "log": "baseline-final-check-qr-report-render-payment-intent.log"
+  },
+  {
+    "name": "check-qr-v4-payment-account-authority",
+    "command": [
+      "node",
+      "tools/check-qr-v4-payment-account-authority.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 3.229095468000196,
+    "log": "baseline-final-check-qr-v4-payment-account-authority.log"
+  },
+  {
+    "name": "check-qr-multiitem-memo-r1-2d1",
+    "command": [
+      "node",
+      "tools/check-qr-multiitem-memo-r1-2d1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 1.8046097389997158,
+    "log": "baseline-final-check-qr-multiitem-memo-r1-2d1.log"
+  },
+  {
+    "name": "check-qr-multiitem-memo-r1-2d",
+    "command": [
+      "node",
+      "tools/check-qr-multiitem-memo-r1-2d.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 2.2204592179996325,
+    "log": "baseline-final-check-qr-multiitem-memo-r1-2d.log"
+  },
+  {
+    "name": "check-qr-multiitem-memo-r1-2d-app-guard",
+    "command": [
+      "node",
+      "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.22965081199981796,
+    "log": "baseline-final-check-qr-multiitem-memo-r1-2d-app-guard.log"
+  },
+  {
+    "name": "check-multiitem-tuition-package-fix",
+    "command": [
+      "node",
+      "tools/check-multiitem-tuition-package-fix.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.0649734830003581,
+    "log": "baseline-final-check-multiitem-tuition-package-fix.log"
+  },
+  {
+    "name": "check-multiitem-skipped-months",
+    "command": [
+      "node",
+      "tools/check-multiitem-skipped-months.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.06982931000038661,
+    "log": "baseline-final-check-multiitem-skipped-months.log"
+  },
+  {
+    "name": "check-admission-tuition-type-normalization",
+    "command": [
+      "node",
+      "tools/check-admission-tuition-type-normalization.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08623653399990872,
+    "log": "baseline-final-check-admission-tuition-type-normalization.log"
+  },
+  {
+    "name": "check-mobile-startup-performance",
+    "command": [
+      "node",
+      "tools/check-mobile-startup-performance.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.07744346499930543,
+    "log": "baseline-final-check-mobile-startup-performance.log"
+  },
+  {
+    "name": "check-system-sync-stability-r1-3",
+    "command": [
+      "node",
+      "tools/check-system-sync-stability-r1-3.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.6797515630005364,
+    "log": "baseline-final-check-system-sync-stability-r1-3.log"
+  },
+  {
+    "name": "check-attendance-canonical-ownership",
+    "command": [
+      "node",
+      "tools/check-attendance-canonical-ownership.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.3718988820000959,
+    "log": "baseline-final-check-attendance-canonical-ownership.log"
+  },
+  {
+    "name": "check-root-public-parity",
+    "command": [
+      "node",
+      "tools/check-root-public-parity.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08001031799994962,
+    "log": "baseline-final-check-root-public-parity.log"
+  },
+  {
+    "name": "a9r6-qr-provider-memo",
+    "command": [
+      "node",
+      "tools/a9r6/qr-provider-memo-regression.test.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.08918070300023828,
+    "log": "baseline-final-a9r6-qr-provider-memo.log"
+  }
+]

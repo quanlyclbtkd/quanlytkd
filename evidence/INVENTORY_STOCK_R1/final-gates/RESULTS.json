@@ -1,0 +1,459 @@
+{
+  "phase": "A9R18-INVENTORY-STOCK-INTEGRITY-AUTHORITY-R1",
+  "runtimeSHA256": "3e4e56fc385ef13bc74b5d6f2df1182137d38355d65eed4394a807de58f9e3da",
+  "passed": 41,
+  "failed": 0,
+  "results": [
+    {
+      "name": "check-inventory-stock-authority-r1",
+      "command": [
+        "node",
+        "tools/check-inventory-stock-authority-r1.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 593.424837,
+      "log": "check-inventory-stock-authority-r1.log",
+      "logSHA256": "d70d07100b89ff3a3857feaf010f85fdec2926a50e57e3a329dd610c1f985905"
+    },
+    {
+      "name": "check-inventory-finance-rollup",
+      "command": [
+        "node",
+        "tools/check-inventory-finance-rollup.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 59.70291599999996,
+      "log": "check-inventory-finance-rollup.log",
+      "logSHA256": "0f5a73cf1665fc48f1f195083874cc024c5ed988559c53174ee6c7dad0faa8d4"
+    },
+    {
+      "name": "check-inventory-history-pagination-active-debt",
+      "command": [
+        "node",
+        "tools/check-inventory-history-pagination-active-debt.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 64.98732599999994,
+      "log": "check-inventory-history-pagination-active-debt.log",
+      "logSHA256": "59f8f9c963aa34e4d8f582e175e48caf634325bdb7eda92fa4f4ecd70656be8e"
+    },
+    {
+      "name": "check-inventory-multiitem-readonly-ui",
+      "command": [
+        "node",
+        "tools/check-inventory-multiitem-readonly-ui.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 59.633241,
+      "log": "check-inventory-multiitem-readonly-ui.log",
+      "logSHA256": "97d3bbf11429ed40bef1ed282d72bd662cb4ffbb647c40be5d1773132a2945cc"
+    },
+    {
+      "name": "check-inventory-consumer-hydration-hotfix",
+      "command": [
+        "node",
+        "tools/check-inventory-consumer-hydration-hotfix.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 74.87669700000004,
+      "log": "check-inventory-consumer-hydration-hotfix.log",
+      "logSHA256": "22e8f42754baacb5180d645ef4c3ee0d71f1cb41c8bec03ca93effc2ab0f699f"
+    },
+    {
+      "name": "check-inventory-ledger-reconciliation",
+      "command": [
+        "node",
+        "tools/check-inventory-ledger-reconciliation.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 66.81208299999992,
+      "log": "check-inventory-ledger-reconciliation.log",
+      "logSHA256": "1a6c85941066e204985de0ded9548583d2053ac9f3bfb0d67e8eb3e926f87281"
+    },
+    {
+      "name": "check-inventory-dynamic-size-catalog",
+      "command": [
+        "node",
+        "tools/check-inventory-dynamic-size-catalog.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 72.46616499999993,
+      "log": "check-inventory-dynamic-size-catalog.log",
+      "logSHA256": "ef82ac4b14de4bd2cce1ed18258669cbea57164a15c700412d5349b0c5c39287"
+    },
+    {
+      "name": "check-h8r2-1c1f1d1-multiitem-inventory-closure",
+      "command": [
+        "node",
+        "tools/check-h8r2-1c1f1d1-multiitem-inventory-closure.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 252.71538899999996,
+      "log": "check-h8r2-1c1f1d1-multiitem-inventory-closure.log",
+      "logSHA256": "a2803de6d5907cfe03a87d8e5614ee7c602e7213f1b7f648a65839b69105564d"
+    },
+    {
+      "name": "check-multiitem-inventory-hydration",
+      "command": [
+        "node",
+        "tools/check-multiitem-inventory-hydration.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 52.011933,
+      "log": "check-multiitem-inventory-hydration.log",
+      "logSHA256": "23a03610f790d8b79ff798a0e405bfc154dafa5777c1f9a03b2f9f2c6eedd053"
+    },
+    {
+      "name": "check-admission-postcommit-context-r1-2c",
+      "command": [
+        "node",
+        "tools/check-admission-postcommit-context-r1-2c.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 141.17517900000007,
+      "log": "check-admission-postcommit-context-r1-2c.log",
+      "logSHA256": "b0bb6675fc0b8caa3a7c90b53bd07e62e43f0443a3fe716091ee3331babd3885"
+    },
+    {
+      "name": "check-admission-draft-snapshot-r1-3a",
+      "command": [
+        "node",
+        "tools/check-admission-draft-snapshot-r1-3a.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 151.2907839999998,
+      "log": "check-admission-draft-snapshot-r1-3a.log",
+      "logSHA256": "c6cb31541c9f251233f2a450d204aaa30f3bfe783f3007297dc90c10f55c335b"
+    },
+    {
+      "name": "check-admission-r1-3a1-test-superset",
+      "command": [
+        "node",
+        "tools/check-admission-r1-3a1-test-superset.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 64.08966699999996,
+      "log": "check-admission-r1-3a1-test-superset.log",
+      "logSHA256": "4913491d0453cb8c2d0da27271ed06f4545c9c632837785a190c5ee73e5cb892"
+    },
+    {
+      "name": "check-payment-bundle-runtime-hotfix",
+      "command": [
+        "node",
+        "tools/check-payment-bundle-runtime-hotfix.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 68.31646899999987,
+      "log": "check-payment-bundle-runtime-hotfix.log",
+      "logSHA256": "775f7f5ae7f848dda7de1e15a8bfd25253adf0d2d629d09cb2113bfb05966bd3"
+    },
+    {
+      "name": "check-admission-bundle-unification",
+      "command": [
+        "node",
+        "tools/check-admission-bundle-unification.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 63.004125999999815,
+      "log": "check-admission-bundle-unification.log",
+      "logSHA256": "40b531057b84a58fbcb9197559be7b05630c4101623c13dc75d54ed712840fdc"
+    },
+    {
+      "name": "check-admission-tuition-package",
+      "command": [
+        "node",
+        "tools/check-admission-tuition-package.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 57.94390199999998,
+      "log": "check-admission-tuition-package.log",
+      "logSHA256": "26edfc34188137a4f245deae8fdf3fbc4742de48cbcfdcbaf799e3987db6e2c7"
+    },
+    {
+      "name": "check-admission-uniform-size",
+      "command": [
+        "node",
+        "tools/check-admission-uniform-size.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 54.54118900000003,
+      "log": "check-admission-uniform-size.log",
+      "logSHA256": "e57e0ebc44b33230bb8fb82087a53a949aebbea8742d91dd274cca041e70a54e"
+    },
+    {
+      "name": "check-finance-write-writer-matrix-r1-1",
+      "command": [
+        "node",
+        "tools/check-finance-write-writer-matrix-r1-1.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 80.94156100000009,
+      "log": "check-finance-write-writer-matrix-r1-1.log",
+      "logSHA256": "4008aaf5585f4f1a573903f2e43b9f44f8da5ff4a344d15094ba2219cbec6627"
+    },
+    {
+      "name": "check-finance-write-evidence-r1-1",
+      "command": [
+        "node",
+        "tools/check-finance-write-evidence-r1-1.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 329.2290149999999,
+      "log": "check-finance-write-evidence-r1-1.log",
+      "logSHA256": "fbe9fb17902767aac64c320c73c80a02a92219af626651faa04eac5fd4e20053"
+    },
+    {
+      "name": "check-finance-tuition-month-authority-r1-2",
+      "command": [
+        "node",
+        "tools/check-finance-tuition-month-authority-r1-2.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 99.69434499999988,
+      "log": "check-finance-tuition-month-authority-r1-2.log",
+      "logSHA256": "a31f5c35a1eaa49763ae6ffda62ad83b780162e309adc878676ecc79f678c350"
+    },
+    {
+      "name": "check-finance-tuition-intent-context-r1-2a",
+      "command": [
+        "node",
+        "tools/check-finance-tuition-intent-context-r1-2a.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 101.23542600000019,
+      "log": "check-finance-tuition-intent-context-r1-2a.log",
+      "logSHA256": "d9c9221737f90b7e25b2c4de52ad8dddb2652e7f08837ba0d6c5192b5e593e35"
+    },
+    {
+      "name": "check-debt-authoritative-tuition-coverage",
+      "command": [
+        "node",
+        "tools/check-debt-authoritative-tuition-coverage.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 70.97871900000018,
+      "log": "check-debt-authoritative-tuition-coverage.log",
+      "logSHA256": "146536e68513716b047846c727e09029798ce955835bc1f0ecf2cbfd965633e7"
+    },
+    {
+      "name": "check-family-combo-autofill-r1",
+      "command": [
+        "node",
+        "tools/check-family-combo-autofill-r1.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 96.46493700000019,
+      "log": "check-family-combo-autofill-r1.log",
+      "logSHA256": "f651c72bfe77ca93ca2b6260ae65e8a6cf8a946a97f29b66f689f1706abc0288"
+    },
+    {
+      "name": "check-family-combo-qr-r1",
+      "command": [
+        "node",
+        "tools/check-family-combo-qr-r1.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 7693.237947999999,
+      "log": "check-family-combo-qr-r1.log",
+      "logSHA256": "5b7eeb81722cd07ea8e8791bf949de5984c5d92cd84ee47281315091488d893e"
+    },
+    {
+      "name": "check-production-security-trust-boundary",
+      "command": [
+        "node",
+        "tools/check-production-security-trust-boundary.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 367.1770209999995,
+      "log": "check-production-security-trust-boundary.log",
+      "logSHA256": "905e74c58e4322e10d30c4cd06b8ad5236e03ef39b4598447d83166f3f5cb32a"
+    },
+    {
+      "name": "check-security-coach-branch-boundary",
+      "command": [
+        "node",
+        "tools/check-security-coach-branch-boundary.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 681.1715459999996,
+      "log": "check-security-coach-branch-boundary.log",
+      "logSHA256": "8ee75731770df586c3800cf2dc5d236a824deedb9fd6d3a4a8047b804e30f93a"
+    },
+    {
+      "name": "check-tuition-debt-source-of-truth-v4c",
+      "command": [
+        "node",
+        "tools/check-tuition-debt-source-of-truth-v4c.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 65.19866899999943,
+      "log": "check-tuition-debt-source-of-truth-v4c.log",
+      "logSHA256": "c4d064e1ec7f603b2ca5047f0015d498339343fe44c4116d2c4a5884e779e833"
+    },
+    {
+      "name": "check-finance-nontuition-context-tail-r1-2b",
+      "command": [
+        "node",
+        "tools/check-finance-nontuition-context-tail-r1-2b.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 457.82990900000004,
+      "log": "check-finance-nontuition-context-tail-r1-2b.log",
+      "logSHA256": "0831f7098abb71b3d9b340a8ff4b230d6e52334fd2fc9877625573566ac9175e"
+    },
+    {
+      "name": "check-finance-delete-context-tail-r1-2a1",
+      "command": [
+        "node",
+        "tools/check-finance-delete-context-tail-r1-2a1.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 291.66959900000074,
+      "log": "check-finance-delete-context-tail-r1-2a1.log",
+      "logSHA256": "5d9d5ec045f6ee814ddb6e48e8d62e90942368a01a0a8f9d66040c6e53b97996"
+    },
+    {
+      "name": "check-finance-remaining-form-tail-r1-2b1",
+      "command": [
+        "node",
+        "tools/check-finance-remaining-form-tail-r1-2b1.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 178.06241600000067,
+      "log": "check-finance-remaining-form-tail-r1-2b1.log",
+      "logSHA256": "7961b51e6be0354bb58efaee97d481dd549714a127fd5ea82fc0748cbde75ca7"
+    },
+    {
+      "name": "check-qr-report-render-payment-intent",
+      "command": [
+        "node",
+        "tools/check-qr-report-render-payment-intent.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 940.6851989999996,
+      "log": "check-qr-report-render-payment-intent.log",
+      "logSHA256": "3705c1b629d2c5737ca4ce0176876f6433e7d430aa4f16fc898c913eafe0e500"
+    },
+    {
+      "name": "check-qr-v4-payment-account-authority",
+      "command": [
+        "node",
+        "tools/check-qr-v4-payment-account-authority.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 2184.5320389999997,
+      "log": "check-qr-v4-payment-account-authority.log",
+      "logSHA256": "6f3cd694c8a42d9887ebd84ae7bfdffaa402a14409867e0048972472388e4aa0"
+    },
+    {
+      "name": "check-qr-multiitem-memo-r1-2d1",
+      "command": [
+        "node",
+        "tools/check-qr-multiitem-memo-r1-2d1.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 1312.9580299999998,
+      "log": "check-qr-multiitem-memo-r1-2d1.log",
+      "logSHA256": "8e1939aa1785a24f392cd30dc4323f333e1fafbba93e26a1da2a2f64311730ba"
+    },
+    {
+      "name": "check-qr-multiitem-memo-r1-2d",
+      "command": [
+        "node",
+        "tools/check-qr-multiitem-memo-r1-2d.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 1719.4299919999976,
+      "log": "check-qr-multiitem-memo-r1-2d.log",
+      "logSHA256": "cc2ac7972f4650bcfecbbda5c90205c1f26c721479997e9cdf44e0b7f0decfa2"
+    },
+    {
+      "name": "check-qr-multiitem-memo-r1-2d-app-guard",
+      "command": [
+        "node",
+        "tools/check-qr-multiitem-memo-r1-2d-app-guard.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 157.51036899999963,
+      "log": "check-qr-multiitem-memo-r1-2d-app-guard.log",
+      "logSHA256": "61ac9d2e1e1f1ca73f62b464c662a645f44ae5e050adddecf0847d91d8ca3ca7"
+    },
+    {
+      "name": "check-multiitem-tuition-package-fix",
+      "command": [
+        "node",
+        "tools/check-multiitem-tuition-package-fix.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 60.68331699999908,
+      "log": "check-multiitem-tuition-package-fix.log",
+      "logSHA256": "bbe2109876e386e8202e1fa0cde1f09f66361e95fefc490206281045bdaeb061"
+    },
+    {
+      "name": "check-multiitem-skipped-months",
+      "command": [
+        "node",
+        "tools/check-multiitem-skipped-months.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 74.50630799999999,
+      "log": "check-multiitem-skipped-months.log",
+      "logSHA256": "7cb2dfda6c32ce4722ac23b52173298e49ca1ef71dc99509888cf6368dab1fb1"
+    },
+    {
+      "name": "check-admission-tuition-type-normalization",
+      "command": [
+        "node",
+        "tools/check-admission-tuition-type-normalization.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 63.801909000001615,
+      "log": "check-admission-tuition-type-normalization.log",
+      "logSHA256": "722c9f52b6ea9d3361e9c52febb5ecc85468c13b49c5767a22edaafd53fe088f"
+    },
+    {
+      "name": "check-mobile-startup-performance",
+      "command": [
+        "node",
+        "tools/check-mobile-startup-performance.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 55.658142000000225,
+      "log": "check-mobile-startup-performance.log",
+      "logSHA256": "7bea6dd76b04d86f4f525c7f1c2ebbc969a20f08ba424bada86703e6cd7e37ab"
+    },
+    {
+      "name": "check-attendance-canonical-ownership",
+      "command": [
+        "node",
+        "tools/check-attendance-canonical-ownership.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 271.2140639999998,
+      "log": "check-attendance-canonical-ownership.log",
+      "logSHA256": "45d524e26b5d3cd94151fde2ef44cbc4c8a1bce955b68f90eba7f7664d13894e"
+    },
+    {
+      "name": "check-root-public-parity",
+      "command": [
+        "node",
+        "tools/check-root-public-parity.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 78.45059500000207,
+      "log": "check-root-public-parity.log",
+      "logSHA256": "d9c9cf634870e9b97231e8a4612d7b92a49d0aebb135aae31865c17ac04346bf"
+    },
+    {
+      "name": "a9r6-qr-provider-memo",
+      "command": [
+        "node",
+        "tools/a9r6/qr-provider-memo-regression.test.mjs"
+      ],
+      "exitCode": 0,
+      "durationMs": 89.51637599999958,
+      "log": "a9r6-qr-provider-memo.log",
+      "logSHA256": "2d2053008771a7ed682d85b5e4d7e03a3da5e1aec68fba380d801d0864d5b7af"
+    }
+  ]
+}

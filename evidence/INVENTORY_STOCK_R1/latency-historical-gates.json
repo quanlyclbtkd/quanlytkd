@@ -1,0 +1,38 @@
+[
+  {
+    "label": "baseline",
+    "command": [
+      "node",
+      "tools/run-finance-write-latency-r2.mjs"
+    ],
+    "exitCode": 1,
+    "log": "baseline-latency-r2-unchanged-checker.log"
+  },
+  {
+    "label": "baseline",
+    "command": [
+      "node",
+      "tools/check-finance-write-latency-r2-1.mjs"
+    ],
+    "exitCode": 1,
+    "log": "baseline-latency-r2-1-unchanged-checker.log"
+  },
+  {
+    "label": "candidate",
+    "command": [
+      "node",
+      "tools/run-finance-write-latency-r2.mjs"
+    ],
+    "exitCode": 1,
+    "log": "candidate-latency-r2-unchanged-checker.log"
+  },
+  {
+    "label": "candidate",
+    "command": [
+      "node",
+      "tools/check-finance-write-latency-r2-1.mjs"
+    ],
+    "exitCode": 1,
+    "log": "candidate-latency-r2-1-unchanged-checker.log"
+  }
+]

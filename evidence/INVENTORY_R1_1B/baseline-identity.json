@@ -1,0 +1,56 @@
+{
+  "inputSHA256": "d3dbab7030d5a7f2ea5886a62f6a9901c0fa1d3cf70b238c7e6ed3117b5f404f",
+  "match": true,
+  "checks": [
+    {
+      "file": "js/services/inventory.service.js",
+      "expected": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484",
+      "actual": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484"
+    },
+    {
+      "file": "js/modules/inventory.js",
+      "expected": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235",
+      "actual": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235"
+    },
+    {
+      "file": "js/modules/students.js",
+      "expected": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2",
+      "actual": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2"
+    },
+    {
+      "file": "app.js",
+      "expected": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+      "actual": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619"
+    },
+    {
+      "file": "firestore.rules",
+      "expected": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "actual": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3"
+    },
+    {
+      "file": "firebase.json",
+      "expected": "5a7aa67432f9601838edfc7e162e06fb7f9a9916b0109e3330b575b8d3b55814",
+      "actual": "5a7aa67432f9601838edfc7e162e06fb7f9a9916b0109e3330b575b8d3b55814"
+    },
+    {
+      "file": "public/js/services/inventory.service.js",
+      "expected": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484",
+      "actual": "f2196d39cb296ca9b8eeaa4464217d22126eed567f2496a7975a79b352200484"
+    },
+    {
+      "file": "public/js/modules/inventory.js",
+      "expected": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235",
+      "actual": "a04e2ddb022025a4b7ade86d4ba551a45b2d33321c6aa6d6d837644a0f0a1235"
+    },
+    {
+      "file": "public/js/modules/students.js",
+      "expected": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2",
+      "actual": "c96acce064bacca69196d430e84012f8f2de49c0f0c3a3fcb700f3fc6fb901a2"
+    },
+    {
+      "file": "public/app.js",
+      "expected": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+      "actual": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "currentPhase": "R1.1B",
+  "currentEvidenceRoot": "evidence/INVENTORY_R1_1B/",
+  "currentPreflight": "CHROMIUM_SMOKE.json",
+  "currentMatrix": "ACCEPTANCE_R1_1B.json",
+  "currentFinal": "R1_1B_FINAL_CLASSIFICATION.json",
+  "priorEvidence": "evidence/INVENTORY_R1_1/ is inherited R1.1 history. Emulator startup/Rules-load there are not R1.1B results.",
+  "stopCompliance": "No Emulator or mandatory acceptance business operation was run after failed Chromium smoke.",
+  "sourceAndExistingTools": "All1888 input files unchanged before adding reports/evidence and regenerating the root checksum."
+}

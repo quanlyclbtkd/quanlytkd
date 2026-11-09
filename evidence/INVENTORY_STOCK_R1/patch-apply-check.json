@@ -1,0 +1,6 @@
+{
+  "command": "git apply --check INVENTORY_STOCK_R1_SOURCE_AND_TOOLING.patch",
+  "exitCode": 0,
+  "output": "",
+  "writesToBaseline": 0
+}

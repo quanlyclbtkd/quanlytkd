@@ -7,7 +7,7 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
-import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
+import { FinanceService } from "../services/finance.service.js?v=a9r18-inventory-stock-authority-r1-20261108";
 import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=a9r18-qr-memo-r1-2d-20261103';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
@@ -784,7 +784,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import("../services/finance.service.js?v=a9r18-fin-nontuition-r1-2b-20261103").then(({ FinanceService }) => {
+        import("../services/finance.service.js?v=a9r18-inventory-stock-authority-r1-20261108").then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

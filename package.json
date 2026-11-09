@@ -337,7 +337,12 @@
     "check:system-sync-stability-r1-3": "node tools/check-system-sync-stability-r1-3.mjs",
     "qa:startup-perf-r1-3": "node tools/r1_3/startup-perf-qa.mjs",
     "check:admission-r1-3a1-test-superset": "node tools/check-admission-r1-3a1-test-superset.mjs",
-    "check:finance-write-latency-r1": "node tools/check-finance-write-latency-r1.mjs"
+    "check:finance-write-latency-r1": "node tools/check-finance-write-latency-r1.mjs",
+    "check:inventory-stock-authority-r1": "node tools/check-inventory-stock-authority-r1.mjs",
+    "check:family-combo-autofill-r1": "node tools/check-family-combo-autofill-r1.mjs",
+    "check:family-combo-qr-r1": "node tools/check-family-combo-qr-r1.mjs",
+    "check:inventory-stock-emulator-r1-1": "node tools/check-inventory-stock-emulator-r1-1.mjs",
+    "test:inventory-stock-emulator-r1-1": "node tools/inventory-stock-r1-1/run-local-emulator.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

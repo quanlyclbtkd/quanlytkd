@@ -218,7 +218,9 @@ check('Final form/draft guard precedes Debt sync', finalDraftGuardAt > finalGuar
 const finalWindow = addBody.slice(finalDraftGuardAt, commitAt);
 check('No async yield between final draft guard and batch commit invocation', !/\bawait\b|setTimeout\s*\(|requestAnimationFrame\s*\(|Promise\.(?:resolve|all|race|any)\s*\(/.test(finalWindow));
 check('Debt sync starts after draft authorization', syncAt > finalDraftGuardAt);
-check('Existing one-batch writer preserved', (addBody.match(/const batch = writeBatch\(_db\(\)\)/g)||[]).length === 1 && (addBody.match(/await batch\.commit\(\)/g)||[]).length === 1);
+// Preserve this assertion ID for the historical superset map: one caller commit,
+// with the stock-aware transaction transport when a uniform is present.
+check('Existing one-batch writer preserved', addBody.includes('const batch = inventoryPlan ? InventoryService.createStockMutationBatch') && addBody.includes('}) : writeBatch(_db())') && (addBody.match(/await batch\.commit\(\)/g)||[]).length === 1);
 check('No Admission Firestore read/listener added', !/getDoc\(|getDocs\(|onSnapshot\(/.test(addBody));
 check('Existing submit mutex preserved', addBody.includes('if (_addStudentInProgress) return;') && addBody.includes('_addStudentInProgress = true;') && addBody.includes('_addStudentInProgress = false;'));
 check('Post-ACK draft continuity preserved', addBody.includes("_registrationForms.get('add') === admissionFormInstance && sameAdmissionDraft"));

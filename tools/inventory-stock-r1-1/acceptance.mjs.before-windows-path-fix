@@ -1,0 +1,237 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import http from 'node:http';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {spawnSync} from 'node:child_process';
+import {loadPlaywright,browserExecutable} from '../test-runtime.mjs';
+import {verifyRuntimeProfile} from '../v11r2/runtime-profile.mjs';
+
+const PROJECT='demo-a9r18-inventory-r11',CLUB='CLUB_A',OTHER='CLUB_B',SKU='Võ phục|||170';
+const ids=['SDK01','RULE01','RULE02','RULE03','RULE04','RULE05','C01','C02','C03','C04','R01','R02','R03','R04','R05','E01','E02','E03','E04','E05','D01','D02','D03','D04','X01','X02','P01','P02','P03','P04'];
+const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
+const finiteJSON=(_,v)=>typeof v==='number'&&!Number.isFinite(v)?{nonFinite:String(v)}:v;
+const json=value=>JSON.stringify(value,finiteJSON,2)+'\n';
+const item=(type='Xuất bán',qty=1,size='170')=>({category:'Võ phục',size,type,qty,amount:100,date:'2026-11-08'});
+const stats=(balance,size='170')=>({['Võ phục|||'+size+'_balance']:balance,['Võ phục|||'+size+'_in']:10,['Võ phục|||'+size+'_out']:10-balance});
+const hasCause=(result,code)=>{for(let e=result.error;e;e=e.cause)if(e.code===code)return true;return false;};
+
+function freeze(root){
+  const pin=verifyRuntimeProfile(root).identity;
+  assert.equal(pin.id,'V11R6_A9R18_INVENTORY_STOCK_INTEGRITY_AUTHORITY_R1');
+  const manifest=JSON.parse(fs.readFileSync(path.join(root,pin.manifest),'utf8'));
+  const hashes={};
+  for(const file of Object.keys(manifest.canonicalRuntimeFiles))for(const rel of [file,'public/'+file]){
+    hashes[rel]=sha(fs.readFileSync(path.join(root,rel)));assert.equal(hashes[rel],manifest.canonicalRuntimeFiles[file],'SOURCE_FREEZE_VIOLATION '+rel);
+  }
+  for(const file of ['firestore.rules','firestore.indexes.json','firebase.json'])hashes[file]=sha(fs.readFileSync(path.join(root,file)));
+  assert.equal(hashes['firestore.rules'],'1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3');
+  assert.equal(hashes['firebase.json'],'5a7aa67432f9601838edfc7e162e06fb7f9a9916b0109e3330b575b8d3b55814');
+  return {pin:pin.id,runtimeSHA256:pin.runtimeSHA256,hashes,mirroredPairs:129,mismatches:0};
+}
+function r1(root,output,label){
+  const r=spawnSync(
+  process.execPath,
+  ['tools/check-inventory-stock-authority-r1.mjs'],
+  {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024
+  }
+);
+  fs.writeFileSync(path.join(output,`R1_${label}.log`),(r.stdout||'')+(r.stderr||''));
+  const match=(r.stdout||'').match(/INVENTORY_STOCK_AUTHORITY_R1_RESULT (\{[^\n]*\})/);
+  const result=match?JSON.parse(match[1]):null;
+  return {exitCode:r.status,passed:result?.passed??null,failed:result?.failed??null,log:`R1_${label}.log`};
+}
+function deadline(promise,label,ms=60000){let timer;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(Error('TEST_CONTROL_TIMEOUT '+label),{code:'TEST_CONTROL_TIMEOUT'})),ms);});return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));}
+
+export async function runAcceptance(){
+  const root=process.cwd(),output=path.resolve(process.env.INVENTORY_R11_OUTPUT||path.join(root,'evidence/INVENTORY_R1_1'));
+  fs.mkdirSync(output,{recursive:true});
+  const report={phase:'A9R18-INVENTORY-STOCK-INTEGRITY-R1.1',classification:null,projectId:PROJECT,endpoint:'127.0.0.1:8180',productionSourceChanged:false,results:[],network:{externalAttempts:[],requests:[]},servedSources:[],fixtures:[],clients:[],transactionBoundaryEvents:[],rulesEnabledForBusiness:true,customRetryLoop:false,nodeSdkUse:'fixture seeding, test environment, authorized evidence reads only'};
+  let env,server,browser,baselineFreeze,activeReadBarrier=null,activeAckBarrier=null,current=null;
+  const writeReport=()=>{const rows=ids.map(id=>report.results.find(r=>r.id===id)||{id,status:'NOT_RUN'});report.passed=rows.filter(r=>r.status==='PASS').length;report.failed=rows.filter(r=>r.status==='FAIL').length;fs.writeFileSync(path.join(output,'ACCEPTANCE.json'),json({...report,results:rows}));};
+  try {
+    try{baselineFreeze=freeze(root);report.freezeBefore=baselineFreeze;}catch(error){report.classification='SOURCE_FREEZE_VIOLATION';throw error;}
+    report.r1Before=r1(root,output,'BEFORE');
+    if(report.r1Before.exitCode!==0||report.r1Before.passed!==49||report.r1Before.failed!==0)throw Object.assign(Error('R1_BASELINE_GATE_NOT_GREEN'),{code:'TEST_DEPENDENCY_MISSING'});
+    const config=JSON.parse(fs.readFileSync(path.join(root,'firebase.json'),'utf8'));
+    assert.deepEqual(config.emulators.firestore,{host:'127.0.0.1',port:8180});
+    const endpoint=process.env.FIRESTORE_EMULATOR_HOST||'127.0.0.1:8180';
+    assert.equal(endpoint,'127.0.0.1:8180','Existing local Emulator endpoint is mandatory');
+    const depRoot=process.env.INVENTORY_R11_DEPENDENCY_ROOT;
+    const req=depRoot?createRequire(path.resolve(depRoot,'package.json')):createRequire(import.meta.url);
+    let rulesUnit,sdk;
+    try{rulesUnit=req('@firebase/rules-unit-testing');sdk=req('firebase/firestore');}catch(error){throw Object.assign(Error('MISSING_DECLARED_NODE_TEST_DEPENDENCY '+error.message),{code:'TEST_DEPENDENCY_MISSING'});}
+    report.environment={node:process.version,java:'see emulator-start.log',expectedBrowserSdk:'10.7.1',observedBrowserSdk:null,nodeSdk:req('firebase/package.json').version,rulesUnit:req('@firebase/rules-unit-testing/package.json').version,emulatorCli:req('firebase-tools/package.json').version};
+    const rules=fs.readFileSync(path.join(root,'firestore.rules'),'utf8');report.rulesSHA256=sha(rules);
+    try{env=await deadline(rulesUnit.initializeTestEnvironment({projectId:PROJECT,firestore:{host:'127.0.0.1',port:8180,rules}}),'initialize actual Emulator Rules',30000);}catch(error){throw Object.assign(Error('EMULATOR_OR_RULES_INITIALIZATION_FAILED '+error.message),{code:'TEST_DEPENDENCY_MISSING'});}
+    report.actualEmulatorConnected=true;report.actualRulesUploaded=true;
+    const observers={A:env.authenticatedContext('adminA').firestore(),B:env.authenticatedContext('adminB').firestore()};
+    async function seed({balance=5,extraStats={},missingBalance=false,items={},transactions={},profiles={P_TEST:{status:'active',branch:'CS1',notes:'before'}}}={}){
+      await env.clearFirestore();const seeded={};
+      await env.withSecurityRulesDisabled(async context=>{
+        const db=context.firestore(),batch=sdk.writeBatch(db);
+        const add=(p,data)=>{seeded[p]=data;batch.set(sdk.doc(db,p),data);};
+        for(const [uid,role,clubId] of [['adminA','admin',CLUB],['adminB','admin',OTHER],['viewerA','viewer',CLUB]])add('users/'+uid,{role,clubId,status:'active'});
+        const coach={role:'coach',clubId:CLUB,status:'active',branch:'CS1',coachBranch:'CS1',defaultBranch:'CS1',allowedBranches:['CS1'],assignmentVersion:'inventory-r11-assignment-0001'};
+        add('users/coachA',coach);add(`clubs/${CLUB}/coaches/coachA`,coach);
+        for(const clubId of [CLUB,OTHER]){add('clubs/'+clubId,{coachAclEpoch:1});add(`clubs/${clubId}/settings/main_config`,{branchCount:1});}
+        const seededStats={...stats(balance),...extraStats};if(missingBalance)delete seededStats[SKU+'_balance'];
+        add(`clubs/${CLUB}/settings/inventory_stats`,seededStats);add(`clubs/${OTHER}/settings/inventory_stats`,stats(5));
+        for(const [id,row] of Object.entries(items))add(`clubs/${CLUB}/inventory/${id}`,row);
+        for(const [id,row] of Object.entries(transactions))add(`clubs/${CLUB}/transactions/${id}`,row);
+        for(const [id,row] of Object.entries(profiles))add(`clubs/${CLUB}/profiles/${id}`,row);
+        await batch.commit();
+      });
+      report.fixtures.push({scenario:current?.id,seedDocuments:seeded,rulesDisabledOnlyForSeeding:true});
+    }
+    async function docs(club=CLUB){
+      const db=observers[club===CLUB?'A':'B'];const out={};
+      for(const collection of ['profiles','inventory','transactions']){
+        const snap=await sdk.getDocsFromServer(sdk.collection(db,'clubs',club,collection));out[collection]=Object.fromEntries(snap.docs.map(d=>[d.id,d.data()]));
+      }
+      const snap=await sdk.getDocFromServer(sdk.doc(db,'clubs',club,'settings','inventory_stats'));out.stats=snap.exists()?snap.data():null;return out;
+    }
+    server=http.createServer((request,response)=>{
+      const url=new URL(request.url,'http://127.0.0.1');
+      if(url.pathname==='/'){response.setHeader('content-type','text/html');response.end('<!doctype html><meta charset="utf-8"><title>Isolated Inventory R1.1 acceptance</title>');return;}
+      const file=path.resolve(root,'.'+decodeURIComponent(url.pathname));
+      if(!file.startsWith(root+path.sep)){response.writeHead(403);response.end();return;}
+      try{
+        let text=fs.readFileSync(file,'utf8');
+        if(file.endsWith('/firebase-firestore.js'))text=text.replaceAll('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js','./firebase-app.js');
+        if(url.pathname==='/js/services/inventory.service.js')report.servedSources.push({path:url.pathname,sha256:sha(text),bytes:Buffer.byteLength(text)});
+        response.setHeader('content-type','text/javascript');response.end(text);
+      }catch{response.writeHead(404);response.end();}
+    });
+    await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+    const origin='http://127.0.0.1:'+server.address().port;report.origin=origin;
+    try{browser=await loadPlaywright().chromium.launch({headless:true,executablePath:browserExecutable(),args:['--no-sandbox']});}catch(error){throw Object.assign(Error('PLAYWRIGHT_CHROMIUM_UNAVAILABLE '+error.message),{code:'TEST_DEPENDENCY_MISSING'});}
+    report.environment.chromium=browser.version();
+    const clients={};
+    for(const [clientId,uid,role,clubId] of [['A','adminA','admin',CLUB],['A2','adminA','admin',CLUB],['B','adminB','admin',OTHER],['V','viewerA','viewer',CLUB],['C','coachA','coach',CLUB],['U','','unauthenticated',CLUB]]){
+      const context=await browser.newContext({serviceWorkers:'block'});
+      await context.route('**/*',route=>{
+        const request=route.request(),url=new URL(request.url());
+        if(!['127.0.0.1','localhost'].includes(url.hostname)){report.network.externalAttempts.push({clientId,url:request.url(),method:request.method()});return route.abort();}
+        if(url.port==='8180')report.network.requests.push({clientId,method:request.method(),url:request.url()});
+        return route.continue();
+      });
+      const page=await context.newPage();
+      page.on('console',message=>{if(message.type()==='error')report.browserConsoleErrors??=[];if(message.type()==='error')report.browserConsoleErrors.push({clientId,message:message.text()});});
+      await page.exposeFunction('__r11ReadHook',async event=>{
+        report.transactionBoundaryEvents.push({...event,receivedAt:Date.now()});
+        if(activeReadBarrier&&event.operation===activeReadBarrier.name&&event.attempt===1&&event.path===activeReadBarrier.path)await activeReadBarrier.arrive(event);
+      });
+      await page.exposeFunction('__r11AckHook',async event=>{if(event.hold&&activeAckBarrier){activeAckBarrier.enteredResolve(event);await activeAckBarrier.releasePromise;}});
+      await page.goto(origin);
+      const identity=await page.evaluate(async args=>(await import('/tools/inventory-stock-r1-1/browser-client.mjs')).installInventoryClient(args),{projectId:PROJECT,port:8180,clientId,uid,role,clubId});
+      clients[clientId]=page;report.clients.push(identity);
+    }
+    report.environment.observedBrowserSdk=report.clients.every(c=>c.sdkVersion==='10.7.1')?'10.7.1':null;
+    report.twoClientsIsolated={contexts:6,adminClients:['A','A2'],independentApps:report.clients.filter(c=>['A','A2'].includes(c.clientId)).map(c=>c.appName),separateBrowserContexts:true,sharedOnly:'demo Emulator backend / CLUB_A / SKU'};
+    const run=async(client,args)=>{const result=await clients[client].evaluate(args=>window.__r11.run(args),args);current.operations.push({client,...result});return result;};
+    const snap=client=>clients[client].evaluate(()=>window.__r11.snapshot().operation);
+    async function check(id,description,fn){
+      current={id,description,status:'RUNNING',operations:[],before:null,after:null};report.results.push(current);
+      try{await deadline(fn(),id);assert.equal(report.network.externalAttempts.length,0,'FAIL_EXTERNAL_NETWORK_ATTEMPT');current.status='PASS';console.log('PASS',id,description);}
+      catch(error){current.status='FAIL';current.error={message:error.message,stack:error.stack,code:error.code||null};try{current.after=await docs();}catch{}
+        report.classification=error.code==='TEST_CONTROL_TIMEOUT'?'BLOCKED_TEST_DEPENDENCY':(id.startsWith('RULE')||current.operations.some(r=>hasCause(r,'permission-denied'))?'BLOCKED_RULES_RED':'BLOCKED_RUNTIME_RED');
+        throw error;
+      }finally{activeReadBarrier?.release();activeReadBarrier=null;if(activeAckBarrier){activeAckBarrier.releaseResolve();activeAckBarrier=null;}writeReport();}
+    }
+    const same=(before,after)=>assert.deepEqual(after,before);
+    const success=result=>assert.equal(result.ok,true,json(result.error));
+    const denied=(result,code)=>{assert.equal(result.ok,false);assert.equal(result.error.code,code);assert.equal(result.projections.length,0);};
+    function barrier(name,path){let release;const promise=new Promise(r=>release=r),arrivals=[];return{name,path,arrivals,release,arrive:async event=>{arrivals.push(event);if(arrivals.length===2)release();await promise;}};}
+    async function concurrent(id,quantities,sizes=['170','170'],deleteArgs=null){
+      await seed({balance:5,extraStats:sizes[0]!==sizes[1]?stats(5,'160'):{}});current.before=await docs();
+      activeReadBarrier=barrier(id,`clubs/${CLUB}/settings/inventory_stats`);
+      const operations=await Promise.all(['A','A2'].map((client,i)=>run(client,{name:id,method:'addItem',item:item('Xuất bán',quantities[i],sizes[i])})));
+      current.barrierArrivals=activeReadBarrier.arrivals;assert.equal(activeReadBarrier.arrivals.length,2);assert(activeReadBarrier.arrivals.every(e=>e.data[SKU+'_balance']===5));
+      current.after=await docs();assert(operations.some(o=>o.callbackAttempts>=2),'SDK did not retry');
+      return operations;
+    }
+
+    await check('SDK01','Exact Browser SDK10, frozen actual InventoryService import, actual Rules',async()=>{
+      assert(report.clients.every(c=>c.sdkVersion==='10.7.1'));assert(report.servedSources.length===6);assert(report.servedSources.every(s=>s.sha256===baselineFreeze.hashes['js/services/inventory.service.js']));assert(report.actualRulesUploaded);
+    });
+    for(const [id,client,club,allowed] of [['RULE01','A',CLUB,true],['RULE02','A',OTHER,false],['RULE03','V',CLUB,false],['RULE04','C',CLUB,false],['RULE05','U',CLUB,false]]){
+      await check(id,'Actual Rules '+client+' → '+club,async()=>{
+        await seed();current.before=await docs(club);
+        const result=await run(client,{name:id,method:'addItem',clubId:club,item:item()});current.after=await docs(club);
+        if(allowed){success(result);assert.equal(current.after.stats[SKU+'_balance'],4);assert.equal(Object.keys(current.after.inventory).length,1);}
+        else{assert(!result.ok);assert(hasCause(result,'permission-denied'),'Expected actual Firebase permission-denied');assert.equal(result.projections.length,0);same(current.before,current.after);}
+      });
+    }
+    for(const [id,qty,ok,next] of [['C01',4,true,1],['C02',5,true,0],['C03',6,false,5]]){
+      await check(id,'Actual addItem outbound '+qty+' from5',async()=>{await seed();current.before=await docs();const r=await run('A',{name:id,method:'addItem',item:item('Xuất bán',qty)});current.after=await docs();if(ok)success(r);else denied(r,'INVENTORY_INSUFFICIENT_STOCK');assert.equal(current.after.stats[SKU+'_balance'],next);assert.equal(Object.keys(current.after.inventory).length,ok?1:0);if(!ok)same(current.before,current.after);});
+    }
+    await check('C04','Missing and non-finite stock remain unverified with zero writes',async()=>{
+      current.subcases=[];
+      for(const value of [null,NaN]){
+        await seed({missingBalance:value===null,extraStats:value===null?{}:{[SKU+'_balance']:value}});const before=await docs();
+        const r=await run('A',{name:'C04',method:'addItem',item:item()});const after=await docs();denied(r,'INVENTORY_STOCK_UNVERIFIED');same(before,after);current.subcases.push({kind:value===null?'missing':'NaN',before,after});
+      }
+    });
+    for(const [id,qty,okCount,next] of [['R01',[4,4],1,1],['R02',[3,2],2,0],['R03',[3,3],1,2]]){
+      await check(id,'Genuine conflict, automatic SDK retry '+qty.join('+')+' from5',async()=>{const ops=await concurrent(id,qty);assert.equal(ops.filter(r=>r.ok).length,okCount);assert.equal(current.after.stats[SKU+'_balance'],next);assert.equal(Object.keys(current.after.inventory).length,okCount);if(okCount===1)denied(ops.find(r=>!r.ok),'INVENTORY_INSUFFICIENT_STOCK');const retry=ops.find(r=>r.callbackAttempts>=2);assert.equal(retry.runTransactionCalls,1);assert(retry.reads.some(r=>r.attempt>=2&&r.status==='RETURNED'&&r.data[SKU+'_balance']<5));});
+    }
+    await check('R04','Automatic callback retry and updated server read evidence (R01)',async()=>{
+      const prior=report.results.find(r=>r.id==='R01');current.evidenceRef='R01';const op=prior.operations.find(r=>r.callbackAttempts>=2);assert(op);assert.equal(op.runTransactionCalls,1);assert(op.reads.find(r=>r.attempt===1).data[SKU+'_balance']===5);assert(op.reads.some(r=>r.attempt>=2&&r.data[SKU+'_balance']===1));current.actualAttempts=op.callbackAttempts;current.authorityReads=op.reads;
+    });
+    await check('R05','Shared stats doc contention across SKU160 and170',async()=>{const ops=await concurrent('R05',[4,4],['160','170']);ops.forEach(success);assert.equal(current.after.stats['Võ phục|||160_balance'],1);assert.equal(current.after.stats[SKU+'_balance'],1);});
+
+    for(const [id,type,oldQty,newQty,balance,allowed,next] of [['E01','Xuất bán',3,4,5,true,4],['E02','Xuất bán',3,8,2,false,2],['E03','Nhập kho',10,8,5,true,3],['E04','Nhập kho',10,2,2,false,2]]){
+      await check(id,'Actual updateItem '+type+' '+oldQty+'→'+newQty,async()=>{
+        const previous=item(type,oldQty);await seed({balance,items:{target:previous},transactions:{related:{amount:100,relatedInvId:'target'}}});current.before=await docs();
+        const r=await run('A',{name:id,method:'updateItem',id:'target',data:{qty:newQty},options:{previous,relatedTransaction:{id:'related',data:{amount:200},previous:{amount:100}}}});current.after=await docs();
+        if(allowed){success(r);assert.equal(current.after.inventory.target.qty,newQty);assert.equal(current.after.transactions.related.amount,200);}else{denied(r,'INVENTORY_INSUFFICIENT_STOCK');same(current.before,current.after);}assert.equal(current.after.stats[SKU+'_balance'],next);
+      });
+    }
+    await check('E05','Real second client update makes cached previous stale',async()=>{
+      const previous=item('Xuất bán',3);await seed({items:{target:previous},transactions:{related:{amount:100,relatedInvId:'target'}}});
+      success(await run('A2',{name:'E05-client-B-update',method:'updateItem',id:'target',data:{qty:4},options:{previous,relatedTransaction:{id:'related',data:{amount:150},previous:{amount:100}}}}));
+      current.before=await docs();const r=await run('A',{name:'E05',method:'updateItem',id:'target',data:{qty:5},options:{previous,relatedTransaction:{id:'related',data:{amount:200},previous:{amount:100}}}});current.after=await docs();denied(r,'INVENTORY_ITEM_STALE');same(current.before,current.after);
+    });
+    for(const [id,type,qty,balance,allowed,next] of [['D01','Xuất bán',3,2,true,5],['D02','Nhập kho',10,10,true,0],['D03','Nhập kho',10,2,false,2]]){
+      await check(id,'Actual deleteItem '+type,async()=>{const previous=item(type,qty);await seed({balance,items:{target:previous},transactions:{related:{amount:100,relatedInvId:'target'}}});current.before=await docs();const r=await run('A',{name:id,method:'deleteItem',id:'target',options:{previous,relatedTxId:'related'}});current.after=await docs();if(allowed){success(r);assert(!current.after.inventory.target);assert(!current.after.transactions.related);}else{denied(r,'INVENTORY_INSUFFICIENT_STOCK');same(current.before,current.after);}assert.equal(current.after.stats[SKU+'_balance'],next);});
+    }
+    await check('D04','Two real clients delete one item, exactly one ledger reversal',async()=>{
+      const previous=item('Xuất bán',3);await seed({balance:2,extraStats:{[SKU+'_in']:5,[SKU+'_out']:3},items:{inbound:item('Nhập kho',5),target:previous},transactions:{related:{amount:100,relatedInvId:'target'}}});current.before=await docs();
+      activeReadBarrier=barrier('D04',`clubs/${CLUB}/inventory/target`);
+      const ops=await Promise.all(['A','A2'].map(c=>run(c,{name:'D04',method:'deleteItem',id:'target',options:{previous,relatedTxId:'related'}})));ops.forEach(success);current.after=await docs();current.barrierArrivals=activeReadBarrier.arrivals;
+      assert.equal(ops.filter(r=>r.value.deleted===true).length,1);assert(ops.some(r=>r.callbackAttempts>=2));assert.equal(current.after.stats[SKU+'_balance'],5);assert.equal(current.after.stats[SKU+'_in'],5);assert.equal(current.after.stats[SKU+'_out'],0);assert.deepEqual(Object.keys(current.after.inventory),['inbound']);assert.equal(current.after.inventory.inbound.qty,5);assert(!current.after.transactions.related);
+    });
+    for(const [id,balance,allowed] of [['X01',1,true],['X02',0,false]]){
+      await check(id,'Real Profile+Inventory+Stats+Transaction atomic envelope',async()=>{await seed({balance});current.before=await docs();const r=await run('A',{name:id,method:'envelope',item:item()});current.after=await docs();if(allowed){success(r);assert.equal(current.after.stats[SKU+'_balance'],0);assert.equal(current.after.profiles.P_TEST.notes,'accepted transport fixture');assert(current.after.inventory[r.preparedItemId]);assert.equal(current.after.transactions['tx-envelope'].relatedInvId,r.preparedItemId);}else{denied(r,'INVENTORY_INSUFFICIENT_STOCK');same(current.before,current.after);}assert.equal(r.runTransactionCalls,1);});
+    }
+    await check('P01','Rejected actual transaction has zero success projections',async()=>{await seed();current.before=await docs();const r=await run('A',{name:'P01',method:'addItem',item:item('Xuất bán',6)});current.after=await docs();denied(r,'INVENTORY_INSUFFICIENT_STOCK');same(current.before,current.after);});
+    await check('P02','No local projection while real ACK is held before caller release',async()=>{
+      await seed();current.before=await docs();let enteredResolve,releaseResolve;const entered=new Promise(r=>enteredResolve=r),releasePromise=new Promise(r=>releaseResolve=r);activeAckBarrier={enteredResolve,releaseResolve,releasePromise};
+      const promise=run('A',{name:'P02',method:'addItem',item:item(),control:{holdAfterAck:true}});await entered;
+      const held=await snap('A');current.whileAckHeld=held;assert.equal(held.projections.length,0);const committed=await docs();current.serverAfterRealAck=committed;assert.equal(committed.stats[SKU+'_balance'],4);
+      releaseResolve();const r=await promise;success(r);current.after=await docs();assert(r.projections.length>0);const ack=r.events.find(e=>e.kind==='real-sdk-ack'),release=r.events.find(e=>e.kind==='transport-promise-return');assert(r.projections.every(e=>e.sequence>release.sequence&&e.performanceNow>=ack.performanceNow));
+    });
+    await check('P03','Real ACK survives context switch; stale projection suppressed',async()=>{await seed();current.before=await docs();const r=await run('A',{name:'P03',method:'addItem',item:item(),control:{postAckClub:OTHER}});current.after=await docs();success(r);assert.equal(current.after.stats[SKU+'_balance'],4);assert.equal(r.projections.length,0);current.otherClubAfter=await docs(OTHER);assert.equal(current.otherClubAfter.stats[SKU+'_balance'],5);assert.equal(Object.keys(current.otherClubAfter.inventory).length,0);});
+    await check('P04','Pre-commit generation change aborts before business commit',async()=>{await seed();current.before=await docs();const r=await run('A',{name:'P04',method:'addItem',item:item(),control:{changeGenerationAfterRead:true}});current.after=await docs();denied(r,'finance/write-context-stale');same(current.before,current.after);assert(!r.events.some(e=>e.kind==='real-sdk-ack'));});
+    assert.equal(report.results.filter(r=>r.status==='PASS').length,ids.length);
+    assert.equal(report.network.externalAttempts.length,0);report.classification='PASS_EMULATOR_ACCEPTED';
+  }catch(error){
+    report.fatal={message:error.message,code:error.code||null,stack:error.stack};
+    report.classification??='BLOCKED_TEST_DEPENDENCY';console.error(report.classification,error.message);
+  }finally{
+    activeReadBarrier?.release();activeAckBarrier?.releaseResolve();
+    try{if(browser)await browser.close();}catch{}
+    try{if(server)await new Promise(resolve=>server.close(resolve));}catch{}
+    try{if(env)await env.cleanup();}catch(error){report.cleanupError=error.message;}
+    try{report.freezeAfter=freeze(root);if(baselineFreeze)assert.deepEqual(report.freezeAfter,baselineFreeze);}catch(error){report.classification='SOURCE_FREEZE_VIOLATION';report.freezeError=error.message;}
+    report.r1After=r1(root,output,'AFTER');
+    if(report.r1After.exitCode!==0||report.r1After.passed!==49||report.r1After.failed!==0){report.classification='BLOCKED_TEST_DEPENDENCY';report.r1After.blocker='Unchanged R1 gate did not remain49/49';}
+    writeReport();console.log(json({classification:report.classification,passed:report.passed,failed:report.failed,notRun:ids.length-report.results.filter(r=>['PASS','FAIL'].includes(r.status)).length,r1Before:report.r1Before,r1After:report.r1After,externalAttempts:report.network.externalAttempts.length}));
+    if(report.classification!=='PASS_EMULATOR_ACCEPTED')process.exitCode=1;
+  }
+}

@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from "./inventory.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
+import { InventoryService } from "./inventory.service.js?v=a9r18-inventory-stock-authority-r1-20261108";
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }

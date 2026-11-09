@@ -1,0 +1,50 @@
+{
+  "platform": "linux",
+  "release": "6.18.57",
+  "versions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "exitCode": 0,
+      "output": "v24.22.1\n"
+    },
+    {
+      "command": [
+        "npm",
+        "--version"
+      ],
+      "exitCode": 0,
+      "output": "11.9.0\nnpm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+    },
+    {
+      "command": [
+        "npx",
+        "--no-install",
+        "firebase",
+        "--version"
+      ],
+      "exitCode": 0,
+      "output": "15.22.3\nnpm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+    },
+    {
+      "command": [
+        "npx",
+        "--no-install",
+        "playwright",
+        "--version"
+      ],
+      "exitCode": 0,
+      "output": "Version 1.62.1\nnpm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+    },
+    {
+      "command": [
+        "java",
+        "-version"
+      ],
+      "exitCode": 0,
+      "output": "openjdk version \"21.0.13\" 2026-10-20\nOpenJDK Runtime Environment (build 21.0.13+9-1-deb13u2-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.13+9-1-deb13u2-Debian, mixed mode, sharing)\n"
+    }
+  ]
+}

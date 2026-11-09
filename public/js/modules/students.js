@@ -30,8 +30,8 @@
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { escapeHtml } from '../utils/helpers.js';
 import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
-import { InventoryService } from "../services/inventory.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
-import { FinanceService } from "../services/finance.service.js?v=a9r18-fin-nontuition-r1-2b-20261103";
+import { InventoryService } from "../services/inventory.service.js?v=a9r18-inventory-stock-authority-r1-20261108";
+import { FinanceService } from "../services/finance.service.js?v=a9r18-inventory-stock-authority-r1-20261108";
 import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 
 const _registrationForms = new Map();
@@ -686,7 +686,16 @@ export function initStudents() {
                 || (!feePlan && expectedPayment !== 0)) {
                 throw new Error('Kế hoạch ghi nhập học không hợp lệ; chưa ghi dữ liệu.');
             }
-            const batch = writeBatch(_db());
+            const batch = inventoryPlan ? InventoryService.createStockMutationBatch({
+                mutations: [{ item: inventoryPlan.payload, direction: 1 }],
+                writeClubId: inventoryPlan.writeClubId, projectionScope: inventoryPlan.projectionScope,
+                beforeCommit: () => {
+                    if (!FinanceService.isFinancialWriteContextCurrent(admissionContext))
+                        throw Object.assign(new Error('Phiên CLB đã thay đổi. Chưa ghi dữ liệu nhập học.'), { code: 'finance/write-context-stale' });
+                    if (_registrationForms.get('add') !== admissionFormInstance || _admissionDraftFingerprint() !== admissionDraftFingerprint)
+                        throw Object.assign(new Error('Dữ liệu nhập học đã thay đổi. Vui lòng kiểm tra và bấm Lưu lại.'), { code: 'ADMISSION_DRAFT_STALE' });
+                },
+            }) : writeBatch(_db());
             batch.set(profilePlan.profileRef, profilePlan.profilePayload);
             if (inventoryPlan) {
                 batch.set(inventoryPlan.itemRef, inventoryPlan.payload);
@@ -1320,7 +1329,7 @@ export function initStudentPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import("./students.js?v=a9r18-fin-nontuition-r1-2b-20261103").then(() => {}); // no-op — chỉ để IDE không warn
+        import("./students.js?v=a9r18-inventory-stock-authority-r1-20261108").then(() => {}); // no-op — chỉ để IDE không warn
         import("../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029").then(({ StudentService }) => {
 
             const store = window.__store;

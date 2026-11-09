@@ -1,0 +1,146 @@
+[
+  {
+    "name": "R1_BEFORE",
+    "command": [
+      "npm",
+      "run",
+      "check:inventory-stock-authority-r1"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 5.012943840999924,
+    "log": "R1_BEFORE.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-finance-write-evidence-r1-1",
+    "command": [
+      "node",
+      "tools/check-finance-write-evidence-r1-1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.7762106750000157,
+    "log": "check-finance-write-evidence-r1-1.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-finance-write-writer-matrix-r1-1",
+    "command": [
+      "node",
+      "tools/check-finance-write-writer-matrix-r1-1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.43769289599993044,
+    "log": "check-finance-write-writer-matrix-r1-1.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-finance-tuition-month-authority-r1-2",
+    "command": [
+      "node",
+      "tools/check-finance-tuition-month-authority-r1-2.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.3937393390000352,
+    "log": "check-finance-tuition-month-authority-r1-2.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-finance-tuition-intent-context-r1-2a",
+    "command": [
+      "node",
+      "tools/check-finance-tuition-intent-context-r1-2a.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.29638563199989676,
+    "log": "check-finance-tuition-intent-context-r1-2a.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-debt-authoritative-tuition-coverage",
+    "command": [
+      "node",
+      "tools/check-debt-authoritative-tuition-coverage.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.3922041820000004,
+    "log": "check-debt-authoritative-tuition-coverage.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-tuition-debt-source-of-truth-v4c",
+    "command": [
+      "node",
+      "tools/check-tuition-debt-source-of-truth-v4c.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.33506985999997596,
+    "log": "check-tuition-debt-source-of-truth-v4c.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-family-combo-autofill-r1",
+    "command": [
+      "node",
+      "tools/check-family-combo-autofill-r1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.5447432319999734,
+    "log": "check-family-combo-autofill-r1.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-family-combo-qr-r1",
+    "command": [
+      "node",
+      "tools/check-family-combo-qr-r1.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 23.68368874300006,
+    "log": "check-family-combo-qr-r1.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-auth-context-single-writer",
+    "command": [
+      "node",
+      "tools/check-auth-context-single-writer.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.33982361500000025,
+    "log": "check-auth-context-single-writer.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-production-security-trust-boundary",
+    "command": [
+      "node",
+      "tools/check-production-security-trust-boundary.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 2.566406149000045,
+    "log": "check-production-security-trust-boundary.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-security-coach-branch-boundary",
+    "command": [
+      "node",
+      "tools/check-security-coach-branch-boundary.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 2.9334557230000655,
+    "log": "check-security-coach-branch-boundary.log",
+    "executedBeforeChromiumSmoke": true
+  },
+  {
+    "name": "check-root-public-parity",
+    "command": [
+      "node",
+      "tools/check-root-public-parity.mjs"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 0.4464321899999959,
+    "log": "check-root-public-parity.log",
+    "executedBeforeChromiumSmoke": true
+  }
+]

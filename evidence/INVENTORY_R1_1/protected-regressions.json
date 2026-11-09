@@ -1,0 +1,74 @@
+[
+  {
+    "name": "check-finance-write-evidence-r1-1",
+    "exitCode": 0,
+    "durationSeconds": 0.336363768999945,
+    "log": "protected-check-finance-write-evidence-r1-1.log"
+  },
+  {
+    "name": "check-finance-write-writer-matrix-r1-1",
+    "exitCode": 0,
+    "durationSeconds": 0.0900142020000203,
+    "log": "protected-check-finance-write-writer-matrix-r1-1.log"
+  },
+  {
+    "name": "check-finance-tuition-month-authority-r1-2",
+    "exitCode": 0,
+    "durationSeconds": 0.10230385100021522,
+    "log": "protected-check-finance-tuition-month-authority-r1-2.log"
+  },
+  {
+    "name": "check-finance-tuition-intent-context-r1-2a",
+    "exitCode": 0,
+    "durationSeconds": 0.12404889600020397,
+    "log": "protected-check-finance-tuition-intent-context-r1-2a.log"
+  },
+  {
+    "name": "check-debt-authoritative-tuition-coverage",
+    "exitCode": 0,
+    "durationSeconds": 0.07760516100006498,
+    "log": "protected-check-debt-authoritative-tuition-coverage.log"
+  },
+  {
+    "name": "check-tuition-debt-source-of-truth-v4c",
+    "exitCode": 0,
+    "durationSeconds": 0.0690747079997891,
+    "log": "protected-check-tuition-debt-source-of-truth-v4c.log"
+  },
+  {
+    "name": "check-family-combo-autofill-r1",
+    "exitCode": 0,
+    "durationSeconds": 0.11499107100007677,
+    "log": "protected-check-family-combo-autofill-r1.log"
+  },
+  {
+    "name": "check-family-combo-qr-r1",
+    "exitCode": 0,
+    "durationSeconds": 8.053151306000473,
+    "log": "protected-check-family-combo-qr-r1.log"
+  },
+  {
+    "name": "check-auth-context-single-writer",
+    "exitCode": 0,
+    "durationSeconds": 0.07435580899982597,
+    "log": "protected-check-auth-context-single-writer.log"
+  },
+  {
+    "name": "check-production-security-trust-boundary",
+    "exitCode": 0,
+    "durationSeconds": 0.4328743530004431,
+    "log": "protected-check-production-security-trust-boundary.log"
+  },
+  {
+    "name": "check-security-coach-branch-boundary",
+    "exitCode": 0,
+    "durationSeconds": 0.7398431310002707,
+    "log": "protected-check-security-coach-branch-boundary.log"
+  },
+  {
+    "name": "check-root-public-parity",
+    "exitCode": 0,
+    "durationSeconds": 0.09541173399975378,
+    "log": "protected-check-root-public-parity.log"
+  }
+]

@@ -1,0 +1,430 @@
+{
+  "environment": {
+    "node": "v24.22.1",
+    "platform": "linux",
+    "networkUsed": false
+  },
+  "results": [
+    {
+      "file": "check-finance-write-writer-matrix-r1-1.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-finance-write-writer-matrix-r1-1.mjs.log",
+      "logSHA256": "5c4045cf11c412a662e6d103841cb62b8b0ccd2a15270a6e54bd743e8b6aa228",
+      "tail": [
+        "✅ MULTIITEM_EXISTING_SERVER_PAYMENT_ZERO_WRITE",
+        "",
+        "FINANCE-WRITE-WRITER-MATRIX-R1.1: PASS"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-finance-write-evidence-r1-1.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-finance-write-evidence-r1-1.mjs.log",
+      "logSHA256": "fbe9fb17902767aac64c320c73c80a02a92219af626651faa04eac5fd4e20053",
+      "tail": [
+        "✅ NO_PARALLEL_FINANCE_READER_OWNER",
+        "",
+        "FINANCE-WRITE-EVIDENCE-R1.1: PASS"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-finance-tuition-month-authority-r1-2.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-finance-tuition-month-authority-r1-2.mjs.log",
+      "logSHA256": "a31f5c35a1eaa49763ae6ffda62ad83b780162e309adc878676ecc79f678c350",
+      "tail": [
+        "✅ C9 no new context authority token introduced",
+        "",
+        "FINANCE-TUITION-MONTH-AUTHORITY-R1.2: PASS 85/85"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-finance-tuition-intent-context-r1-2a.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-finance-tuition-intent-context-r1-2a.mjs.log",
+      "logSHA256": "80640981b434083f72eee9b38199ab4cf32f7e993b77ccf83c2737387d7fdb10",
+      "tail": [
+        "✅ P7 no new Firestore query/listener in Tuition boundary",
+        "",
+        "FINANCE-TUITION-INTENT-CONTEXT-R1.2A: PASS 37/37"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-tuition-settlement-write-state-r1-1a.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-tuition-settlement-write-state-r1-1a.mjs.log",
+      "logSHA256": "90ffe170a53ca85bc86dc147fbf361715ead83d3cda9e92c40ca8780918503e0",
+      "tail": [
+        "✅ FINANCE_SERVICE_EVIDENCE_OWNER_PRESERVED",
+        "",
+        "TUITION-SETTLEMENT-WRITE-STATE-R1.1A: PASS 25/25"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-tuition-settlement-r1-1a-app-guard.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-tuition-settlement-r1-1a-app-guard.mjs.log",
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": [
+        ""
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-debt-authoritative-tuition-coverage.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-debt-authoritative-tuition-coverage.mjs.log",
+      "logSHA256": "146536e68513716b047846c727e09029798ce955835bc1f0ecf2cbfd965633e7",
+      "tail": [
+        "",
+        "Total: 32 | PASS: 32 | FAIL: 0",
+        "Phase 4K-6V4B11 checks passed."
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-tuition-debt-source-of-truth-v4c.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-tuition-debt-source-of-truth-v4c.mjs.log",
+      "logSHA256": "c4d064e1ec7f603b2ca5047f0015d498339343fe44c4116d2c4a5884e779e833",
+      "tail": [
+        "✅ no write/migration APIs in canonical helper",
+        "",
+        "Tuition Debt Source of Truth V4C: all checks passed"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-debt-actions-sync.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-debt-actions-sync.mjs.log",
+      "logSHA256": "5b89cd912a76650c6f4c476b188a3c7ce1a13f9b8ba3000222758ebf18402873",
+      "tail": [
+        "Results: 17 passed, 0 failed",
+        "",
+        "✅ All debt-actions-sync checks passed."
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-family-combo-autofill-r1.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-family-combo-autofill-r1.mjs.log",
+      "logSHA256": "83e43506bec9fad71daf131fc1daf523473e52d4e982e346505d63dc54b53b77",
+      "tail": [
+        "PASS A10 canonical result order is preserved without local sorting",
+        "PASS A11 missing canonical helper does not invent a month",
+        "FAMILY_AUTOFILL_RESULT {\"sourceRoot\":\"/workspace/scratch/036ee6a06c71/finance_r22/source\",\"passed\":53,\"failed\":0,\"observations\":[{\"id\":\"A01\",\"row\":1,\"name\":\"Alice\",\"fee\":500000,\"display\":\"500.000\",\"month\":\"2026-11\"},{\"id"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-family-combo-qr-r1.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-family-combo-qr-r1.mjs.log",
+      "logSHA256": "300e917c398b25c43631e18d0ce46b4a7fcc17a47f45f4c40aab436039ab9f22",
+      "tail": [
+        "PASS PAY03 pending ACK has no financial success/local promotion/receipt; double tap one writer",
+        "PASS PAY04 rejected primary creates no local partial success or receipt",
+        "FAMILY_QR_RESULT {\"sourceRoot\":\"/workspace/scratch/036ee6a06c71/finance_r22/source\",\"passed\":66,\"failed\":0,\"observations\":[{\"id\":\"F01 F02 F05 F09 long names / same month / member IDs / same account\",\"result\":true,\"receip"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-admission-postcommit-context-r1-2c.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-admission-postcommit-context-r1-2c.mjs.log",
+      "logSHA256": "899c0ae6ee616a6f2426ac8a5780014b8cf5594576ad4525c5cea034a8aa39da",
+      "tail": [
+        "PASS No new Firestore reads/listeners in students Admission patch",
+        "",
+        "R1.2C GATE: 9 PASS / 0 FAIL"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-admission-draft-snapshot-r1-3a.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-admission-draft-snapshot-r1-3a.mjs.log",
+      "logSHA256": "6bd0db20383701551a1744c3734b80c846539d2ec289849b580dcd4d53fff6c5",
+      "tail": [
+        "PASS Stale draft uses local generic warning",
+        "",
+        "R1.3A ADMISSION DRAFT SNAPSHOT GATE: 36 PASS / 0 FAIL"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-h8r2-1c1f1d1c1-admission-atomic.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 1,
+      "result": "REQUIRES_CLASSIFICATION",
+      "log": "logs/check-h8r2-1c1f1d1c1-admission-atomic.mjs.log",
+      "logSHA256": "3d8c884af8bc4b000ab5f1eca6b163cc0bebef120fb18c9b10ddaa1936c0229f",
+      "tail": [
+        "}",
+        "",
+        "Node.js v24.22.1"
+      ],
+      "classification": "STALE_TEST_HARNESS",
+      "pristineBaselineSameFailure": true,
+      "baselineLog": "logs/baseline-legacy-admission-atomic.log",
+      "reason": "Frozen legacy fixture lacks verified auth context and stock runTransaction support; same failure on pristine input. Current actual-source stock gate covers Admission/Inventory callers."
+    },
+    {
+      "file": "check-h8r2-1c1f1d1-multiitem-inventory-closure.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-h8r2-1c1f1d1-multiitem-inventory-closure.mjs.log",
+      "logSHA256": "a2803de6d5907cfe03a87d8e5614ee7c602e7213f1b7f648a65839b69105564d",
+      "tail": [
+        "",
+        "Total: 46 | PASS: 46 | FAIL: 0",
+        "H8R2.1C1F1D1 multiitem/inventory closure gate PASS."
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-h8r2-1c1f1d1c1-inventory-atomic.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 1,
+      "result": "REQUIRES_CLASSIFICATION",
+      "log": "logs/check-h8r2-1c1f1d1c1-inventory-atomic.mjs.log",
+      "logSHA256": "e76fed1dfa14aa034127de802236a2d2686d779b77346e2e637b8b9c5e506fd5",
+      "tail": [
+        "PASS D12 unsupported sale to import transition has no writes",
+        "PASS D12b missing related transaction identity has no writes",
+        "D1C1 Inventory: 6 passed"
+      ],
+      "classification": "STALE_TEST_HARNESS",
+      "pristineBaselineSameFailure": true,
+      "baselineLog": "logs/baseline-legacy-inventory-atomic.log",
+      "reason": "Frozen legacy fixture lacks verified auth context and stock runTransaction support; same failure on pristine input. Current actual-source stock gate covers Admission/Inventory callers."
+    },
+    {
+      "file": "check-inventory-stock-authority-r1.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-inventory-stock-authority-r1.mjs.log",
+      "logSHA256": "a588eaaec5aebdefe53819d7497d50e2bfb6ea94cbcf9b60cbc9f621bc8061a2",
+      "tail": [
+        "PASS A05 actual Admission gift and tuition remain one all-or-nothing stock command",
+        "PASS A06 actual Admission gift and tuition remain one all-or-nothing stock command",
+        "INVENTORY_STOCK_AUTHORITY_R1_RESULT {\"sourceRoot\":\"/workspace/scratch/036ee6a06c71/finance_r22/source\",\"evidenceLevel\":\"DETERMINISTIC_MVCC_CONFLICT_MODEL_ACTUAL_SOURCE\",\"passed\":49,\"failed\":0,\"outcomes\":[{\"name\":\"C01 cre"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-qr-report-render-payment-intent.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-qr-report-render-payment-intent.mjs.log",
+      "logSHA256": "3705c1b629d2c5737ca4ce0176876f6433e7d430aa4f16fc898c913eafe0e500",
+      "tail": [
+        "    }",
+        "  ]",
+        "}"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-qr-v4-payment-account-authority.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-qr-v4-payment-account-authority.mjs.log",
+      "logSHA256": "6f3cd694c8a42d9887ebd84ae7bfdffaa402a14409867e0048972472388e4aa0",
+      "tail": [
+        "    }",
+        "  ]",
+        "}"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-qr-multiitem-memo-r1-2d1.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-qr-multiitem-memo-r1-2d1.mjs.log",
+      "logSHA256": "8e1939aa1785a24f392cd30dc4323f333e1fafbba93e26a1da2a2f64311730ba",
+      "tail": [
+        "PASS month count is not derived from money in processMultiItem",
+        "R1_2D1_MATRIX [{\"pkg\":1,\"months\":[\"2026-11\"],\"memo\":\"Tran Thi Huyen Trang HP T11 2026\",\"providerCalls\":1,\"result\":\"PASS\",\"writes\":0},{\"pkg\":3,\"months\":[\"2026-11\",\"2026-12\",\"2027-01\"],\"memo\":\"\",\"providerCalls\":0,\"result\":",
+        "R1_2D1_QR_RESULT {\"pass\":26,\"fail\":0,\"total\":26}"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-qr-multiitem-memo-r1-2d.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-qr-multiitem-memo-r1-2d.mjs.log",
+      "logSHA256": "cc2ac7972f4650bcfecbbda5c90205c1f26c721479997e9cdf44e0b7f0decfa2",
+      "tail": [
+        "PASS wrong account remains DENIED",
+        "PASS canonical memo contains no punctuation, so provider punctuation-removal cannot become a new fuzzy equivalence",
+        "R1_2D_QR_RESULT {\"pass\":13,\"fail\":0,\"total\":13}"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-qr-multiitem-memo-r1-2d-app-guard.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-qr-multiitem-memo-r1-2d-app-guard.mjs.log",
+      "logSHA256": "61ac9d2e1e1f1ca73f62b464c662a645f44ae5e050adddecf0847d91d8ca3ca7",
+      "tail": [
+        "  \"tuitionHelperUnchanged\": true,",
+        "  \"pixelValidatorUnchanged\": true",
+        "}"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "a9r6/qr-provider-memo-regression.test.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/a9r6_qr-provider-memo-regression.test.mjs.log",
+      "logSHA256": "2d2053008771a7ed682d85b5e4d7e03a3da5e1aec68fba380d801d0864d5b7af",
+      "tail": [
+        "PASS actual report path computes the same memo and reuses it",
+        "PASS no financial changes: unchanged owner references and no stored payment write",
+        "A9R6_QR_MEMO_TEST_RESULT {\"pass\":12,\"fail\":0,\"total\":12}"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-auth-context-single-writer.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-auth-context-single-writer.mjs.log",
+      "logSHA256": "982a58503eb6deaf430519ca743ce98c36db56889ceed1618d6743dde3339179",
+      "tail": [
+        "",
+        "📊 Kết quả: 40 PASS / 0 FAIL",
+        "✅ Auth Context Single Writer Gate PASS."
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-production-security-trust-boundary.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-production-security-trust-boundary.mjs.log",
+      "logSHA256": "905e74c58e4322e10d30c4cd06b8ad5236e03ef39b4598447d83166f3f5cb32a",
+      "tail": [
+        "✅ H3 Functions source principal also requires enabled:true",
+        "Hard static counts: { getDoc: 24, getDocs: 43, onSnapshot: 16 }",
+        "PASS 41/41"
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-security-coach-branch-boundary.mjs",
+      "group": "CURRENT_BEHAVIOR",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "logs/check-security-coach-branch-boundary.mjs.log",
+      "logSHA256": "8ee75731770df586c3800cf2dc5d236a824deedb9fd6d3a4a8047b804e30f93a",
+      "tail": [
+        "",
+        "Total: 35 | PASS: 35 | FAIL: 0",
+        "Phase 4K-6V4B security/branch checks passed."
+      ],
+      "classification": "PASS_CURRENT_FOCUSED_GATE"
+    },
+    {
+      "file": "check-finance-write-latency-r1.mjs",
+      "group": "HISTORICAL_CHECKER",
+      "exitCode": 1,
+      "result": "REQUIRES_CLASSIFICATION",
+      "log": "logs/check-finance-write-latency-r1.mjs.log",
+      "logSHA256": "ce7be4ac1efde01efe35fb39a94ae5c8e10f73606dd106eee9ebbc6a6e0105bd",
+      "tail": [
+        "PASS new progress feedback has no polling or fixed wait",
+        "PASS root/public Finance adapter parity",
+        "{\"gate\":\"FINANCE_WRITE_LATENCY_R1_SAFE_FEEDBACK\",\"passed\":55,\"failed\":3,\"sourceRoot\":\"/workspace/scratch/036ee6a06c71/finance_r22/source\"}"
+      ],
+      "classification": "HISTORICAL_LINEAGE_MISMATCH",
+      "reason": "Only historical ancestor runtime/hash identity assertions failed; checker unchanged."
+    },
+    {
+      "file": "check-finance-write-latency-r2.mjs",
+      "group": "HISTORICAL_CHECKER",
+      "exitCode": 1,
+      "result": "REQUIRES_CLASSIFICATION",
+      "log": "logs/check-finance-write-latency-r2.mjs.log",
+      "logSHA256": "2f526eb5d00ec828a8fb03af8e21164e8c1d5d6a326bb5d98f575df2aacbd5d8",
+      "tail": [
+        "PASS canonical/legacy fixture parity: IDs, amount, months, settlement 3",
+        "PASS missing canonical historical fields is a negative parity control, never auto-promoted",
+        "{\"gate\":\"FINANCE_WRITE_LATENCY_R2_OBSERVABILITY\",\"passed\":65,\"failed\":1,\"evidenceLevel\":\"UNIT_TEST\",\"realStaging\":\"NOT VERIFIED\",\"realDevice\":\"NOT VERIFIED\"}"
+      ],
+      "classification": "HISTORICAL_LINEAGE_MISMATCH",
+      "reason": "Only historical ancestor runtime/hash identity assertions failed; checker unchanged."
+    },
+    {
+      "file": "check-finance-write-latency-r2-1.mjs",
+      "group": "HISTORICAL_CHECKER",
+      "exitCode": 1,
+      "result": "REQUIRES_CLASSIFICATION",
+      "log": "logs/check-finance-write-latency-r2-1.mjs.log",
+      "logSHA256": "de96dbd7e6aff69315acdb8096ef885fbce503eb08036dbfdc6a3e08781bfa71",
+      "tail": [
+        "PASS read-only SDK hook leaves business intact and missing page samples null",
+        "PASS role change after command return retires sync without corrupting completed financial trace",
+        "{\"gate\":\"FINANCE_WRITE_LATENCY_R2_1_EXTERNAL_OBSERVER\",\"passed\":102,\"failed\":1,\"evidenceLevel\":\"UNIT_TEST\",\"realStaging\":\"NOT RUN\"}"
+      ],
+      "classification": "HISTORICAL_LINEAGE_MISMATCH",
+      "reason": "Only historical ancestor runtime/hash identity assertions failed; checker unchanged."
+    }
+  ],
+  "summary": {
+    "executed": 29,
+    "currentFocusedPassed": 24,
+    "staleHarnessFailedOnPristineBaseline": 2,
+    "historicalLineageMismatch": 3,
+    "oldCheckersModified": false,
+    "businessCorrectnessRedProven": false
+  }
+}

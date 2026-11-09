@@ -1,0 +1,16 @@
+{
+  "modified": [
+    "package.json"
+  ],
+  "added": [
+    "tools/check-inventory-stock-emulator-r1-1.mjs",
+    "tools/inventory-stock-r1-1/README.md",
+    "tools/inventory-stock-r1-1/acceptance.mjs",
+    "tools/inventory-stock-r1-1/browser-client.mjs",
+    "tools/inventory-stock-r1-1/run-local-emulator.mjs"
+  ],
+  "productionChanges": 0,
+  "originalR1CheckersModified": false,
+  "patchApplyCheck": 0,
+  "packageChange": "two aliases only"
+}

@@ -1,0 +1,4279 @@
+{
+  "sourceRoot": "/workspace/scratch/036ee6a06c71/inventory_stock_r1/candidate",
+  "evidenceLevel": "DETERMINISTIC_MVCC_CONFLICT_MODEL_ACTUAL_SOURCE",
+  "passed": 14,
+  "failed": 21,
+  "outcomes": [
+    {
+      "name": "C01 create outbound stock authority",
+      "result": "PASS"
+    },
+    {
+      "name": "C02 create outbound stock authority",
+      "result": "PASS"
+    },
+    {
+      "name": "C03 create outbound stock authority",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "name": "C04 create outbound stock authority",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "name": "C05 create outbound stock authority",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "name": "C06 create outbound stock authority",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "name": "C07 create outbound stock authority",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "name": "C08 inbound recovery of historical negative is permitted without a stock read",
+      "result": "PASS"
+    },
+    {
+      "name": "C09 stock decrease on historical negative DENY",
+      "result": "FAIL",
+      "reason": "The expression evaluated to a falsy value:\n\n  assert(await denied(()=>c.svc.addItem(row())))\n"
+    },
+    {
+      "name": "C10 Inventory form insufficient stock leaves no Finance/history writes",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n-1 !== 5\n"
+    },
+    {
+      "name": "C11 Inventory form double tap one logical commit",
+      "result": "PASS"
+    },
+    {
+      "name": "R01 independent clients share initial version and retry/revalidate",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n2 !== 1\n"
+    },
+    {
+      "name": "R02 independent clients share initial version and retry/revalidate",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n0 !== 2\n"
+    },
+    {
+      "name": "R03 independent clients share initial version and retry/revalidate",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n2 !== 1\n"
+    },
+    {
+      "name": "R04 concurrent inbound and too-large outbound is serializable and never negative",
+      "result": "PASS"
+    },
+    {
+      "name": "R04B inbound ACK before outbound read allows exactly covered sale",
+      "result": "PASS"
+    },
+    {
+      "name": "E01 edit validates net delta and preserves related Finance atomicity",
+      "result": "PASS"
+    },
+    {
+      "name": "E02 edit validates net delta and preserves related Finance atomicity",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "name": "E03 edit validates net delta and preserves related Finance atomicity",
+      "result": "PASS"
+    },
+    {
+      "name": "E04 edit validates net delta and preserves related Finance atomicity",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "name": "E05 delete uses current item and stock; zero partial Finance effect",
+      "result": "PASS"
+    },
+    {
+      "name": "E06 delete uses current item and stock; zero partial Finance effect",
+      "result": "PASS"
+    },
+    {
+      "name": "E07 delete uses current item and stock; zero partial Finance effect",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "name": "E08 stale UI previous cannot reverse the wrong quantity",
+      "result": "FAIL",
+      "reason": "The expression evaluated to a falsy value:\n\n  assert(rejected)\n"
+    },
+    {
+      "name": "E09 two deletes cannot apply a ledger reversal twice",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n11 !== 8\n"
+    },
+    {
+      "name": "E10 stale edit cannot apply cached reverse delta to a newer item",
+      "result": "FAIL",
+      "reason": "The expression evaluated to a falsy value:\n\n  assert(await denied(()=>c.svc.updateItem('item',{qty:8},{previous:row('Nhập kho',10)})))\n"
+    },
+    {
+      "name": "A01 actual Admission profile/Finance/uniform one atomic outcome",
+      "result": "PASS"
+    },
+    {
+      "name": "A02 actual Admission profile/Finance/uniform one atomic outcome",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n-1 !== 0\n"
+    },
+    {
+      "name": "A03 concurrent actual admissions consume last uniform only once",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n-1 !== 0\n"
+    },
+    {
+      "name": "A04 admission rejected primary has zero persisted profile/bundle/item",
+      "result": "PASS"
+    },
+    {
+      "name": "M01 actual MultiItem sufficient stock commits one bundle",
+      "result": "PASS"
+    },
+    {
+      "name": "M02 M04 stale-high UI cannot partially commit tuition, bundle or debt",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n-2 !== 1\n"
+    },
+    {
+      "name": "M03 actual MultiItem and Inventory form contend on same stock version",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n-3 !== 1\n"
+    },
+    {
+      "name": "FALLBACK legacy form cannot bypass canonical stock/Finance atomicity",
+      "result": "FAIL",
+      "reason": "Expected values to be strictly equal:\n\n-1 !== 5\n"
+    },
+    {
+      "name": "CTX no projection from committed A into newly active B",
+      "result": "PASS"
+    }
+  ],
+  "samples": [
+    {
+      "name": "C01",
+      "finalBalance": 1,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 4,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992229
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 4,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992229
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -4
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 4
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 4,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992229
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "C02",
+      "finalBalance": 0,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 5,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992232
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 5,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992232
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -5
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 5
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 5,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992232
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "C03",
+      "finalBalance": -1,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 6,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992234
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 6,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992234
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -6
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 6
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 6,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992234
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "C04",
+      "finalBalance": -1,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 1,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992239
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 1,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992239
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -1
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 1
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 1,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992239
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "C05",
+      "finalBalance": -1,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 1,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992240
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 1,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992240
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -1
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 1
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 1,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992240
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "C06",
+      "finalBalance": 5,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 0,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992241
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 0,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992241
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 0,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992241
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "C07",
+      "finalBalance": 3.5,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 1.5,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992241
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 1.5,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992241
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -1.5
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 1.5
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 1.5,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992241
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "C08_HISTORICAL_NEGATIVE_BALANCE",
+      "finalBalance": -1,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Nhập kho",
+            "qty": 1,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992242
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Nhập kho",
+                "qty": 1,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992242
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": 1
+                },
+                "Võ phục|||170_in": {
+                  "__increment": 1
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Nhập kho",
+              "qty": 1,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992242
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "FORM_CREATE_OUTBOUND",
+      "finalBalance": -1,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 6,
+            "desc": "Student",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992288
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/auto-A-2",
+          {
+            "branch": "Chung",
+            "type": "Thu Võ phục",
+            "description": "Bán Võ phục 170 cho Student",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992288,
+            "relatedInvId": "auto-A-1"
+          }
+        ]
+      ],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 6,
+                "desc": "Student",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992288
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -6
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 6
+                }
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-A-2",
+              "data": {
+                "branch": "Chung",
+                "type": "Thu Võ phục",
+                "description": "Bán Võ phục 170 cho Student",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992288,
+                "relatedInvId": "auto-A-1"
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 6,
+              "desc": "Student",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992288
+            }
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "id": "auto-A-2",
+              "branch": "Chung",
+              "type": "Thu Võ phục",
+              "description": "Bán Võ phục 170 cho Student",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992288,
+              "relatedInvId": "auto-A-1"
+            }
+          },
+          {
+            "kind": "notify"
+          },
+          {
+            "kind": "reset"
+          },
+          {
+            "kind": "toast",
+            "message": "✅ Đã cập nhật Kho!"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "R01",
+      "finalBalance": -3,
+      "commits": 2,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 4,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992303
+          }
+        ],
+        [
+          "clubs/A/inventory/auto-B-2",
+          {
+            "type": "Xuất bán",
+            "qty": 4,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992304
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "batch-attempt",
+          "client": "B"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 4,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992303
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -4
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 4
+                }
+              }
+            }
+          ]
+        },
+        {
+          "kind": "commit",
+          "client": "B",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-B-2",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 4,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992304
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -4
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 4
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 4,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992303
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ],
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-B-2",
+              "type": "Xuất bán",
+              "qty": 4,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992304
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "R02",
+      "finalBalance": 0,
+      "commits": 2,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 3,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992305
+          }
+        ],
+        [
+          "clubs/A/inventory/auto-B-2",
+          {
+            "type": "Xuất bán",
+            "qty": 2,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992305
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "batch-attempt",
+          "client": "B"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 3,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992305
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -3
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 3
+                }
+              }
+            }
+          ]
+        },
+        {
+          "kind": "commit",
+          "client": "B",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-B-2",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 2,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992305
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -2
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 2
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 3,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992305
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ],
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-B-2",
+              "type": "Xuất bán",
+              "qty": 2,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992305
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "R03",
+      "finalBalance": -1,
+      "commits": 2,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Xuất bán",
+            "qty": 3,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992307
+          }
+        ],
+        [
+          "clubs/A/inventory/auto-B-2",
+          {
+            "type": "Xuất bán",
+            "qty": 3,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992307
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "batch-attempt",
+          "client": "B"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 3,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992307
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -3
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 3
+                }
+              }
+            }
+          ]
+        },
+        {
+          "kind": "commit",
+          "client": "B",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-B-2",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 3,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992307
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -3
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 3
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Xuất bán",
+              "qty": 3,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992307
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ],
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-B-2",
+              "type": "Xuất bán",
+              "qty": 3,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992307
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "R04",
+      "finalBalance": 3,
+      "commits": 2,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "type": "Nhập kho",
+            "qty": 5,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992308
+          }
+        ],
+        [
+          "clubs/A/inventory/auto-B-2",
+          {
+            "type": "Xuất bán",
+            "qty": 7,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992308
+          }
+        ]
+      ],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "batch-attempt",
+          "client": "B"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "type": "Nhập kho",
+                "qty": 5,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992308
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": 5
+                },
+                "Võ phục|||170_in": {
+                  "__increment": 5
+                }
+              }
+            }
+          ]
+        },
+        {
+          "kind": "commit",
+          "client": "B",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-B-2",
+              "data": {
+                "type": "Xuất bán",
+                "qty": 7,
+                "category": "Võ phục",
+                "size": "170",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992308
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -7
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 7
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "type": "Nhập kho",
+              "qty": 5,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992308
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ],
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-B-2",
+              "type": "Xuất bán",
+              "qty": 7,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992308
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "E01",
+      "finalBalance": 4,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/item",
+          {
+            "id": "item",
+            "type": "Xuất bán",
+            "qty": 4,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08"
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/tx",
+          {
+            "amount": 200,
+            "relatedInvId": "item"
+          }
+        ]
+      ],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "update",
+              "path": "clubs/A/inventory/item",
+              "data": {
+                "qty": 4
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -1
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 1
+                }
+              }
+            },
+            {
+              "kind": "update",
+              "path": "clubs/A/transactions/tx",
+              "data": {
+                "amount": 200
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "item",
+              "type": "Xuất bán",
+              "qty": 4,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992311
+            }
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "amount": 200,
+              "id": "tx"
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "E02",
+      "finalBalance": -3,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/item",
+          {
+            "id": "item",
+            "type": "Xuất bán",
+            "qty": 8,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08"
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/tx",
+          {
+            "amount": 200,
+            "relatedInvId": "item"
+          }
+        ]
+      ],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "update",
+              "path": "clubs/A/inventory/item",
+              "data": {
+                "qty": 8
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -5
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 5
+                }
+              }
+            },
+            {
+              "kind": "update",
+              "path": "clubs/A/transactions/tx",
+              "data": {
+                "amount": 200
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "item",
+              "type": "Xuất bán",
+              "qty": 8,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992312
+            }
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "amount": 200,
+              "id": "tx"
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "E03",
+      "finalBalance": 3,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/item",
+          {
+            "id": "item",
+            "type": "Nhập kho",
+            "qty": 8,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08"
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/tx",
+          {
+            "amount": 200,
+            "relatedInvId": "item"
+          }
+        ]
+      ],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "update",
+              "path": "clubs/A/inventory/item",
+              "data": {
+                "qty": 8
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -2
+                },
+                "Võ phục|||170_in": {
+                  "__increment": -2
+                }
+              }
+            },
+            {
+              "kind": "update",
+              "path": "clubs/A/transactions/tx",
+              "data": {
+                "amount": 200
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "item",
+              "type": "Nhập kho",
+              "qty": 8,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992313
+            }
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "amount": 200,
+              "id": "tx"
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "E04",
+      "finalBalance": -6,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/item",
+          {
+            "id": "item",
+            "type": "Nhập kho",
+            "qty": 2,
+            "category": "Võ phục",
+            "size": "170",
+            "amount": 100,
+            "date": "2026-11-08"
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/tx",
+          {
+            "amount": 200,
+            "relatedInvId": "item"
+          }
+        ]
+      ],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "update",
+              "path": "clubs/A/inventory/item",
+              "data": {
+                "qty": 2
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -8
+                },
+                "Võ phục|||170_in": {
+                  "__increment": -8
+                }
+              }
+            },
+            {
+              "kind": "update",
+              "path": "clubs/A/transactions/tx",
+              "data": {
+                "amount": 200
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "item",
+              "type": "Nhập kho",
+              "qty": 2,
+              "category": "Võ phục",
+              "size": "170",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992313
+            }
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "amount": 200,
+              "id": "tx"
+            }
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "E05",
+      "finalBalance": 5,
+      "commits": 1,
+      "history": [],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "delete",
+              "path": "clubs/A/inventory/item"
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": 3
+                },
+                "Võ phục|||170_out": {
+                  "__increment": -3
+                }
+              }
+            },
+            {
+              "kind": "delete",
+              "path": "clubs/A/transactions/tx"
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-remove",
+            "id": "item"
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "E06",
+      "finalBalance": 0,
+      "commits": 1,
+      "history": [],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "delete",
+              "path": "clubs/A/inventory/item"
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -10
+                },
+                "Võ phục|||170_in": {
+                  "__increment": -10
+                }
+              }
+            },
+            {
+              "kind": "delete",
+              "path": "clubs/A/transactions/tx"
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-remove",
+            "id": "item"
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "E07",
+      "finalBalance": -8,
+      "commits": 1,
+      "history": [],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "delete",
+              "path": "clubs/A/inventory/item"
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -10
+                },
+                "Võ phục|||170_in": {
+                  "__increment": -10
+                }
+              }
+            },
+            {
+              "kind": "delete",
+              "path": "clubs/A/transactions/tx"
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-remove",
+            "id": "item"
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "E08",
+      "finalBalance": -8,
+      "commits": 1,
+      "history": [],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "delete",
+              "path": "clubs/A/inventory/item"
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -10
+                },
+                "Võ phục|||170_in": {
+                  "__increment": -10
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-remove",
+            "id": "item"
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "E09",
+      "finalBalance": 11,
+      "commits": 2,
+      "history": [],
+      "finance": [],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "batch-attempt",
+          "client": "B"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "delete",
+              "path": "clubs/A/inventory/item"
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": 3
+                },
+                "Võ phục|||170_out": {
+                  "__increment": -3
+                }
+              }
+            }
+          ]
+        },
+        {
+          "kind": "commit",
+          "client": "B",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "delete",
+              "path": "clubs/A/inventory/item"
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": 3
+                },
+                "Võ phục|||170_out": {
+                  "__increment": -3
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-remove",
+            "id": "item"
+          },
+          {
+            "kind": "notify"
+          }
+        ],
+        [
+          {
+            "kind": "inventory-remove",
+            "id": "item"
+          },
+          {
+            "kind": "notify"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "A01",
+      "finalBalance": 0,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-2",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 1,
+            "desc": "New Student",
+            "studentName": "New Student",
+            "profileId": "New Student",
+            "memberId": "",
+            "amount": 200,
+            "date": "2026-11-08",
+            "timestamp": 1794144992369,
+            "paymentBundleId": "auto-A-1",
+            "paidTxId": "auto-A-1"
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/auto-A-1",
+          {
+            "studentName": "New Student",
+            "profileName": "New Student",
+            "profileId": "New Student",
+            "branch": "CS1",
+            "date": "2026-11-08",
+            "refMonth": "2026-11",
+            "receiptType": "Thu nhập học",
+            "components": [
+              {
+                "kind": "tuition",
+                "type": "Học phí",
+                "label": "Học phí tháng 2026-11",
+                "amount": 100,
+                "month": "2026-11",
+                "packageMonths": [
+                  "2026-11"
+                ]
+              },
+              {
+                "kind": "inventory",
+                "type": "Thu Võ phục",
+                "label": "Võ phục 170",
+                "amount": 200,
+                "category": "Võ phục",
+                "size": "170",
+                "qty": 1,
+                "relatedInvId": "auto-A-2"
+              }
+            ],
+            "type": "Thu gộp",
+            "amount": 300
+          }
+        ]
+      ],
+      "profiles": [
+        [
+          "clubs/A/profiles/New Student",
+          {
+            "status": "active",
+            "memberId": "",
+            "branch": "CS1",
+            "belt": "Trắng",
+            "dob": "2010-01-01",
+            "gender": "Nam",
+            "cccd": "",
+            "phone": "",
+            "tuitionFee": "100",
+            "notes": "",
+            "nickname": "",
+            "trainingDays": [],
+            "trainingShiftId": "",
+            "admissionDate": "2026-11-08",
+            "joinDate": "2026-11-08",
+            "joinedAt": "2026-11-08",
+            "createdAt": "2026-11-08",
+            "paidUntil": "2026-11",
+            "paidMonths": [
+              "2026-11"
+            ],
+            "tuitionPackageCount": 1,
+            "lastAdmissionTuitionStartMonth": "2026-11",
+            "lastAdmissionTuitionMonths": [
+              "2026-11"
+            ]
+          }
+        ]
+      ],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/profiles/New Student",
+              "data": {
+                "status": "active",
+                "memberId": "",
+                "branch": "CS1",
+                "belt": "Trắng",
+                "dob": "2010-01-01",
+                "gender": "Nam",
+                "cccd": "",
+                "phone": "",
+                "tuitionFee": "100",
+                "notes": "",
+                "nickname": "",
+                "trainingDays": [],
+                "trainingShiftId": "",
+                "admissionDate": "2026-11-08",
+                "joinDate": "2026-11-08",
+                "joinedAt": "2026-11-08",
+                "createdAt": "2026-11-08",
+                "paidUntil": "2026-11",
+                "paidMonths": [
+                  "2026-11"
+                ],
+                "tuitionPackageCount": 1,
+                "lastAdmissionTuitionStartMonth": "2026-11",
+                "lastAdmissionTuitionMonths": [
+                  "2026-11"
+                ]
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-2",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 1,
+                "desc": "New Student",
+                "studentName": "New Student",
+                "profileId": "New Student",
+                "memberId": "",
+                "amount": 200,
+                "date": "2026-11-08",
+                "timestamp": 1794144992369,
+                "paymentBundleId": "auto-A-1",
+                "paidTxId": "auto-A-1"
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -1
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 1
+                }
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-A-1",
+              "data": {
+                "studentName": "New Student",
+                "profileName": "New Student",
+                "profileId": "New Student",
+                "branch": "CS1",
+                "date": "2026-11-08",
+                "refMonth": "2026-11",
+                "receiptType": "Thu nhập học",
+                "components": [
+                  {
+                    "kind": "tuition",
+                    "type": "Học phí",
+                    "label": "Học phí tháng 2026-11",
+                    "amount": 100,
+                    "month": "2026-11",
+                    "packageMonths": [
+                      "2026-11"
+                    ]
+                  },
+                  {
+                    "kind": "inventory",
+                    "type": "Thu Võ phục",
+                    "label": "Võ phục 170",
+                    "amount": 200,
+                    "category": "Võ phục",
+                    "size": "170",
+                    "qty": 1,
+                    "relatedInvId": "auto-A-2"
+                  }
+                ],
+                "type": "Thu gộp",
+                "amount": 300
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-2",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 1,
+              "desc": "New Student",
+              "studentName": "New Student",
+              "profileId": "New Student",
+              "memberId": "",
+              "amount": 200,
+              "date": "2026-11-08",
+              "timestamp": 1794144992369,
+              "paymentBundleId": "auto-A-1",
+              "paidTxId": "auto-A-1"
+            }
+          },
+          {
+            "kind": "notify"
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "id": "auto-A-1",
+              "studentName": "New Student",
+              "profileName": "New Student",
+              "profileId": "New Student",
+              "branch": "CS1",
+              "date": "2026-11-08",
+              "refMonth": "2026-11",
+              "receiptType": "Thu nhập học",
+              "components": [
+                {
+                  "kind": "tuition",
+                  "type": "Học phí",
+                  "label": "Học phí tháng 2026-11",
+                  "amount": 100,
+                  "month": "2026-11",
+                  "packageMonths": [
+                    "2026-11"
+                  ]
+                },
+                {
+                  "kind": "inventory",
+                  "type": "Thu Võ phục",
+                  "label": "Võ phục 170",
+                  "amount": 200,
+                  "category": "Võ phục",
+                  "size": "170",
+                  "qty": 1,
+                  "relatedInvId": "auto-A-2"
+                }
+              ],
+              "type": "Thu gộp",
+              "amount": 300
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "🎉 Đã thêm võ sinh New Student thành công!"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "A02",
+      "finalBalance": -1,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-2",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 1,
+            "desc": "New Student",
+            "studentName": "New Student",
+            "profileId": "New Student",
+            "memberId": "",
+            "amount": 200,
+            "date": "2026-11-08",
+            "timestamp": 1794144992396,
+            "paymentBundleId": "auto-A-1",
+            "paidTxId": "auto-A-1"
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/auto-A-1",
+          {
+            "studentName": "New Student",
+            "profileName": "New Student",
+            "profileId": "New Student",
+            "branch": "CS1",
+            "date": "2026-11-08",
+            "refMonth": "2026-11",
+            "receiptType": "Thu nhập học",
+            "components": [
+              {
+                "kind": "tuition",
+                "type": "Học phí",
+                "label": "Học phí tháng 2026-11",
+                "amount": 100,
+                "month": "2026-11",
+                "packageMonths": [
+                  "2026-11"
+                ]
+              },
+              {
+                "kind": "inventory",
+                "type": "Thu Võ phục",
+                "label": "Võ phục 170",
+                "amount": 200,
+                "category": "Võ phục",
+                "size": "170",
+                "qty": 1,
+                "relatedInvId": "auto-A-2"
+              }
+            ],
+            "type": "Thu gộp",
+            "amount": 300
+          }
+        ]
+      ],
+      "profiles": [
+        [
+          "clubs/A/profiles/New Student",
+          {
+            "status": "active",
+            "memberId": "",
+            "branch": "CS1",
+            "belt": "Trắng",
+            "dob": "2010-01-01",
+            "gender": "Nam",
+            "cccd": "",
+            "phone": "",
+            "tuitionFee": "100",
+            "notes": "",
+            "nickname": "",
+            "trainingDays": [],
+            "trainingShiftId": "",
+            "admissionDate": "2026-11-08",
+            "joinDate": "2026-11-08",
+            "joinedAt": "2026-11-08",
+            "createdAt": "2026-11-08",
+            "paidUntil": "2026-11",
+            "paidMonths": [
+              "2026-11"
+            ],
+            "tuitionPackageCount": 1,
+            "lastAdmissionTuitionStartMonth": "2026-11",
+            "lastAdmissionTuitionMonths": [
+              "2026-11"
+            ]
+          }
+        ]
+      ],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/profiles/New Student",
+              "data": {
+                "status": "active",
+                "memberId": "",
+                "branch": "CS1",
+                "belt": "Trắng",
+                "dob": "2010-01-01",
+                "gender": "Nam",
+                "cccd": "",
+                "phone": "",
+                "tuitionFee": "100",
+                "notes": "",
+                "nickname": "",
+                "trainingDays": [],
+                "trainingShiftId": "",
+                "admissionDate": "2026-11-08",
+                "joinDate": "2026-11-08",
+                "joinedAt": "2026-11-08",
+                "createdAt": "2026-11-08",
+                "paidUntil": "2026-11",
+                "paidMonths": [
+                  "2026-11"
+                ],
+                "tuitionPackageCount": 1,
+                "lastAdmissionTuitionStartMonth": "2026-11",
+                "lastAdmissionTuitionMonths": [
+                  "2026-11"
+                ]
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-2",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 1,
+                "desc": "New Student",
+                "studentName": "New Student",
+                "profileId": "New Student",
+                "memberId": "",
+                "amount": 200,
+                "date": "2026-11-08",
+                "timestamp": 1794144992396,
+                "paymentBundleId": "auto-A-1",
+                "paidTxId": "auto-A-1"
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -1
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 1
+                }
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-A-1",
+              "data": {
+                "studentName": "New Student",
+                "profileName": "New Student",
+                "profileId": "New Student",
+                "branch": "CS1",
+                "date": "2026-11-08",
+                "refMonth": "2026-11",
+                "receiptType": "Thu nhập học",
+                "components": [
+                  {
+                    "kind": "tuition",
+                    "type": "Học phí",
+                    "label": "Học phí tháng 2026-11",
+                    "amount": 100,
+                    "month": "2026-11",
+                    "packageMonths": [
+                      "2026-11"
+                    ]
+                  },
+                  {
+                    "kind": "inventory",
+                    "type": "Thu Võ phục",
+                    "label": "Võ phục 170",
+                    "amount": 200,
+                    "category": "Võ phục",
+                    "size": "170",
+                    "qty": 1,
+                    "relatedInvId": "auto-A-2"
+                  }
+                ],
+                "type": "Thu gộp",
+                "amount": 300
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-2",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 1,
+              "desc": "New Student",
+              "studentName": "New Student",
+              "profileId": "New Student",
+              "memberId": "",
+              "amount": 200,
+              "date": "2026-11-08",
+              "timestamp": 1794144992396,
+              "paymentBundleId": "auto-A-1",
+              "paidTxId": "auto-A-1"
+            }
+          },
+          {
+            "kind": "notify"
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "id": "auto-A-1",
+              "studentName": "New Student",
+              "profileName": "New Student",
+              "profileId": "New Student",
+              "branch": "CS1",
+              "date": "2026-11-08",
+              "refMonth": "2026-11",
+              "receiptType": "Thu nhập học",
+              "components": [
+                {
+                  "kind": "tuition",
+                  "type": "Học phí",
+                  "label": "Học phí tháng 2026-11",
+                  "amount": 100,
+                  "month": "2026-11",
+                  "packageMonths": [
+                    "2026-11"
+                  ]
+                },
+                {
+                  "kind": "inventory",
+                  "type": "Thu Võ phục",
+                  "label": "Võ phục 170",
+                  "amount": 200,
+                  "category": "Võ phục",
+                  "size": "170",
+                  "qty": 1,
+                  "relatedInvId": "auto-A-2"
+                }
+              ],
+              "type": "Thu gộp",
+              "amount": 300
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "🎉 Đã thêm võ sinh New Student thành công!"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "A03",
+      "finalBalance": -1,
+      "commits": 2,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-2",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 1,
+            "desc": "Student A",
+            "studentName": "Student A",
+            "profileId": "Student A",
+            "memberId": "",
+            "amount": 200,
+            "date": "2026-11-08",
+            "timestamp": 1794144992437,
+            "paymentBundleId": "auto-A-1",
+            "paidTxId": "auto-A-1"
+          }
+        ],
+        [
+          "clubs/A/inventory/auto-B-4",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 1,
+            "desc": "Student B",
+            "studentName": "Student B",
+            "profileId": "Student B",
+            "memberId": "",
+            "amount": 200,
+            "date": "2026-11-08",
+            "timestamp": 1794144992437,
+            "paymentBundleId": "auto-B-3",
+            "paidTxId": "auto-B-3"
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/auto-A-1",
+          {
+            "studentName": "Student A",
+            "profileName": "Student A",
+            "profileId": "Student A",
+            "branch": "CS1",
+            "date": "2026-11-08",
+            "refMonth": "2026-11",
+            "receiptType": "Thu nhập học",
+            "components": [
+              {
+                "kind": "tuition",
+                "type": "Học phí",
+                "label": "Học phí tháng 2026-11",
+                "amount": 100,
+                "month": "2026-11",
+                "packageMonths": [
+                  "2026-11"
+                ]
+              },
+              {
+                "kind": "inventory",
+                "type": "Thu Võ phục",
+                "label": "Võ phục 170",
+                "amount": 200,
+                "category": "Võ phục",
+                "size": "170",
+                "qty": 1,
+                "relatedInvId": "auto-A-2"
+              }
+            ],
+            "type": "Thu gộp",
+            "amount": 300
+          }
+        ],
+        [
+          "clubs/A/transactions/auto-B-3",
+          {
+            "studentName": "Student B",
+            "profileName": "Student B",
+            "profileId": "Student B",
+            "branch": "CS1",
+            "date": "2026-11-08",
+            "refMonth": "2026-11",
+            "receiptType": "Thu nhập học",
+            "components": [
+              {
+                "kind": "tuition",
+                "type": "Học phí",
+                "label": "Học phí tháng 2026-11",
+                "amount": 100,
+                "month": "2026-11",
+                "packageMonths": [
+                  "2026-11"
+                ]
+              },
+              {
+                "kind": "inventory",
+                "type": "Thu Võ phục",
+                "label": "Võ phục 170",
+                "amount": 200,
+                "category": "Võ phục",
+                "size": "170",
+                "qty": 1,
+                "relatedInvId": "auto-B-4"
+              }
+            ],
+            "type": "Thu gộp",
+            "amount": 300
+          }
+        ]
+      ],
+      "profiles": [
+        [
+          "clubs/A/profiles/Student A",
+          {
+            "status": "active",
+            "memberId": "",
+            "branch": "CS1",
+            "belt": "Trắng",
+            "dob": "2010-01-01",
+            "gender": "Nam",
+            "cccd": "",
+            "phone": "",
+            "tuitionFee": "100",
+            "notes": "",
+            "nickname": "",
+            "trainingDays": [],
+            "trainingShiftId": "",
+            "admissionDate": "2026-11-08",
+            "joinDate": "2026-11-08",
+            "joinedAt": "2026-11-08",
+            "createdAt": "2026-11-08",
+            "paidUntil": "2026-11",
+            "paidMonths": [
+              "2026-11"
+            ],
+            "tuitionPackageCount": 1,
+            "lastAdmissionTuitionStartMonth": "2026-11",
+            "lastAdmissionTuitionMonths": [
+              "2026-11"
+            ]
+          }
+        ],
+        [
+          "clubs/A/profiles/Student B",
+          {
+            "status": "active",
+            "memberId": "",
+            "branch": "CS1",
+            "belt": "Trắng",
+            "dob": "2010-01-01",
+            "gender": "Nam",
+            "cccd": "",
+            "phone": "",
+            "tuitionFee": "100",
+            "notes": "",
+            "nickname": "",
+            "trainingDays": [],
+            "trainingShiftId": "",
+            "admissionDate": "2026-11-08",
+            "joinDate": "2026-11-08",
+            "joinedAt": "2026-11-08",
+            "createdAt": "2026-11-08",
+            "paidUntil": "2026-11",
+            "paidMonths": [
+              "2026-11"
+            ],
+            "tuitionPackageCount": 1,
+            "lastAdmissionTuitionStartMonth": "2026-11",
+            "lastAdmissionTuitionMonths": [
+              "2026-11"
+            ]
+          }
+        ]
+      ],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "batch-attempt",
+          "client": "B"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/profiles/Student A",
+              "data": {
+                "status": "active",
+                "memberId": "",
+                "branch": "CS1",
+                "belt": "Trắng",
+                "dob": "2010-01-01",
+                "gender": "Nam",
+                "cccd": "",
+                "phone": "",
+                "tuitionFee": "100",
+                "notes": "",
+                "nickname": "",
+                "trainingDays": [],
+                "trainingShiftId": "",
+                "admissionDate": "2026-11-08",
+                "joinDate": "2026-11-08",
+                "joinedAt": "2026-11-08",
+                "createdAt": "2026-11-08",
+                "paidUntil": "2026-11",
+                "paidMonths": [
+                  "2026-11"
+                ],
+                "tuitionPackageCount": 1,
+                "lastAdmissionTuitionStartMonth": "2026-11",
+                "lastAdmissionTuitionMonths": [
+                  "2026-11"
+                ]
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-2",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 1,
+                "desc": "Student A",
+                "studentName": "Student A",
+                "profileId": "Student A",
+                "memberId": "",
+                "amount": 200,
+                "date": "2026-11-08",
+                "timestamp": 1794144992437,
+                "paymentBundleId": "auto-A-1",
+                "paidTxId": "auto-A-1"
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -1
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 1
+                }
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-A-1",
+              "data": {
+                "studentName": "Student A",
+                "profileName": "Student A",
+                "profileId": "Student A",
+                "branch": "CS1",
+                "date": "2026-11-08",
+                "refMonth": "2026-11",
+                "receiptType": "Thu nhập học",
+                "components": [
+                  {
+                    "kind": "tuition",
+                    "type": "Học phí",
+                    "label": "Học phí tháng 2026-11",
+                    "amount": 100,
+                    "month": "2026-11",
+                    "packageMonths": [
+                      "2026-11"
+                    ]
+                  },
+                  {
+                    "kind": "inventory",
+                    "type": "Thu Võ phục",
+                    "label": "Võ phục 170",
+                    "amount": 200,
+                    "category": "Võ phục",
+                    "size": "170",
+                    "qty": 1,
+                    "relatedInvId": "auto-A-2"
+                  }
+                ],
+                "type": "Thu gộp",
+                "amount": 300
+              }
+            }
+          ]
+        },
+        {
+          "kind": "commit",
+          "client": "B",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/profiles/Student B",
+              "data": {
+                "status": "active",
+                "memberId": "",
+                "branch": "CS1",
+                "belt": "Trắng",
+                "dob": "2010-01-01",
+                "gender": "Nam",
+                "cccd": "",
+                "phone": "",
+                "tuitionFee": "100",
+                "notes": "",
+                "nickname": "",
+                "trainingDays": [],
+                "trainingShiftId": "",
+                "admissionDate": "2026-11-08",
+                "joinDate": "2026-11-08",
+                "joinedAt": "2026-11-08",
+                "createdAt": "2026-11-08",
+                "paidUntil": "2026-11",
+                "paidMonths": [
+                  "2026-11"
+                ],
+                "tuitionPackageCount": 1,
+                "lastAdmissionTuitionStartMonth": "2026-11",
+                "lastAdmissionTuitionMonths": [
+                  "2026-11"
+                ]
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-B-4",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 1,
+                "desc": "Student B",
+                "studentName": "Student B",
+                "profileId": "Student B",
+                "memberId": "",
+                "amount": 200,
+                "date": "2026-11-08",
+                "timestamp": 1794144992437,
+                "paymentBundleId": "auto-B-3",
+                "paidTxId": "auto-B-3"
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -1
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 1
+                }
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-B-3",
+              "data": {
+                "studentName": "Student B",
+                "profileName": "Student B",
+                "profileId": "Student B",
+                "branch": "CS1",
+                "date": "2026-11-08",
+                "refMonth": "2026-11",
+                "receiptType": "Thu nhập học",
+                "components": [
+                  {
+                    "kind": "tuition",
+                    "type": "Học phí",
+                    "label": "Học phí tháng 2026-11",
+                    "amount": 100,
+                    "month": "2026-11",
+                    "packageMonths": [
+                      "2026-11"
+                    ]
+                  },
+                  {
+                    "kind": "inventory",
+                    "type": "Thu Võ phục",
+                    "label": "Võ phục 170",
+                    "amount": 200,
+                    "category": "Võ phục",
+                    "size": "170",
+                    "qty": 1,
+                    "relatedInvId": "auto-B-4"
+                  }
+                ],
+                "type": "Thu gộp",
+                "amount": 300
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-2",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 1,
+              "desc": "Student A",
+              "studentName": "Student A",
+              "profileId": "Student A",
+              "memberId": "",
+              "amount": 200,
+              "date": "2026-11-08",
+              "timestamp": 1794144992437,
+              "paymentBundleId": "auto-A-1",
+              "paidTxId": "auto-A-1"
+            }
+          },
+          {
+            "kind": "notify"
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "id": "auto-A-1",
+              "studentName": "Student A",
+              "profileName": "Student A",
+              "profileId": "Student A",
+              "branch": "CS1",
+              "date": "2026-11-08",
+              "refMonth": "2026-11",
+              "receiptType": "Thu nhập học",
+              "components": [
+                {
+                  "kind": "tuition",
+                  "type": "Học phí",
+                  "label": "Học phí tháng 2026-11",
+                  "amount": 100,
+                  "month": "2026-11",
+                  "packageMonths": [
+                    "2026-11"
+                  ]
+                },
+                {
+                  "kind": "inventory",
+                  "type": "Thu Võ phục",
+                  "label": "Võ phục 170",
+                  "amount": 200,
+                  "category": "Võ phục",
+                  "size": "170",
+                  "qty": 1,
+                  "relatedInvId": "auto-A-2"
+                }
+              ],
+              "type": "Thu gộp",
+              "amount": 300
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "🎉 Đã thêm võ sinh Student A thành công!"
+          }
+        ],
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-B-4",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 1,
+              "desc": "Student B",
+              "studentName": "Student B",
+              "profileId": "Student B",
+              "memberId": "",
+              "amount": 200,
+              "date": "2026-11-08",
+              "timestamp": 1794144992437,
+              "paymentBundleId": "auto-B-3",
+              "paidTxId": "auto-B-3"
+            }
+          },
+          {
+            "kind": "notify"
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "id": "auto-B-3",
+              "studentName": "Student B",
+              "profileName": "Student B",
+              "profileId": "Student B",
+              "branch": "CS1",
+              "date": "2026-11-08",
+              "refMonth": "2026-11",
+              "receiptType": "Thu nhập học",
+              "components": [
+                {
+                  "kind": "tuition",
+                  "type": "Học phí",
+                  "label": "Học phí tháng 2026-11",
+                  "amount": 100,
+                  "month": "2026-11",
+                  "packageMonths": [
+                    "2026-11"
+                  ]
+                },
+                {
+                  "kind": "inventory",
+                  "type": "Thu Võ phục",
+                  "label": "Võ phục 170",
+                  "amount": 200,
+                  "category": "Võ phục",
+                  "size": "170",
+                  "qty": 1,
+                  "relatedInvId": "auto-B-4"
+                }
+              ],
+              "type": "Thu gộp",
+              "amount": 300
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "🎉 Đã thêm võ sinh Student B thành công!"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "M01",
+      "finalBalance": 2,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/debt",
+          {
+            "type": "Xuất bán",
+            "qty": 1,
+            "unpaid": false,
+            "inventoryDebtStatus": "paid",
+            "paidAt": 1794144992543,
+            "paidDate": "2026-11-08",
+            "paidTxId": "auto-A-1",
+            "paymentBundleId": "auto-A-1"
+          }
+        ],
+        [
+          "clubs/A/inventory/auto-A-2",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 3,
+            "desc": "Student",
+            "studentName": "Student",
+            "profileId": "",
+            "memberId": "",
+            "amount": 300,
+            "date": "2026-11-08",
+            "timestamp": 1794144992545,
+            "paymentBundleId": "auto-A-1",
+            "paidTxId": "auto-A-1"
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/auto-A-1",
+          {
+            "studentName": "Student",
+            "profileName": "Student",
+            "profileId": "Student",
+            "branch": "CS1",
+            "date": "2026-11-08",
+            "refMonth": "2026-11",
+            "receiptType": "Học phí + Võ phục + Old debt",
+            "components": [
+              {
+                "kind": "tuition",
+                "type": "Học phí",
+                "label": "Học phí 2026-11",
+                "amount": 100,
+                "month": "2026-11",
+                "packageMonths": [
+                  "2026-11"
+                ]
+              },
+              {
+                "kind": "inventory",
+                "type": "Thu Võ phục",
+                "label": "Võ phục 170 x3",
+                "amount": 300,
+                "category": "Võ phục",
+                "size": "170",
+                "qty": 3,
+                "relatedInvId": "auto-A-2"
+              },
+              {
+                "kind": "inventoryDebt",
+                "type": "Thu nợ kho",
+                "label": "Nợ kho: Old debt",
+                "amount": 50
+              }
+            ],
+            "type": "Thu gộp",
+            "amount": 450
+          }
+        ]
+      ],
+      "profiles": [
+        [
+          "clubs/A/profiles/Student",
+          {
+            "profileId": "Student",
+            "branch": "CS1",
+            "tuitionFee": 100,
+            "paidUntil": "2026-11",
+            "paidMonths": [
+              "2026-11"
+            ]
+          }
+        ]
+      ],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "update",
+              "path": "clubs/A/profiles/Student",
+              "data": {
+                "paidUntil": "2026-11",
+                "paidMonths": {
+                  "__arrayUnion": [
+                    "2026-11"
+                  ]
+                }
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-2",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 3,
+                "desc": "Student",
+                "studentName": "Student",
+                "profileId": "",
+                "memberId": "",
+                "amount": 300,
+                "date": "2026-11-08",
+                "timestamp": 1794144992545,
+                "paymentBundleId": "auto-A-1",
+                "paidTxId": "auto-A-1"
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -3
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 3
+                }
+              }
+            },
+            {
+              "kind": "update",
+              "path": "clubs/A/inventory/debt",
+              "data": {
+                "unpaid": false,
+                "inventoryDebtStatus": "paid",
+                "paidAt": 1794144992543,
+                "paidDate": "2026-11-08",
+                "paidTxId": "auto-A-1",
+                "paymentBundleId": "auto-A-1"
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-A-1",
+              "data": {
+                "studentName": "Student",
+                "profileName": "Student",
+                "profileId": "Student",
+                "branch": "CS1",
+                "date": "2026-11-08",
+                "refMonth": "2026-11",
+                "receiptType": "Học phí + Võ phục + Old debt",
+                "components": [
+                  {
+                    "kind": "tuition",
+                    "type": "Học phí",
+                    "label": "Học phí 2026-11",
+                    "amount": 100,
+                    "month": "2026-11",
+                    "packageMonths": [
+                      "2026-11"
+                    ]
+                  },
+                  {
+                    "kind": "inventory",
+                    "type": "Thu Võ phục",
+                    "label": "Võ phục 170 x3",
+                    "amount": 300,
+                    "category": "Võ phục",
+                    "size": "170",
+                    "qty": 3,
+                    "relatedInvId": "auto-A-2"
+                  },
+                  {
+                    "kind": "inventoryDebt",
+                    "type": "Thu nợ kho",
+                    "label": "Nợ kho: Old debt",
+                    "amount": 50
+                  }
+                ],
+                "type": "Thu gộp",
+                "amount": 450
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-2",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 3,
+              "desc": "Student",
+              "studentName": "Student",
+              "profileId": "",
+              "memberId": "",
+              "amount": 300,
+              "date": "2026-11-08",
+              "timestamp": 1794144992545,
+              "paymentBundleId": "auto-A-1",
+              "paidTxId": "auto-A-1"
+            }
+          },
+          {
+            "kind": "notify"
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "id": "auto-A-1",
+              "studentName": "Student",
+              "profileName": "Student",
+              "profileId": "Student",
+              "branch": "CS1",
+              "date": "2026-11-08",
+              "refMonth": "2026-11",
+              "receiptType": "Học phí + Võ phục + Old debt",
+              "components": [
+                {
+                  "kind": "tuition",
+                  "type": "Học phí",
+                  "label": "Học phí 2026-11",
+                  "amount": 100,
+                  "month": "2026-11",
+                  "packageMonths": [
+                    "2026-11"
+                  ]
+                },
+                {
+                  "kind": "inventory",
+                  "type": "Thu Võ phục",
+                  "label": "Võ phục 170 x3",
+                  "amount": 300,
+                  "category": "Võ phục",
+                  "size": "170",
+                  "qty": 3,
+                  "relatedInvId": "auto-A-2"
+                },
+                {
+                  "kind": "inventoryDebt",
+                  "type": "Thu nợ kho",
+                  "label": "Nợ kho: Old debt",
+                  "amount": 50
+                }
+              ],
+              "type": "Thu gộp",
+              "amount": 450
+            }
+          },
+          {
+            "kind": "profile-project",
+            "item": {
+              "studentName": "Student",
+              "paidUntil": "2026-11",
+              "paidMonths": [
+                "2026-11"
+              ],
+              "reason": "processMultiItem-atomic"
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "✅ Đã ghi sổ thành công!"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "M02_M04",
+      "finalBalance": -2,
+      "commits": 1,
+      "history": [
+        [
+          "clubs/A/inventory/debt",
+          {
+            "type": "Xuất bán",
+            "qty": 1,
+            "unpaid": false,
+            "inventoryDebtStatus": "paid",
+            "paidAt": 1794144992599,
+            "paidDate": "2026-11-08",
+            "paidTxId": "auto-A-1",
+            "paymentBundleId": "auto-A-1"
+          }
+        ],
+        [
+          "clubs/A/inventory/auto-A-2",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 3,
+            "desc": "Student",
+            "studentName": "Student",
+            "profileId": "",
+            "memberId": "",
+            "amount": 300,
+            "date": "2026-11-08",
+            "timestamp": 1794144992600,
+            "paymentBundleId": "auto-A-1",
+            "paidTxId": "auto-A-1"
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/auto-A-1",
+          {
+            "studentName": "Student",
+            "profileName": "Student",
+            "profileId": "Student",
+            "branch": "CS1",
+            "date": "2026-11-08",
+            "refMonth": "2026-11",
+            "receiptType": "Học phí + Võ phục + Old debt",
+            "components": [
+              {
+                "kind": "tuition",
+                "type": "Học phí",
+                "label": "Học phí 2026-11",
+                "amount": 100,
+                "month": "2026-11",
+                "packageMonths": [
+                  "2026-11"
+                ]
+              },
+              {
+                "kind": "inventory",
+                "type": "Thu Võ phục",
+                "label": "Võ phục 170 x3",
+                "amount": 300,
+                "category": "Võ phục",
+                "size": "170",
+                "qty": 3,
+                "relatedInvId": "auto-A-2"
+              },
+              {
+                "kind": "inventoryDebt",
+                "type": "Thu nợ kho",
+                "label": "Nợ kho: Old debt",
+                "amount": 50
+              }
+            ],
+            "type": "Thu gộp",
+            "amount": 450
+          }
+        ]
+      ],
+      "profiles": [
+        [
+          "clubs/A/profiles/Student",
+          {
+            "profileId": "Student",
+            "branch": "CS1",
+            "tuitionFee": 100,
+            "paidUntil": "2026-11",
+            "paidMonths": [
+              "2026-11"
+            ]
+          }
+        ]
+      ],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "update",
+              "path": "clubs/A/profiles/Student",
+              "data": {
+                "paidUntil": "2026-11",
+                "paidMonths": {
+                  "__arrayUnion": [
+                    "2026-11"
+                  ]
+                }
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-2",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 3,
+                "desc": "Student",
+                "studentName": "Student",
+                "profileId": "",
+                "memberId": "",
+                "amount": 300,
+                "date": "2026-11-08",
+                "timestamp": 1794144992600,
+                "paymentBundleId": "auto-A-1",
+                "paidTxId": "auto-A-1"
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -3
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 3
+                }
+              }
+            },
+            {
+              "kind": "update",
+              "path": "clubs/A/inventory/debt",
+              "data": {
+                "unpaid": false,
+                "inventoryDebtStatus": "paid",
+                "paidAt": 1794144992599,
+                "paidDate": "2026-11-08",
+                "paidTxId": "auto-A-1",
+                "paymentBundleId": "auto-A-1"
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-A-1",
+              "data": {
+                "studentName": "Student",
+                "profileName": "Student",
+                "profileId": "Student",
+                "branch": "CS1",
+                "date": "2026-11-08",
+                "refMonth": "2026-11",
+                "receiptType": "Học phí + Võ phục + Old debt",
+                "components": [
+                  {
+                    "kind": "tuition",
+                    "type": "Học phí",
+                    "label": "Học phí 2026-11",
+                    "amount": 100,
+                    "month": "2026-11",
+                    "packageMonths": [
+                      "2026-11"
+                    ]
+                  },
+                  {
+                    "kind": "inventory",
+                    "type": "Thu Võ phục",
+                    "label": "Võ phục 170 x3",
+                    "amount": 300,
+                    "category": "Võ phục",
+                    "size": "170",
+                    "qty": 3,
+                    "relatedInvId": "auto-A-2"
+                  },
+                  {
+                    "kind": "inventoryDebt",
+                    "type": "Thu nợ kho",
+                    "label": "Nợ kho: Old debt",
+                    "amount": 50
+                  }
+                ],
+                "type": "Thu gộp",
+                "amount": 450
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-2",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 3,
+              "desc": "Student",
+              "studentName": "Student",
+              "profileId": "",
+              "memberId": "",
+              "amount": 300,
+              "date": "2026-11-08",
+              "timestamp": 1794144992600,
+              "paymentBundleId": "auto-A-1",
+              "paidTxId": "auto-A-1"
+            }
+          },
+          {
+            "kind": "notify"
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "id": "auto-A-1",
+              "studentName": "Student",
+              "profileName": "Student",
+              "profileId": "Student",
+              "branch": "CS1",
+              "date": "2026-11-08",
+              "refMonth": "2026-11",
+              "receiptType": "Học phí + Võ phục + Old debt",
+              "components": [
+                {
+                  "kind": "tuition",
+                  "type": "Học phí",
+                  "label": "Học phí 2026-11",
+                  "amount": 100,
+                  "month": "2026-11",
+                  "packageMonths": [
+                    "2026-11"
+                  ]
+                },
+                {
+                  "kind": "inventory",
+                  "type": "Thu Võ phục",
+                  "label": "Võ phục 170 x3",
+                  "amount": 300,
+                  "category": "Võ phục",
+                  "size": "170",
+                  "qty": 3,
+                  "relatedInvId": "auto-A-2"
+                },
+                {
+                  "kind": "inventoryDebt",
+                  "type": "Thu nợ kho",
+                  "label": "Nợ kho: Old debt",
+                  "amount": 50
+                }
+              ],
+              "type": "Thu gộp",
+              "amount": 450
+            }
+          },
+          {
+            "kind": "profile-project",
+            "item": {
+              "studentName": "Student",
+              "paidUntil": "2026-11",
+              "paidMonths": [
+                "2026-11"
+              ],
+              "reason": "processMultiItem-atomic"
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "✅ Đã ghi sổ thành công!"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "M03",
+      "finalBalance": -3,
+      "commits": 2,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-2",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 4,
+            "desc": "Student",
+            "studentName": "Student",
+            "profileId": "",
+            "memberId": "",
+            "amount": 400,
+            "date": "2026-11-08",
+            "timestamp": 1794144992659,
+            "paymentBundleId": "auto-A-1",
+            "paidTxId": "auto-A-1"
+          }
+        ],
+        [
+          "clubs/A/inventory/auto-B-3",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 4,
+            "desc": "Student",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992665
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/auto-A-1",
+          {
+            "studentName": "Student",
+            "profileName": "Student",
+            "profileId": "Student",
+            "branch": "CS1",
+            "date": "2026-11-08",
+            "refMonth": "2026-11",
+            "receiptType": "Võ phục",
+            "components": [
+              {
+                "kind": "inventory",
+                "type": "Thu Võ phục",
+                "label": "Võ phục 170 x4",
+                "amount": 400,
+                "category": "Võ phục",
+                "size": "170",
+                "qty": 4,
+                "relatedInvId": "auto-A-2"
+              }
+            ],
+            "type": "Thu gộp",
+            "amount": 400
+          }
+        ],
+        [
+          "clubs/A/transactions/auto-B-4",
+          {
+            "branch": "Chung",
+            "type": "Thu Võ phục",
+            "description": "Bán Võ phục 170 cho Student",
+            "amount": 100,
+            "date": "2026-11-08",
+            "timestamp": 1794144992665,
+            "relatedInvId": "auto-B-3"
+          }
+        ]
+      ],
+      "profiles": [
+        [
+          "clubs/A/profiles/Student",
+          {
+            "profileId": "Student",
+            "branch": "CS1",
+            "tuitionFee": 100,
+            "paidUntil": "2026-10",
+            "paidMonths": []
+          }
+        ]
+      ],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "batch-attempt",
+          "client": "B"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-2",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 4,
+                "desc": "Student",
+                "studentName": "Student",
+                "profileId": "",
+                "memberId": "",
+                "amount": 400,
+                "date": "2026-11-08",
+                "timestamp": 1794144992659,
+                "paymentBundleId": "auto-A-1",
+                "paidTxId": "auto-A-1"
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -4
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 4
+                }
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-A-1",
+              "data": {
+                "studentName": "Student",
+                "profileName": "Student",
+                "profileId": "Student",
+                "branch": "CS1",
+                "date": "2026-11-08",
+                "refMonth": "2026-11",
+                "receiptType": "Võ phục",
+                "components": [
+                  {
+                    "kind": "inventory",
+                    "type": "Thu Võ phục",
+                    "label": "Võ phục 170 x4",
+                    "amount": 400,
+                    "category": "Võ phục",
+                    "size": "170",
+                    "qty": 4,
+                    "relatedInvId": "auto-A-2"
+                  }
+                ],
+                "type": "Thu gộp",
+                "amount": 400
+              }
+            }
+          ]
+        },
+        {
+          "kind": "commit",
+          "client": "B",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-B-3",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 4,
+                "desc": "Student",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992665
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -4
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 4
+                }
+              }
+            },
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-B-4",
+              "data": {
+                "branch": "Chung",
+                "type": "Thu Võ phục",
+                "description": "Bán Võ phục 170 cho Student",
+                "amount": 100,
+                "date": "2026-11-08",
+                "timestamp": 1794144992665,
+                "relatedInvId": "auto-B-3"
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-2",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 4,
+              "desc": "Student",
+              "studentName": "Student",
+              "profileId": "",
+              "memberId": "",
+              "amount": 400,
+              "date": "2026-11-08",
+              "timestamp": 1794144992659,
+              "paymentBundleId": "auto-A-1",
+              "paidTxId": "auto-A-1"
+            }
+          },
+          {
+            "kind": "notify"
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "id": "auto-A-1",
+              "studentName": "Student",
+              "profileName": "Student",
+              "profileId": "Student",
+              "branch": "CS1",
+              "date": "2026-11-08",
+              "refMonth": "2026-11",
+              "receiptType": "Võ phục",
+              "components": [
+                {
+                  "kind": "inventory",
+                  "type": "Thu Võ phục",
+                  "label": "Võ phục 170 x4",
+                  "amount": 400,
+                  "category": "Võ phục",
+                  "size": "170",
+                  "qty": 4,
+                  "relatedInvId": "auto-A-2"
+                }
+              ],
+              "type": "Thu gộp",
+              "amount": 400
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "✅ Đã ghi sổ thành công!"
+          }
+        ],
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-B-3",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 4,
+              "desc": "Student",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992665
+            }
+          },
+          {
+            "kind": "finance-project",
+            "item": {
+              "id": "auto-B-4",
+              "branch": "Chung",
+              "type": "Thu Võ phục",
+              "description": "Bán Võ phục 170 cho Student",
+              "amount": 100,
+              "date": "2026-11-08",
+              "timestamp": 1794144992665,
+              "relatedInvId": "auto-B-3"
+            }
+          },
+          {
+            "kind": "notify"
+          },
+          {
+            "kind": "reset"
+          },
+          {
+            "kind": "toast",
+            "message": "✅ Đã cập nhật Kho!"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "REACHABLE_FALLBACK",
+      "finalBalance": -1,
+      "commits": 3,
+      "history": [
+        [
+          "clubs/A/inventory/auto-A-1",
+          {
+            "category": "Võ phục",
+            "size": "170",
+            "type": "Xuất bán",
+            "qty": 6,
+            "desc": "Student",
+            "amount": 0,
+            "date": "2026-11-08",
+            "timestamp": 1794144992675
+          }
+        ]
+      ],
+      "finance": [
+        [
+          "clubs/A/transactions/auto-A-2",
+          {
+            "branch": "Chung",
+            "type": "Tặng Võ phục",
+            "description": "Tặng Võ phục 170 cho Student",
+            "amount": 0,
+            "date": "2026-11-08",
+            "timestamp": 1794144992675,
+            "relatedInvId": "auto-A-1"
+          }
+        ]
+      ],
+      "profiles": [],
+      "events": [
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/inventory/auto-A-1",
+              "data": {
+                "category": "Võ phục",
+                "size": "170",
+                "type": "Xuất bán",
+                "qty": 6,
+                "desc": "Student",
+                "amount": 0,
+                "date": "2026-11-08",
+                "timestamp": 1794144992675
+              }
+            }
+          ]
+        },
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/settings/inventory_stats",
+              "data": {
+                "Võ phục|||170_balance": {
+                  "__increment": -6
+                },
+                "Võ phục|||170_out": {
+                  "__increment": 6
+                }
+              }
+            }
+          ]
+        },
+        {
+          "kind": "batch-attempt",
+          "client": "A"
+        },
+        {
+          "kind": "commit",
+          "client": "A",
+          "attempt": 0,
+          "writes": [
+            {
+              "kind": "set",
+              "path": "clubs/A/transactions/auto-A-2",
+              "data": {
+                "branch": "Chung",
+                "type": "Tặng Võ phục",
+                "description": "Tặng Võ phục 170 cho Student",
+                "amount": 0,
+                "date": "2026-11-08",
+                "timestamp": 1794144992675,
+                "relatedInvId": "auto-A-1"
+              }
+            }
+          ]
+        }
+      ],
+      "local": [
+        [
+          {
+            "kind": "inventory-project",
+            "item": {
+              "id": "auto-A-1",
+              "category": "Võ phục",
+              "size": "170",
+              "type": "Xuất bán",
+              "qty": 6,
+              "desc": "Student",
+              "amount": 0,
+              "date": "2026-11-08",
+              "timestamp": 1794144992675
+            }
+          },
+          {
+            "kind": "reset"
+          },
+          {
+            "kind": "toast",
+            "message": "✅ Đã cập nhật Kho!"
+          }
+        ]
+      ]
+    }
+  ]
+}

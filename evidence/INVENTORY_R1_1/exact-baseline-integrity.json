@@ -1,0 +1,7 @@
+{
+  "inputName": "A9R18_INVENTORY_STOCK_INTEGRITY_AUTHORITY_R1_FULL_SOURCE_TEST_CANDIDATE(1).zip",
+  "inputSHA256": "926e7b3c32fde72229f84204e2ae2faa807f4d8e1cab104c6ac0632b7f45d010",
+  "baselineEntries": 1825,
+  "exactBaselineFiles": 1825,
+  "baselineChanges": []
+}

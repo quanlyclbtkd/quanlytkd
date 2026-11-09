@@ -1,0 +1,68 @@
+    async updateItem(invId, data, options = {}) {
+        const { doc, runTransaction, increment } = _sdk();
+        const db = _db(), writeClubId = _clubId(), projectionScope = _projectionScope();
+        const itemRef = doc(db, 'clubs', writeClubId, 'inventory', invId);
+        if (typeof runTransaction !== 'function') throw _stockError('INVENTORY_TRANSACTION_UNAVAILABLE', 'Chưa tải được chức năng lưu Kho an toàn. Vui lòng tải lại.');
+        const relatedPatch = options.relatedTransaction?.id
+            ? (typeof window.canonicalizeTransactionPatch === 'function'
+                ? window.canonicalizeTransactionPatch(options.relatedTransaction.data || {}, options.relatedTransaction.previous || null, 'inventory-service-update-related-transaction')
+                : options.relatedTransaction.data || {}) : null;
+        const next = await runTransaction(db, async transaction => {
+            _assertMutationScope(projectionScope);
+            const snapshot = await transaction.get(itemRef);
+            if (!snapshot.exists()) throw _stockError('INVENTORY_ITEM_MISSING', 'Phiếu Kho không còn tồn tại. Vui lòng tải lại.');
+            const previous = { id: snapshot.id, ...snapshot.data() };
+            _assertCurrentInventoryItem(options.previous, previous);
+            const currentNext = { ...previous, ...(data || {}), id: invId };
+            _assertInventoryQuantity(currentNext);
+            if (!currentNext.timestamp) currentNext.timestamp = Date.now();
+            const mutations = [{ item: previous, direction: -1 }, { item: currentNext, direction: 1 }];
+            await this.validateStockTransaction(transaction, mutations, writeClubId);
+            _assertMutationScope(projectionScope);
+            const summaryPatch = _buildLedgerIncrementPatch(mutations, increment);
+            transaction.update(itemRef, data || {});
+            if (Object.keys(summaryPatch).length)
+                transaction.set(doc(db, 'clubs', writeClubId, 'settings', 'inventory_stats'), summaryPatch, { merge: true });
+            if (relatedPatch) transaction.update(doc(db, 'clubs', writeClubId, 'transactions', options.relatedTransaction.id), relatedPatch);
+            return currentNext;
+        });
+        if (_projectionScopeCurrent(projectionScope)) {
+            _mergeRuntimeInventory(next, 'inventory-service-update-item');
+            if (relatedPatch && options.relatedTransaction?.previous) window.mergeTransactionIntoRuntimeStore?.({
+                ...options.relatedTransaction.previous, ...relatedPatch, id: options.relatedTransaction.id,
+            }, 'inventory-service-update-related-transaction');
+            window.notifyInventoryMutation?.('inventory-service-update-item', { writeThrough: true });
+        }
+        return next;
+    },
+
+    /** Current item CAS prevents stale/double reversals; stock-decreasing delete also reads stats. */
+    async deleteItem(invId, options = {}) {
+        const { doc, runTransaction, increment } = _sdk();
+        const db = _db(), writeClubId = _clubId(), projectionScope = _projectionScope();
+        const itemRef = doc(db, 'clubs', writeClubId, 'inventory', invId);
+        if (typeof runTransaction !== 'function') throw _stockError('INVENTORY_TRANSACTION_UNAVAILABLE', 'Chưa tải được chức năng lưu Kho an toàn. Vui lòng tải lại.');
+        const result = await runTransaction(db, async transaction => {
+            _assertMutationScope(projectionScope);
+            const snapshot = await transaction.get(itemRef);
+            if (!snapshot.exists()) return { deleted: false, missing: true };
+            const previous = { id: snapshot.id, ...snapshot.data() };
+            _assertCurrentInventoryItem(options.previous, previous);
+            const mutations = [{ item: previous, direction: -1 }];
+            await this.validateStockTransaction(transaction, mutations, writeClubId);
+            _assertMutationScope(projectionScope);
+            const summaryPatch = _buildLedgerIncrementPatch(mutations, increment);
+            transaction.delete(itemRef);
+            if (Object.keys(summaryPatch).length)
+                transaction.set(doc(db, 'clubs', writeClubId, 'settings', 'inventory_stats'), summaryPatch, { merge: true });
+            const relatedTxId = String(options.relatedTxId || '').trim();
+            if (relatedTxId && relatedTxId !== 'undefined') transaction.delete(doc(db, 'clubs', writeClubId, 'transactions', relatedTxId));
+            return { deleted: true, previous };
+        });
+        if (result.deleted && _projectionScopeCurrent(projectionScope)) {
+            _removeRuntimeInventory(invId, 'inventory-service-delete-item');
+            window.notifyInventoryMutation?.('inventory-service-delete-item', { writeThrough: true });
+        }
+        return result;
+    },
+

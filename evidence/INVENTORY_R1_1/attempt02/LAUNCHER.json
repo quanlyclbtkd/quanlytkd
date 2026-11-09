@@ -1,0 +1,20 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/workspace/scratch/036ee6a06c71/inventory_stock_r11/dependency_runtime/node_modules/firebase-tools/lib/bin/firebase.js",
+    "emulators:exec",
+    "--only",
+    "firestore",
+    "--project",
+    "demo-a9r18-inventory-r11",
+    "--config",
+    "firebase.json",
+    "--non-interactive",
+    "node tools/check-inventory-stock-emulator-r1-1.mjs"
+  ],
+  "project": "demo-a9r18-inventory-r11",
+  "config": "firebase.json unchanged",
+  "sameProcessNamespace": true,
+  "exitCode": 1,
+  "error": null
+}

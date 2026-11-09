@@ -1,0 +1,178 @@
+{
+  "phase": "A9R18-INVENTORY-STOCK-INTEGRITY-R1.1B",
+  "classification": "BLOCKED_TEST_DEPENDENCY",
+  "stopStage": "CHROMIUM_PREFLIGHT",
+  "mandatoryRows": [
+    {
+      "id": "SDK01",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "RULE01",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "RULE02",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "RULE03",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "RULE04",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "RULE05",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "C01",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "C02",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "C03",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "C04",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "R01",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "R02",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "R03",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "R04",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "R05",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "E01",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "E02",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "E03",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "E04",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "E05",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "D01",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "D02",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "D03",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "D04",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "X01",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "X02",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "P01",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "P02",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "P03",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    },
+    {
+      "id": "P04",
+      "status": "NOT_RUN",
+      "reason": "Chromium preflight did not pass"
+    }
+  ],
+  "existingAcceptanceAlias": "npm run test:inventory-stock-emulator-r1-1",
+  "existingAcceptanceInvoked": false,
+  "emulatorStartedThisRun": false,
+  "rulesLoadedThisRun": false,
+  "browserSdkObserved": null,
+  "productionInventoryModuleImported": false,
+  "isolatedClients": 0,
+  "realRetryObserved": false,
+  "transactionAttempts": null,
+  "browserAuthorityReads": null,
+  "productionSourceModified": false,
+  "r1Before": {
+    "passed": 49,
+    "failed": 0
+  },
+  "focusedProtectedGates": {
+    "passed": 12,
+    "failed": 0,
+    "runBeforeSmoke": true
+  },
+  "blocker": "[pid=93][err] [93:93:1108/230356.540295:FATAL:chrome/browser/process_singleton_posix.cc:297] Check failed: . socket() failed: Operation not permitted (1)"
+}

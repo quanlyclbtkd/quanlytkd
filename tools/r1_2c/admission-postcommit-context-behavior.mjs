@@ -4,6 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const ROOT = process.env.ROOT || process.cwd();
+const { installTransactionFixture, fixtureSnapshot } = await import(pathToFileURL(path.join(ROOT, 'tools/inventory-stock-r1/transaction-fixture.mjs')).href);
 const EXPECT = process.env.EXPECT || 'green';
 let pass = 0, fail = 0;
 const check = (name, ok, detail = '') => {
@@ -127,6 +128,11 @@ function installSdk() {
       return b;
     },
   };
+  // These admission/context cases require a valid stocked uniform fixture;
+  // zero/insufficient stock and retries are covered by the stock-authority suite.
+  installTransactionFixture(window._fb_init, ref => fixtureSnapshot(ref, {
+    'Võ phục|||160_balance': 100, 'Võ phục|||170_balance': 100,
+  }));
 }
 function monthsFrom(startMonth, count) {
   let [y, m] = startMonth.split('-').map(Number); const out = [];
@@ -237,7 +243,7 @@ const sensitiveBToast = r => r.effects.some(x => x.kind === 'toast' && x.club ==
 // Runtime owner/reachability proof.
 const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
 check('A_CANONICAL_OWNER_STUDENTS_MODULE', studentsSource.includes('window.addNewStudent = async') && main.includes('initStudents'));
-check('A_ONE_BATCH_ADMISSION_SOURCE', (studentsSource.match(/await batch\.commit\(\)/g) || []).length >= 1 && studentsSource.includes('const batch = writeBatch(_db())'));
+check('A_ONE_ATOMIC_ADMISSION_SOURCE', (studentsSource.match(/await batch\.commit\(\)/g) || []).length >= 1 && studentsSource.includes('InventoryService.createStockMutationBatch') && studentsSource.includes(': writeBatch(_db())'));
 
 // Core A->B post-ACK race.
 let r = await runAdmission({ fee: 500000, pkg: 3, uniformFee: 300000, uniformSize: '160', commitAction: async () => { setCtx('B', 2); } });

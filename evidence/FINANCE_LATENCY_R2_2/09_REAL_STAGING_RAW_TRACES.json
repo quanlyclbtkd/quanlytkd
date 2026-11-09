@@ -1,0 +1,25 @@
+{
+  "phase": "A9R18-FINANCE-SYNC-WRITE-LATENCY-R2.2",
+  "status": "REAL_STAGING_EVIDENCE_NOT_RUN",
+  "decision": "R2_2_BLOCKED_STAGING_IDENTITY",
+  "evidenceLevel": "REAL_STAGING",
+  "stagingIdentityVerified": false,
+  "stagingEnvironment": {
+    "browser": null,
+    "device": null,
+    "viewport": null,
+    "network": null,
+    "session": null,
+    "expectedProjectId": null,
+    "observedProjectId": null,
+    "allowlistedHostname": null,
+    "safeFixtureVerified": false
+  },
+  "localSourceRuntimeSHA256": "3e4e56fc385ef13bc74b5d6f2df1182137d38355d65eed4394a807de58f9e3da",
+  "loadedBrowserSourceSHA256": null,
+  "traceCount": 0,
+  "validTraceCount": 0,
+  "traces": [],
+  "syntheticSamplesIncluded": false,
+  "billing": "FIRESTORE_BILLING_NOT_MEASURED"
+}

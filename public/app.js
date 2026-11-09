@@ -5723,56 +5723,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     };
 
     document.getElementById('inventoryForm').onsubmit = async (e) => {
-        e.preventDefault(); if(window.userRole === 'viewer') return alert("Tài khoản khách không thể nhập xuất kho!");
-        const category = document.getElementById('inv_category').value || 'Võ phục';
-        // Đọc size từ element đang hiển thị (dropdown khi Võ phục hoặc danh mục có sizes, text khi nhập tự do)
-        const _invSizeEl = document.getElementById('inv_size');
-        const _invSizeTxtEl = document.getElementById('inv_size_text');
-        const size = (_invSizeEl && _invSizeEl.style.display !== 'none'
-            ? _invSizeEl.value
-            : (_invSizeTxtEl ? _invSizeTxtEl.value : '')).trim();
-        if(!size) return alert("Vui lòng nhập kích cỡ hàng hóa!");
-        const type = document.getElementById('inv_type').value; const qty = Number(document.getElementById('inv_qty').value); const desc = document.getElementById('inv_desc').value.trim(); const amount = Number(document.getElementById('inv_totalActual').value); const date = document.getElementById('inv_date').value; const branch = 'Chung';
-
-        const isUnpaid = type === 'Xuất bán' && document.getElementById('inv_unpaid') && document.getElementById('inv_unpaid').checked;
-        const invData = { category, size, type, qty, desc, amount, date, timestamp: Date.now() };
-        if(type === 'Xuất bán' && typeof window.resolveInventoryDebtIdentity === 'function') {
-            const _identity = window.resolveInventoryDebtIdentity(desc);
-            if(_identity.profileId) invData.profileId = _identity.profileId;
-            if(_identity.memberId) invData.memberId = _identity.memberId;
-            if(_identity.studentName) invData.studentName = _identity.studentName;
-        }
-        if(isUnpaid) { invData.unpaid = true; invData.inventoryDebtStatus = 'pending'; }
-        let invDoc;
-        if (window.InventoryService && typeof window.InventoryService.addItem === 'function') {
-            const _invId = await window.InventoryService.addItem(invData);
-            invDoc = { id: _invId };
-        } else {
-            invDoc = await addDoc(invRef, invData);
-            const _base = category + '|||' + size, _isIn = type === 'Nhập kho';
-            await setDoc(doc(db, 'clubs', currentClubId, 'settings', 'inventory_stats'), {
-                [_base + '_balance']: increment(_isIn ? qty : -qty), [_base + (_isIn ? '_in' : '_out')]: increment(qty)
-            }, { merge: true });
-            window.mergeInventoryIntoRuntimeStore?.({ id: invDoc.id, ...invData }, 'legacy-inventory-form-submit');
-        }
-
-        if (amount > 0) {
-             await addDoc(colRef, _canonicalTxPayload({ branch, type: type === 'Nhập kho' ? `Chi ${category}` : `Thu ${category}`, description: type === 'Nhập kho' ? `Nhập ${category} ${size} từ ${desc}` : `Bán ${category} ${size} cho ${desc}`, amount, date, timestamp: Date.now(), relatedInvId: invDoc.id }, 'inventory-form-finance'));
-        } else if (type === 'Xuất bán') {
-             await addDoc(colRef, _canonicalTxPayload({ branch, type: `Tặng ${category}`, description: `Tặng ${category} ${size} cho ${desc}`, amount: 0, date, timestamp: Date.now(), relatedInvId: invDoc.id }, 'inventory-form-gift'));
-        }
-
-        e.target.reset();
-        // Khôi phục trạng thái mặc định sau khi submit (về Võ phục)
-        document.getElementById('inv_size').style.display = '';
-        document.getElementById('inv_size_text').style.display = 'none';
-        document.getElementById('inv_priceActual').value = "";
-        document.getElementById('inv_totalActual').value = "";
-        document.getElementById('inv_date').value = getLocalToday();
-        // Cập nhật lại dropdown danh mục (bao gồm tùy chỉnh)
-        window.populateInvCategorySelects && window.populateInvCategorySelects();
-        window.toggleInvType();
-        window.showToast("✅ Đã cập nhật Kho!");
+        e.preventDefault();
+        window.showToast?.('Kho đang tải. Vui lòng đợi module Kho sẵn sàng rồi thực hiện lại.', 3000);
+        return false;
     };
 
     window.openEditInv = async (txId, invId) => {
@@ -9843,7 +9796,11 @@ window.processMultiItem = async (action) => {
                 throw _tooLarge;
             }
 
-            const _batch = writeBatch(db);
+            const _batch = _preparedInventory ? window.InventoryService.createStockMutationBatch({
+                mutations: [{ item: _preparedInventory.payload, direction: 1 }],
+                writeClubId: _miClubId, projectionScope: _preparedInventory.projectionScope,
+                beforeCommit: () => {if(!_miContextCurrent())throw Object.assign(new Error('Financial write context stale'),{code:'finance/write-context-stale'});},
+            }) : writeBatch(db);
             if(hasTuition && packageMonths.length > 0) {
                 _batch.update(doc(db, 'clubs', _miClubId, 'profiles', name), {
                     paidUntil: _resultPaidUntil,
