@@ -14,6 +14,7 @@
  */
 
 import { StudentSearchIndex, rankStudentNameSearchResults } from '../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { requestExamUiRefresh } from '../listeners/exam.listeners.js';
 
 // ── Internal state ────────────────────────────────────────────────────────────
 
@@ -132,6 +133,7 @@ function _getAdaptiveSearchDelay(raw, reason) {
     // Fast path: student profiles are already hydrated locally, so no need to wait
     // 450ms before filtering the in-memory search blob cache.
     if (_isStudentTab(tab) && _getProfileCount() > 0) return _state.fastDebounceMs;
+    if (tab === 'exam' && _getProfileCount() > 0) return _state.fastDebounceMs;
 
     // Debt / finance / inventory are local invalidation filters; keep them responsive
     // while still preventing excessive rerenders during fast typing.
@@ -584,7 +586,9 @@ async function _runSearchLatestOnly(raw, reason, options = {}) {
 
 function _runLocalOnlySearch(tab, term) {
     // For 1-char search — do local filter but no Firestore
-    if (tab === 'debt') {
+    if (tab === 'exam') {
+        requestExamUiRefresh('search-v2-local-exam');
+    } else if (tab === 'debt') {
         _state.localDebtRuns++;
         const st = window.__store || {};
         st._globalSearchTerm = term;
@@ -624,12 +628,20 @@ function _clearSearchV2ForTab(tab) {
 
     // R2R5.2 B3: search is presentation context. Refresh only the active tab;
     // hidden domains will miss naturally on their next semantic context key.
+    if (tab === 'exam') {
+        requestExamUiRefresh('search-v2-clear-exam');
+        return;
+    }
     if (typeof window.invalidateCurrentTab === 'function') {
         window.invalidateCurrentTab('search-v2-clear');
     }
 }
 
 async function _dispatchSearchV2(term, tab, token) {
+    if (tab === 'exam') {
+        requestExamUiRefresh('search-v2-exam');
+        return { source: 'exam-local' };
+    }
     if (tab === 'active' || tab === 'quit') {
         return _searchStudentsV2(term, tab, token);
     }

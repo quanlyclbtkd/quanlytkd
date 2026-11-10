@@ -1,0 +1,896 @@
+{
+  "phase": "A9R18-EXAM-SEARCH-MOBILE-FOCUS-R1",
+  "evidenceLevel": "ACTUAL_SOURCE_BEHAVIORAL_SYNTHETIC_DOM",
+  "sourceRoot": "/workspace/scratch/036ee6a06c71/exam_search_focus_r1/candidate/source",
+  "passed": 88,
+  "failed": 0,
+  "tests": [
+    {
+      "id": "S01",
+      "name": "blank roster preserves exact baseline HTML and newly-upgraded grouping",
+      "status": "PASS"
+    },
+    {
+      "id": "S02",
+      "name": "off-belt exact display name",
+      "status": "PASS"
+    },
+    {
+      "id": "S03",
+      "name": "accent-insensitive name",
+      "status": "PASS"
+    },
+    {
+      "id": "S04",
+      "name": "phone substring",
+      "status": "PASS"
+    },
+    {
+      "id": "S05",
+      "name": "parent phone",
+      "status": "PASS"
+    },
+    {
+      "id": "S05b",
+      "name": "contact phone",
+      "status": "PASS"
+    },
+    {
+      "id": "S05c",
+      "name": "guardian phone",
+      "status": "PASS"
+    },
+    {
+      "id": "S06",
+      "name": "member ID",
+      "status": "PASS"
+    },
+    {
+      "id": "S06b",
+      "name": "student code",
+      "status": "PASS"
+    },
+    {
+      "id": "S06c",
+      "name": "VTF code",
+      "status": "PASS"
+    },
+    {
+      "id": "S07",
+      "name": "belt search discovers active red belts across selected white belt",
+      "status": "PASS"
+    },
+    {
+      "id": "S08",
+      "name": "inactive and quit profiles excluded from local discovery",
+      "status": "PASS"
+    },
+    {
+      "id": "S09",
+      "name": "paid off-belt student remains discoverable with existing cancel action",
+      "status": "PASS"
+    },
+    {
+      "id": "S10",
+      "name": "unpaid off-belt student exposes existing collection exactly once",
+      "status": "PASS"
+    },
+    {
+      "id": "S11",
+      "name": "off-belt rows never contain upgrade exam-check",
+      "status": "PASS"
+    },
+    {
+      "id": "S12",
+      "name": "paid and unpaid actions remain existing canonical identity paths",
+      "status": "PASS"
+    },
+    {
+      "id": "S13",
+      "name": "same-belt search keeps selectable canonical key",
+      "status": "PASS"
+    },
+    {
+      "id": "S14",
+      "name": "toggle-all only selects displayed upgrade-eligible rows",
+      "status": "PASS"
+    },
+    {
+      "id": "S15",
+      "name": "selectPaidStudents only chooses same-belt paid non-newly-upgraded rows",
+      "status": "PASS"
+    },
+    {
+      "id": "S16",
+      "name": "batch-upgrade source and expected current-belt guard unchanged",
+      "status": "PASS"
+    },
+    {
+      "id": "S17",
+      "name": "clear search requests roster owner and restores selected-belt rows",
+      "status": "PASS"
+    },
+    {
+      "id": "S18",
+      "name": "one-character Exam input refreshes locally with zero IO",
+      "status": "PASS"
+    },
+    {
+      "id": "S19",
+      "name": "rapid typing uses existing timer + one coalesced scheduler and latest input",
+      "status": "PASS"
+    },
+    {
+      "id": "S20",
+      "name": "tab entry consumes populated canonical input without replay or new keystroke",
+      "status": "PASS"
+    },
+    {
+      "id": "S21",
+      "name": "repeat init leaves one input listener and no second search field",
+      "status": "PASS"
+    },
+    {
+      "id": "S22",
+      "name": "presentation changes do not mutate profiles or ledger and cause zero SDK IO",
+      "status": "PASS"
+    },
+    {
+      "id": "E01",
+      "name": "normal dispatch explicitly uses existing Exam presentation owner",
+      "status": "PASS"
+    },
+    {
+      "id": "E02",
+      "name": "renderExamList actually reads and changes result with canonical searchInput",
+      "status": "PASS"
+    },
+    {
+      "id": "E03",
+      "name": "RAM search discovers off-filter active profile through StudentSearchIndex",
+      "status": "PASS"
+    },
+    {
+      "id": "E04",
+      "name": "one-character route refreshes without server fallback",
+      "status": "PASS"
+    },
+    {
+      "id": "E05",
+      "name": "clear route targets Exam roster rather than Finance expense invalidation",
+      "status": "PASS"
+    },
+    {
+      "id": "E06",
+      "name": "hydrated Exam gets existing fast local timing only",
+      "status": "PASS"
+    },
+    {
+      "id": "E07",
+      "name": "same authority token never suppresses a new search term",
+      "status": "PASS"
+    },
+    {
+      "id": "E08",
+      "name": "search render scheduled before tab leave does no hidden DOM work",
+      "status": "PASS"
+    },
+    {
+      "id": "E09",
+      "name": "local matcher never truncates discovery to default first 100 results",
+      "status": "PASS"
+    },
+    {
+      "id": "E10",
+      "name": "existing studentMatchesSearch fallback remains RAM only",
+      "status": "PASS"
+    },
+    {
+      "id": "E11",
+      "name": "cross-belt search keeps per-row new badge without selected-belt separator",
+      "status": "PASS"
+    },
+    {
+      "id": "E12",
+      "name": "active search has search-specific empty state; blank has belt-specific empty state",
+      "status": "PASS"
+    },
+    {
+      "id": "E13",
+      "name": "normalizer-only fallback uses existing normalization without a new engine",
+      "status": "PASS"
+    },
+    {
+      "id": "A01-canonical",
+      "name": "closed markup starts aria-hidden=true",
+      "status": "PASS"
+    },
+    {
+      "id": "A02-canonical",
+      "name": "closed markup is inert",
+      "status": "PASS"
+    },
+    {
+      "id": "A03-canonical",
+      "name": "open removes inert and exposes sheet + expanded triggers",
+      "status": "PASS"
+    },
+    {
+      "id": "A06-canonical",
+      "name": "focused Exam descendant leaves sheet BEFORE aria-hidden true",
+      "status": "PASS"
+    },
+    {
+      "id": "A10-canonical",
+      "name": "actual opener A and B are individually restored",
+      "status": "PASS"
+    },
+    {
+      "id": "A11-canonical",
+      "name": "detached original opener falls back to connected trigger",
+      "status": "PASS"
+    },
+    {
+      "id": "A11b-canonical",
+      "name": "disabled or hidden opener is skipped",
+      "status": "PASS"
+    },
+    {
+      "id": "A11c-canonical",
+      "name": "no available trigger blurs focused descendant before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A11d-canonical",
+      "name": "if focus cannot leave, close fails safely without hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A16-canonical",
+      "name": "repeated open/close adds no listeners and restores body + expanded",
+      "status": "PASS"
+    },
+    {
+      "id": "A18-canonical",
+      "name": "focus already outside sheet is preserved on close",
+      "status": "PASS"
+    },
+    {
+      "id": "A08-canonical",
+      "name": "actual Exam onclick still invokes switchTab exam once after safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A12-canonical",
+      "name": "actual X button handler closes after releasing focus",
+      "status": "PASS"
+    },
+    {
+      "id": "A13-canonical",
+      "name": "actual backdrop close condition releases focus first",
+      "status": "PASS"
+    },
+    {
+      "id": "A14-canonical",
+      "name": "actual Escape event binding releases focus before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A15-canonical",
+      "name": "all existing module/settings/password/logout action handlers share safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A01-fallback",
+      "name": "closed markup starts aria-hidden=true",
+      "status": "PASS"
+    },
+    {
+      "id": "A02-fallback",
+      "name": "closed markup is inert",
+      "status": "PASS"
+    },
+    {
+      "id": "A03-fallback",
+      "name": "open removes inert and exposes sheet + expanded triggers",
+      "status": "PASS"
+    },
+    {
+      "id": "A06-fallback",
+      "name": "focused Exam descendant leaves sheet BEFORE aria-hidden true",
+      "status": "PASS"
+    },
+    {
+      "id": "A10-fallback",
+      "name": "actual opener A and B are individually restored",
+      "status": "PASS"
+    },
+    {
+      "id": "A11-fallback",
+      "name": "detached original opener falls back to connected trigger",
+      "status": "PASS"
+    },
+    {
+      "id": "A11b-fallback",
+      "name": "disabled or hidden opener is skipped",
+      "status": "PASS"
+    },
+    {
+      "id": "A11c-fallback",
+      "name": "no available trigger blurs focused descendant before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A11d-fallback",
+      "name": "if focus cannot leave, close fails safely without hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A16-fallback",
+      "name": "repeated open/close adds no listeners and restores body + expanded",
+      "status": "PASS"
+    },
+    {
+      "id": "A18-fallback",
+      "name": "focus already outside sheet is preserved on close",
+      "status": "PASS"
+    },
+    {
+      "id": "A08-fallback",
+      "name": "actual Exam onclick still invokes switchTab exam once after safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A12-fallback",
+      "name": "actual X button handler closes after releasing focus",
+      "status": "PASS"
+    },
+    {
+      "id": "A13-fallback",
+      "name": "actual backdrop close condition releases focus first",
+      "status": "PASS"
+    },
+    {
+      "id": "A14-fallback",
+      "name": "actual Escape event binding releases focus before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A15-fallback",
+      "name": "all existing module/settings/password/logout action handlers share safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A01-inline",
+      "name": "closed markup starts aria-hidden=true",
+      "status": "PASS"
+    },
+    {
+      "id": "A02-inline",
+      "name": "closed markup is inert",
+      "status": "PASS"
+    },
+    {
+      "id": "A03-inline",
+      "name": "open removes inert and exposes sheet + expanded triggers",
+      "status": "PASS"
+    },
+    {
+      "id": "A06-inline",
+      "name": "focused Exam descendant leaves sheet BEFORE aria-hidden true",
+      "status": "PASS"
+    },
+    {
+      "id": "A10-inline",
+      "name": "actual opener A and B are individually restored",
+      "status": "PASS"
+    },
+    {
+      "id": "A11-inline",
+      "name": "detached original opener falls back to connected trigger",
+      "status": "PASS"
+    },
+    {
+      "id": "A11b-inline",
+      "name": "disabled or hidden opener is skipped",
+      "status": "PASS"
+    },
+    {
+      "id": "A11c-inline",
+      "name": "no available trigger blurs focused descendant before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A11d-inline",
+      "name": "if focus cannot leave, close fails safely without hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A16-inline",
+      "name": "repeated open/close adds no listeners and restores body + expanded",
+      "status": "PASS"
+    },
+    {
+      "id": "A18-inline",
+      "name": "focus already outside sheet is preserved on close",
+      "status": "PASS"
+    },
+    {
+      "id": "A08-inline",
+      "name": "actual Exam onclick still invokes switchTab exam once after safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A12-inline",
+      "name": "actual X button handler closes after releasing focus",
+      "status": "PASS"
+    },
+    {
+      "id": "A13-inline",
+      "name": "actual backdrop close condition releases focus first",
+      "status": "PASS"
+    },
+    {
+      "id": "A14-inline",
+      "name": "actual Escape event binding releases focus before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A15-inline",
+      "name": "all existing module/settings/password/logout action handlers share safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A20",
+      "name": "three compatibility paths use equivalent private release-focus algorithm",
+      "status": "PASS"
+    }
+  ],
+  "search": [
+    {
+      "id": "S01",
+      "name": "blank roster preserves exact baseline HTML and newly-upgraded grouping",
+      "status": "PASS"
+    },
+    {
+      "id": "S02",
+      "name": "off-belt exact display name",
+      "status": "PASS"
+    },
+    {
+      "id": "S03",
+      "name": "accent-insensitive name",
+      "status": "PASS"
+    },
+    {
+      "id": "S04",
+      "name": "phone substring",
+      "status": "PASS"
+    },
+    {
+      "id": "S05",
+      "name": "parent phone",
+      "status": "PASS"
+    },
+    {
+      "id": "S05b",
+      "name": "contact phone",
+      "status": "PASS"
+    },
+    {
+      "id": "S05c",
+      "name": "guardian phone",
+      "status": "PASS"
+    },
+    {
+      "id": "S06",
+      "name": "member ID",
+      "status": "PASS"
+    },
+    {
+      "id": "S06b",
+      "name": "student code",
+      "status": "PASS"
+    },
+    {
+      "id": "S06c",
+      "name": "VTF code",
+      "status": "PASS"
+    },
+    {
+      "id": "S07",
+      "name": "belt search discovers active red belts across selected white belt",
+      "status": "PASS"
+    },
+    {
+      "id": "S08",
+      "name": "inactive and quit profiles excluded from local discovery",
+      "status": "PASS"
+    },
+    {
+      "id": "S09",
+      "name": "paid off-belt student remains discoverable with existing cancel action",
+      "status": "PASS"
+    },
+    {
+      "id": "S10",
+      "name": "unpaid off-belt student exposes existing collection exactly once",
+      "status": "PASS"
+    },
+    {
+      "id": "S11",
+      "name": "off-belt rows never contain upgrade exam-check",
+      "status": "PASS"
+    },
+    {
+      "id": "S12",
+      "name": "paid and unpaid actions remain existing canonical identity paths",
+      "status": "PASS"
+    },
+    {
+      "id": "S13",
+      "name": "same-belt search keeps selectable canonical key",
+      "status": "PASS"
+    },
+    {
+      "id": "S14",
+      "name": "toggle-all only selects displayed upgrade-eligible rows",
+      "status": "PASS"
+    },
+    {
+      "id": "S15",
+      "name": "selectPaidStudents only chooses same-belt paid non-newly-upgraded rows",
+      "status": "PASS"
+    },
+    {
+      "id": "S16",
+      "name": "batch-upgrade source and expected current-belt guard unchanged",
+      "status": "PASS"
+    },
+    {
+      "id": "S17",
+      "name": "clear search requests roster owner and restores selected-belt rows",
+      "status": "PASS"
+    },
+    {
+      "id": "S18",
+      "name": "one-character Exam input refreshes locally with zero IO",
+      "status": "PASS"
+    },
+    {
+      "id": "S19",
+      "name": "rapid typing uses existing timer + one coalesced scheduler and latest input",
+      "status": "PASS"
+    },
+    {
+      "id": "S20",
+      "name": "tab entry consumes populated canonical input without replay or new keystroke",
+      "status": "PASS"
+    },
+    {
+      "id": "S21",
+      "name": "repeat init leaves one input listener and no second search field",
+      "status": "PASS"
+    },
+    {
+      "id": "S22",
+      "name": "presentation changes do not mutate profiles or ledger and cause zero SDK IO",
+      "status": "PASS"
+    },
+    {
+      "id": "E01",
+      "name": "normal dispatch explicitly uses existing Exam presentation owner",
+      "status": "PASS"
+    },
+    {
+      "id": "E02",
+      "name": "renderExamList actually reads and changes result with canonical searchInput",
+      "status": "PASS"
+    },
+    {
+      "id": "E03",
+      "name": "RAM search discovers off-filter active profile through StudentSearchIndex",
+      "status": "PASS"
+    },
+    {
+      "id": "E04",
+      "name": "one-character route refreshes without server fallback",
+      "status": "PASS"
+    },
+    {
+      "id": "E05",
+      "name": "clear route targets Exam roster rather than Finance expense invalidation",
+      "status": "PASS"
+    },
+    {
+      "id": "E06",
+      "name": "hydrated Exam gets existing fast local timing only",
+      "status": "PASS"
+    },
+    {
+      "id": "E07",
+      "name": "same authority token never suppresses a new search term",
+      "status": "PASS"
+    },
+    {
+      "id": "E08",
+      "name": "search render scheduled before tab leave does no hidden DOM work",
+      "status": "PASS"
+    },
+    {
+      "id": "E09",
+      "name": "local matcher never truncates discovery to default first 100 results",
+      "status": "PASS"
+    },
+    {
+      "id": "E10",
+      "name": "existing studentMatchesSearch fallback remains RAM only",
+      "status": "PASS"
+    },
+    {
+      "id": "E11",
+      "name": "cross-belt search keeps per-row new badge without selected-belt separator",
+      "status": "PASS"
+    },
+    {
+      "id": "E12",
+      "name": "active search has search-specific empty state; blank has belt-specific empty state",
+      "status": "PASS"
+    },
+    {
+      "id": "E13",
+      "name": "normalizer-only fallback uses existing normalization without a new engine",
+      "status": "PASS"
+    }
+  ],
+  "focus": [
+    {
+      "id": "A01-canonical",
+      "name": "closed markup starts aria-hidden=true",
+      "status": "PASS"
+    },
+    {
+      "id": "A02-canonical",
+      "name": "closed markup is inert",
+      "status": "PASS"
+    },
+    {
+      "id": "A03-canonical",
+      "name": "open removes inert and exposes sheet + expanded triggers",
+      "status": "PASS"
+    },
+    {
+      "id": "A06-canonical",
+      "name": "focused Exam descendant leaves sheet BEFORE aria-hidden true",
+      "status": "PASS"
+    },
+    {
+      "id": "A10-canonical",
+      "name": "actual opener A and B are individually restored",
+      "status": "PASS"
+    },
+    {
+      "id": "A11-canonical",
+      "name": "detached original opener falls back to connected trigger",
+      "status": "PASS"
+    },
+    {
+      "id": "A11b-canonical",
+      "name": "disabled or hidden opener is skipped",
+      "status": "PASS"
+    },
+    {
+      "id": "A11c-canonical",
+      "name": "no available trigger blurs focused descendant before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A11d-canonical",
+      "name": "if focus cannot leave, close fails safely without hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A16-canonical",
+      "name": "repeated open/close adds no listeners and restores body + expanded",
+      "status": "PASS"
+    },
+    {
+      "id": "A18-canonical",
+      "name": "focus already outside sheet is preserved on close",
+      "status": "PASS"
+    },
+    {
+      "id": "A08-canonical",
+      "name": "actual Exam onclick still invokes switchTab exam once after safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A12-canonical",
+      "name": "actual X button handler closes after releasing focus",
+      "status": "PASS"
+    },
+    {
+      "id": "A13-canonical",
+      "name": "actual backdrop close condition releases focus first",
+      "status": "PASS"
+    },
+    {
+      "id": "A14-canonical",
+      "name": "actual Escape event binding releases focus before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A15-canonical",
+      "name": "all existing module/settings/password/logout action handlers share safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A01-fallback",
+      "name": "closed markup starts aria-hidden=true",
+      "status": "PASS"
+    },
+    {
+      "id": "A02-fallback",
+      "name": "closed markup is inert",
+      "status": "PASS"
+    },
+    {
+      "id": "A03-fallback",
+      "name": "open removes inert and exposes sheet + expanded triggers",
+      "status": "PASS"
+    },
+    {
+      "id": "A06-fallback",
+      "name": "focused Exam descendant leaves sheet BEFORE aria-hidden true",
+      "status": "PASS"
+    },
+    {
+      "id": "A10-fallback",
+      "name": "actual opener A and B are individually restored",
+      "status": "PASS"
+    },
+    {
+      "id": "A11-fallback",
+      "name": "detached original opener falls back to connected trigger",
+      "status": "PASS"
+    },
+    {
+      "id": "A11b-fallback",
+      "name": "disabled or hidden opener is skipped",
+      "status": "PASS"
+    },
+    {
+      "id": "A11c-fallback",
+      "name": "no available trigger blurs focused descendant before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A11d-fallback",
+      "name": "if focus cannot leave, close fails safely without hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A16-fallback",
+      "name": "repeated open/close adds no listeners and restores body + expanded",
+      "status": "PASS"
+    },
+    {
+      "id": "A18-fallback",
+      "name": "focus already outside sheet is preserved on close",
+      "status": "PASS"
+    },
+    {
+      "id": "A08-fallback",
+      "name": "actual Exam onclick still invokes switchTab exam once after safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A12-fallback",
+      "name": "actual X button handler closes after releasing focus",
+      "status": "PASS"
+    },
+    {
+      "id": "A13-fallback",
+      "name": "actual backdrop close condition releases focus first",
+      "status": "PASS"
+    },
+    {
+      "id": "A14-fallback",
+      "name": "actual Escape event binding releases focus before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A15-fallback",
+      "name": "all existing module/settings/password/logout action handlers share safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A01-inline",
+      "name": "closed markup starts aria-hidden=true",
+      "status": "PASS"
+    },
+    {
+      "id": "A02-inline",
+      "name": "closed markup is inert",
+      "status": "PASS"
+    },
+    {
+      "id": "A03-inline",
+      "name": "open removes inert and exposes sheet + expanded triggers",
+      "status": "PASS"
+    },
+    {
+      "id": "A06-inline",
+      "name": "focused Exam descendant leaves sheet BEFORE aria-hidden true",
+      "status": "PASS"
+    },
+    {
+      "id": "A10-inline",
+      "name": "actual opener A and B are individually restored",
+      "status": "PASS"
+    },
+    {
+      "id": "A11-inline",
+      "name": "detached original opener falls back to connected trigger",
+      "status": "PASS"
+    },
+    {
+      "id": "A11b-inline",
+      "name": "disabled or hidden opener is skipped",
+      "status": "PASS"
+    },
+    {
+      "id": "A11c-inline",
+      "name": "no available trigger blurs focused descendant before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A11d-inline",
+      "name": "if focus cannot leave, close fails safely without hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A16-inline",
+      "name": "repeated open/close adds no listeners and restores body + expanded",
+      "status": "PASS"
+    },
+    {
+      "id": "A18-inline",
+      "name": "focus already outside sheet is preserved on close",
+      "status": "PASS"
+    },
+    {
+      "id": "A08-inline",
+      "name": "actual Exam onclick still invokes switchTab exam once after safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A12-inline",
+      "name": "actual X button handler closes after releasing focus",
+      "status": "PASS"
+    },
+    {
+      "id": "A13-inline",
+      "name": "actual backdrop close condition releases focus first",
+      "status": "PASS"
+    },
+    {
+      "id": "A14-inline",
+      "name": "actual Escape event binding releases focus before hiding",
+      "status": "PASS"
+    },
+    {
+      "id": "A15-inline",
+      "name": "all existing module/settings/password/logout action handlers share safe close",
+      "status": "PASS"
+    },
+    {
+      "id": "A20",
+      "name": "three compatibility paths use equivalent private release-focus algorithm",
+      "status": "PASS"
+    }
+  ],
+  "realChromium": "NOT_RUN_BY_THIS_CHECKER",
+  "financialWrites": 0,
+  "firestoreIO": 0
+}

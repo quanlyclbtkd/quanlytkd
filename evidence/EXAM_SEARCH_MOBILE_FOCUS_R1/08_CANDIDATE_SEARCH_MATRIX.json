@@ -1,0 +1,211 @@
+{
+  "phase": "A9R18-EXAM-SEARCH-MOBILE-FOCUS-R1",
+  "status": "PASS_ACTUAL_SOURCE_SYNTHETIC_SEARCH",
+  "evidenceLevel": "ACTUAL_SOURCE_BEHAVIORAL_SYNTHETIC_DOM",
+  "searchChecksPassed": 39,
+  "failed": 0,
+  "blankRosterHtmlByteEquivalentToBaseline": true,
+  "searchTermIsPresentationOnly": true,
+  "offBeltUpgradeEligibility": false,
+  "financeCallbackScope": "Existing action handlers invoked against test spies; real financial writes not performed. Canonical writer source unchanged and protected gates PASS.",
+  "tests": [
+    {
+      "id": "S01",
+      "name": "blank roster preserves exact baseline HTML and newly-upgraded grouping",
+      "status": "PASS"
+    },
+    {
+      "id": "S02",
+      "name": "off-belt exact display name",
+      "status": "PASS"
+    },
+    {
+      "id": "S03",
+      "name": "accent-insensitive name",
+      "status": "PASS"
+    },
+    {
+      "id": "S04",
+      "name": "phone substring",
+      "status": "PASS"
+    },
+    {
+      "id": "S05",
+      "name": "parent phone",
+      "status": "PASS"
+    },
+    {
+      "id": "S05b",
+      "name": "contact phone",
+      "status": "PASS"
+    },
+    {
+      "id": "S05c",
+      "name": "guardian phone",
+      "status": "PASS"
+    },
+    {
+      "id": "S06",
+      "name": "member ID",
+      "status": "PASS"
+    },
+    {
+      "id": "S06b",
+      "name": "student code",
+      "status": "PASS"
+    },
+    {
+      "id": "S06c",
+      "name": "VTF code",
+      "status": "PASS"
+    },
+    {
+      "id": "S07",
+      "name": "belt search discovers active red belts across selected white belt",
+      "status": "PASS"
+    },
+    {
+      "id": "S08",
+      "name": "inactive and quit profiles excluded from local discovery",
+      "status": "PASS"
+    },
+    {
+      "id": "S09",
+      "name": "paid off-belt student remains discoverable with existing cancel action",
+      "status": "PASS"
+    },
+    {
+      "id": "S10",
+      "name": "unpaid off-belt student exposes existing collection exactly once",
+      "status": "PASS"
+    },
+    {
+      "id": "S11",
+      "name": "off-belt rows never contain upgrade exam-check",
+      "status": "PASS"
+    },
+    {
+      "id": "S12",
+      "name": "paid and unpaid actions remain existing canonical identity paths",
+      "status": "PASS"
+    },
+    {
+      "id": "S13",
+      "name": "same-belt search keeps selectable canonical key",
+      "status": "PASS"
+    },
+    {
+      "id": "S14",
+      "name": "toggle-all only selects displayed upgrade-eligible rows",
+      "status": "PASS"
+    },
+    {
+      "id": "S15",
+      "name": "selectPaidStudents only chooses same-belt paid non-newly-upgraded rows",
+      "status": "PASS"
+    },
+    {
+      "id": "S16",
+      "name": "batch-upgrade source and expected current-belt guard unchanged",
+      "status": "PASS"
+    },
+    {
+      "id": "S17",
+      "name": "clear search requests roster owner and restores selected-belt rows",
+      "status": "PASS"
+    },
+    {
+      "id": "S18",
+      "name": "one-character Exam input refreshes locally with zero IO",
+      "status": "PASS"
+    },
+    {
+      "id": "S19",
+      "name": "rapid typing uses existing timer + one coalesced scheduler and latest input",
+      "status": "PASS"
+    },
+    {
+      "id": "S20",
+      "name": "tab entry consumes populated canonical input without replay or new keystroke",
+      "status": "PASS"
+    },
+    {
+      "id": "S21",
+      "name": "repeat init leaves one input listener and no second search field",
+      "status": "PASS"
+    },
+    {
+      "id": "S22",
+      "name": "presentation changes do not mutate profiles or ledger and cause zero SDK IO",
+      "status": "PASS"
+    },
+    {
+      "id": "E01",
+      "name": "normal dispatch explicitly uses existing Exam presentation owner",
+      "status": "PASS"
+    },
+    {
+      "id": "E02",
+      "name": "renderExamList actually reads and changes result with canonical searchInput",
+      "status": "PASS"
+    },
+    {
+      "id": "E03",
+      "name": "RAM search discovers off-filter active profile through StudentSearchIndex",
+      "status": "PASS"
+    },
+    {
+      "id": "E04",
+      "name": "one-character route refreshes without server fallback",
+      "status": "PASS"
+    },
+    {
+      "id": "E05",
+      "name": "clear route targets Exam roster rather than Finance expense invalidation",
+      "status": "PASS"
+    },
+    {
+      "id": "E06",
+      "name": "hydrated Exam gets existing fast local timing only",
+      "status": "PASS"
+    },
+    {
+      "id": "E07",
+      "name": "same authority token never suppresses a new search term",
+      "status": "PASS"
+    },
+    {
+      "id": "E08",
+      "name": "search render scheduled before tab leave does no hidden DOM work",
+      "status": "PASS"
+    },
+    {
+      "id": "E09",
+      "name": "local matcher never truncates discovery to default first 100 results",
+      "status": "PASS"
+    },
+    {
+      "id": "E10",
+      "name": "existing studentMatchesSearch fallback remains RAM only",
+      "status": "PASS"
+    },
+    {
+      "id": "E11",
+      "name": "cross-belt search keeps per-row new badge without selected-belt separator",
+      "status": "PASS"
+    },
+    {
+      "id": "E12",
+      "name": "active search has search-specific empty state; blank has belt-specific empty state",
+      "status": "PASS"
+    },
+    {
+      "id": "E13",
+      "name": "normalizer-only fallback uses existing normalization without a new engine",
+      "status": "PASS"
+    }
+  ],
+  "realFirestoreIO": 0,
+  "realFinancialCommands": 0,
+  "browserLayoutOrPhysicalDeviceAcceptance": false
+}

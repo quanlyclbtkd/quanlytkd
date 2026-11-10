@@ -7709,6 +7709,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const filterBelt = document.getElementById('exam_filter_belt').value; const uiExam = document.getElementById('examList'); if(!uiExam) return;
         const selMonth = document.getElementById('filterMonth').value;
         const isSingleBranch = clubConfig.branchCount === 1;
+        const searchTerm = String(document.getElementById('searchInput')?.value || '').trim();
+        const matchedProfileIds = searchTerm && typeof window.StudentSearchIndex?.searchStudents === 'function'
+            ? new Set(window.StudentSearchIndex.searchStudents(searchTerm, {
+                mode: 'all', includeAllStatuses: true, limit: Math.max(1, Object.keys(allProfiles).length),
+            }).entries.map(entry => String(entry.id)))
+            : null;
 
         // Phase 4K-5C: Dùng canonical ledger — paidStudents luôn dedupe + nhất quán
         const examLedger = typeof window.buildCanonicalExamPaymentLedger === 'function'
@@ -7753,7 +7759,18 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         Object.keys(allProfiles).sort().forEach(name => {
             const p = allProfiles[name];
-            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
+            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active') return;
+            const upgradeEligible = (p.belt || 'Đai trắng - Cấp 10') === filterBelt;
+            if (searchTerm) {
+                const matches = matchedProfileIds ? matchedProfileIds.has(String(name))
+                    : typeof window.studentMatchesSearch === 'function'
+                        ? window.studentMatchesSearch(name, p, searchTerm)
+                            || window.studentMatchesSearch(p.displayName || p.name || p.fullName || p.studentName || name, p, searchTerm)
+                        : typeof window.normalizeVNForSearch === 'function'
+                            && window.normalizeVNForSearch([name, p.displayName, p.name, p.phone, p.parentPhone, p.contactPhone, p.memberId, p.studentCode, p.belt].filter(Boolean).join(' '))
+                                .includes(window.normalizeVNForSearch(searchTerm));
+                if (!matches) return;
+            } else if (!upgradeEligible) return;
 
             let isPaid = paidStudents[name]; const _examNameToken = encodeURIComponent(String(name || '')).replace(/'/g, '%27');
             const examDisplayName = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
@@ -7768,9 +7785,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 : (p.upgradedAt && String(p.upgradedAt).slice(0, 7) >= selMonth.substring(0, 7) && p.upgradedFrom);
             const newBadge = isNewlyUpgraded ? `<span class="ml-1 text-[0.65rem] font-black bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded uppercase" title="Vừa thăng từ ${window.escapeHtml(String(p.upgradedFrom || ''))} tháng ${window.escapeHtml(String(p.upgradedAt || ''))}">↑ Mới lên</span>` : '';
 
-            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}"></td><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_examNameToken}'))">${window.escapeHtml(String(examDisplayName || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
+            const selection = upgradeEligible ? `<input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}">` : '—';
+            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td>${selection}</td><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_examNameToken}'))">${window.escapeHtml(String(examDisplayName || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
 
-            if(isNewlyUpgraded) { htmlNewlyUpgraded += row; newlyUpgradedCount++; }
+            if(isNewlyUpgraded && !searchTerm) { htmlNewlyUpgraded += row; newlyUpgradedCount++; }
             else { htmlOriginal += row; }
         });
 
@@ -7781,7 +7799,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             htmlExam += htmlNewlyUpgraded;
         }
 
-        uiExam.innerHTML = htmlExam || `<tr><td colspan="${isSingleBranch ? 5 : 6}" class="text-center text-slate-400 py-8 italic">Không có võ sinh nào ở cấp đai này</td></tr>`;
+        uiExam.innerHTML = htmlExam || `<tr><td colspan="${isSingleBranch ? 5 : 6}" class="text-center text-slate-400 py-8 italic">${searchTerm ? 'Không tìm thấy võ sinh phù hợp' : 'Không có võ sinh nào ở cấp đai này'}</td></tr>`;
 
         // Phase 4K-5C: Cập nhật thẻ ĐÃ ĐĂNG KÝ + TỔNG THU từ canonical ledger
         if (examLedger) {

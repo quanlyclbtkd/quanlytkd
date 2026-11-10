@@ -1,0 +1,178 @@
+{
+  "status": "PASS_SOURCE_SCOPE_AND_BUDGET",
+  "baselineFiles": 1988,
+  "modifiedRuntimeFiles": [
+    {
+      "file": "app.js",
+      "baselineSHA256": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+      "candidateSHA256": "87f21cb01f826fcf8a3836b9efe36232ae8fe4c7c7009796fb925559a2d208dc"
+    },
+    {
+      "file": "index.html",
+      "baselineSHA256": "18590383bef971e26b297118ee19d9032f16ccd3614bd613e66a6999a4685d13",
+      "candidateSHA256": "37043dae42853df95f53eb968d87550d15a338b11499df137dbd6c3ed8d3b25d"
+    },
+    {
+      "file": "js/legacy/legacyUiFallbacks.js",
+      "baselineSHA256": "4a1773ae305467bbf057cabc0ffda7e36cccc0d6525520f96416ee3b695fc852",
+      "candidateSHA256": "d30f013a16e880b2106a14fcbb70108bdc18536146671608e680ee4200840966"
+    },
+    {
+      "file": "js/listeners/exam.listeners.js",
+      "baselineSHA256": "eae546eb6a369ff652c4f3abb0dc69e56cf80604a405a7d575e660c0ed911009",
+      "candidateSHA256": "82b3c47a0d2ec88853635327196bc8662cfbcb61f26fa7641adc0e6464457ac3"
+    },
+    {
+      "file": "js/modules/searchRuntime.js",
+      "baselineSHA256": "489cfce41aafe0147cfebf37e3e879830549465b8cae444e062cdf727ae813d8",
+      "candidateSHA256": "e57d669b02697fedeca7e8b72a4a9d1e16801b66d79ee148d6bf5d8c6a076edf"
+    },
+    {
+      "file": "js/ui/legacyUiShell.js",
+      "baselineSHA256": "0f5dfcc8e11ce115bd7c123b0fe9d37766ba786e50cd49787cfea902522cd2df",
+      "candidateSHA256": "75ae9f7145e707133bbd11a46774039f58f5069c301e4d0ca6017491d41356d8"
+    },
+    {
+      "file": "public/app.js",
+      "baselineSHA256": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+      "candidateSHA256": "87f21cb01f826fcf8a3836b9efe36232ae8fe4c7c7009796fb925559a2d208dc"
+    },
+    {
+      "file": "public/index.html",
+      "baselineSHA256": "18590383bef971e26b297118ee19d9032f16ccd3614bd613e66a6999a4685d13",
+      "candidateSHA256": "37043dae42853df95f53eb968d87550d15a338b11499df137dbd6c3ed8d3b25d"
+    },
+    {
+      "file": "public/js/legacy/legacyUiFallbacks.js",
+      "baselineSHA256": "4a1773ae305467bbf057cabc0ffda7e36cccc0d6525520f96416ee3b695fc852",
+      "candidateSHA256": "d30f013a16e880b2106a14fcbb70108bdc18536146671608e680ee4200840966"
+    },
+    {
+      "file": "public/js/listeners/exam.listeners.js",
+      "baselineSHA256": "eae546eb6a369ff652c4f3abb0dc69e56cf80604a405a7d575e660c0ed911009",
+      "candidateSHA256": "82b3c47a0d2ec88853635327196bc8662cfbcb61f26fa7641adc0e6464457ac3"
+    },
+    {
+      "file": "public/js/modules/searchRuntime.js",
+      "baselineSHA256": "489cfce41aafe0147cfebf37e3e879830549465b8cae444e062cdf727ae813d8",
+      "candidateSHA256": "e57d669b02697fedeca7e8b72a4a9d1e16801b66d79ee148d6bf5d8c6a076edf"
+    },
+    {
+      "file": "public/js/ui/legacyUiShell.js",
+      "baselineSHA256": "0f5dfcc8e11ce115bd7c123b0fe9d37766ba786e50cd49787cfea902522cd2df",
+      "candidateSHA256": "75ae9f7145e707133bbd11a46774039f58f5069c301e4d0ca6017491d41356d8"
+    }
+  ],
+  "newFiles": [
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/01_BASELINE_IDENTITY.md",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/02_EXAM_SEARCH_CURRENT_PATH.md",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/03_MOBILE_FOCUS_CURRENT_PATH.md",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/04_BASELINE_RED_MATRIX.json",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/05_EXAM_SEARCH_DESIGN.md",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/06_MOBILE_FOCUS_DESIGN.md",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/07_CHANGED_FILES.md",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/08_CANDIDATE_SEARCH_MATRIX.json",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/09_CANDIDATE_FOCUS_MATRIX.json",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/10_BROWSER_FOCUS_EVIDENCE.json",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/11_FIRESTORE_CALLSITE_COMPARISON.md",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/12_PROTECTED_REGRESSIONS.md",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/13_ROOT_PUBLIC_PARITY.json",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/14_FINAL_DECISION.md",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/RUNTIME_PATCH.diff",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/SOURCE_SCOPE_AND_BUDGET.json",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/candidate-behavior.json",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/baseline-behavior.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/candidate-behavior.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/mobile-shell-recheck.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/RESULTS.json",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/cross-tab-search-replay.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/exam-auto-select-paid.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/exam-cancel-fee.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/exam-canonical-ledger.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/exam-fee-ui-cleanup.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/exam-payment-identity.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/exam-registration-count.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/exam-upgrade-finance-separation.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/production-authority-closure.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/production-security-trust-boundary.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/search-bindings.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/search-latency-optimization.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/search-v2.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/student-name-search-priority.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/student-search-index.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-baseline/ui-mobile-app-shell.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/RESULTS.json",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/cross-tab-search-replay.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/exam-auto-select-paid.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/exam-cancel-fee.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/exam-canonical-ledger.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/exam-fee-ui-cleanup.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/exam-payment-identity.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/exam-registration-count.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/exam-upgrade-finance-separation.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/production-authority-closure.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/production-security-trust-boundary.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/search-bindings.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/search-latency-optimization.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/search-v2.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/student-name-search-priority.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/student-search-index.log",
+    "evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/logs/protected-candidate/ui-mobile-app-shell.log",
+    "tools/check-exam-search-mobile-focus-r1.mjs",
+    "tools/exam-search-mobile-focus-r1/browser.mjs",
+    "tools/exam-search-mobile-focus-r1/harness.mjs"
+  ],
+  "missingFiles": [],
+  "frozenFilesUnchanged": 1976,
+  "appOutsideRenderExamListSHA256": "2773acff75dbd36d873e40336f4b433c9dbe54dd6422887285a4b06f9c032978",
+  "indexOutsideMenuSHA256": "2598ae3696f0d5d3b3db292856c810fb10da3edcbe396abe348d561368140885",
+  "retainedFunctions": {
+    "js/modules/searchRuntime.js": {
+      "originalFunctionsByteIdentical": 27
+    },
+    "js/listeners/exam.listeners.js": {
+      "originalFunctionsByteIdentical": 7
+    },
+    "js/ui/legacyUiShell.js": {
+      "originalFunctionsByteIdentical": 10
+    },
+    "js/legacy/legacyUiFallbacks.js": {
+      "originalFunctionsByteIdentical": 22
+    }
+  },
+  "rootPublic": {
+    "pairs": 129,
+    "mismatches": []
+  },
+  "firestoreCallSiteCounts": {
+    "baseline": {
+      "getDoc": 24,
+      "getDocs": 43,
+      "onSnapshot": 16
+    },
+    "candidate": {
+      "getDoc": 24,
+      "getDocs": 43,
+      "onSnapshot": 16
+    }
+  },
+  "newExamSchedulerOrListener": false,
+  "newSearchExamImportCycle": false,
+  "examSchedulerImports": [
+    {
+      "from": "js/ui/tabs.js",
+      "url": "../listeners/exam.listeners.js"
+    },
+    {
+      "from": "js/listeners/profiles.listeners.js",
+      "url": "./exam.listeners.js"
+    },
+    {
+      "from": "js/modules/searchRuntime.js",
+      "url": "../listeners/exam.listeners.js"
+    }
+  ],
+  "baselineRuntimeSHA256": "3e4e56fc385ef13bc74b5d6f2df1182137d38355d65eed4394a807de58f9e3da",
+  "candidateRuntimeSHA256": "bf5e80f9ce680662c9540b195f23008202cfc794255a532c5d1369587d256346",
+  "oldToolingManifestsUnchanged": true
+}

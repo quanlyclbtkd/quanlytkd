@@ -64,9 +64,35 @@
     return true;
   }
 
+  var mobileMenuOpener = null;
+
+  function releaseMobileMenuFocus(sheet, opener, doc) {
+    function inside() { return !!doc.activeElement && sheet.contains(doc.activeElement); }
+    if (!inside()) return true;
+    const selector = '[aria-controls="mobileMenuSheet"]';
+    const triggers = [opener, ...Array.from(doc.querySelectorAll(selector))];
+    for (const trigger of triggers) {
+      if (!trigger || !trigger.isConnected || trigger.disabled || trigger.hidden
+          || typeof trigger.matches !== 'function' || !trigger.matches(selector)
+          || sheet.contains(trigger) || trigger.getAttribute('aria-disabled') === 'true'
+          || (typeof trigger.closest === 'function' && trigger.closest('[inert], [aria-hidden="true"]'))
+          || (typeof trigger.getClientRects === 'function' && !trigger.getClientRects().length)
+          || typeof trigger.focus !== 'function') continue;
+      try { trigger.focus({ preventScroll: true }); } catch (_) {}
+      if (!inside()) return true;
+    }
+    try { doc.activeElement.blur(); } catch (_) {}
+    return !inside();
+  }
+
   function openMobileMenu() {
     var sheet = getElement('mobileMenuSheet');
     if (!sheet) return false;
+    var active = global.document.activeElement;
+    if (active && active.isConnected && !active.disabled && typeof active.matches === 'function'
+        && active.matches('[aria-controls="mobileMenuSheet"]') && !sheet.contains(active)) {
+      mobileMenuOpener = active;
+    } else if (!mobileMenuOpener || !mobileMenuOpener.isConnected) mobileMenuOpener = null;
     var adminBtn = getElement('mmsAdminBtn');
     if (adminBtn) {
       adminBtn.style.display =
@@ -80,6 +106,7 @@
       coachAction.style.display = v && v.ready === true && ['admin','owner','super_admin'].includes(v.role)
         && global.userRole === v.role && global.__store && global.__store.currentUser && global.__store.currentUser.uid === v.uid ? 'flex' : 'none';
     }
+    if (typeof sheet.removeAttribute === 'function') sheet.removeAttribute('inert');
     if (sheet.classList) sheet.classList.add('open');
     if (typeof sheet.setAttribute === 'function') sheet.setAttribute('aria-hidden', 'false');
     if (global.document && typeof global.document.querySelectorAll === 'function') {
@@ -95,9 +122,13 @@
 
   function closeMobileMenu() {
     var sheet = getElement('mobileMenuSheet');
+    var opener = mobileMenuOpener;
+    mobileMenuOpener = null;
     if (!sheet) return false;
+    if (!releaseMobileMenuFocus(sheet, opener, global.document)) return false;
     if (sheet.classList) sheet.classList.remove('open');
     if (typeof sheet.setAttribute === 'function') sheet.setAttribute('aria-hidden', 'true');
+    if (typeof sheet.setAttribute === 'function') sheet.setAttribute('inert', '');
     if (global.document && typeof global.document.querySelectorAll === 'function') {
       global.document.querySelectorAll('[aria-controls="mobileMenuSheet"]').forEach(function(trigger) {
         if (trigger && typeof trigger.setAttribute === 'function') trigger.setAttribute('aria-expanded', 'false');

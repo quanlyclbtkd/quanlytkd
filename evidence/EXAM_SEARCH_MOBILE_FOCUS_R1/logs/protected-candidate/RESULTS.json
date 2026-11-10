@@ -1,0 +1,117 @@
+{
+  "node": "v24.22.1",
+  "rows": [
+    {
+      "gate": "check:search-bindings",
+      "command": "node tools/check-search-bindings.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "search-bindings.log"
+    },
+    {
+      "gate": "check:search-v2",
+      "command": "node tools/check-search-runtime-v2.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "search-v2.log"
+    },
+    {
+      "gate": "check:cross-tab-search-replay",
+      "command": "node tools/check-cross-tab-search-replay.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "cross-tab-search-replay.log"
+    },
+    {
+      "gate": "check:student-search-index",
+      "command": "node tools/check-student-search-index.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "student-search-index.log"
+    },
+    {
+      "gate": "check:student-name-search-priority",
+      "command": "node tools/check-student-name-search-priority.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "student-name-search-priority.log"
+    },
+    {
+      "gate": "check:search-latency-optimization",
+      "command": "node tools/check-search-latency-optimization.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "search-latency-optimization.log"
+    },
+    {
+      "gate": "check:exam-payment-identity",
+      "command": "node tools/check-exam-payment-identity.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "exam-payment-identity.log"
+    },
+    {
+      "gate": "check:exam-cancel-fee",
+      "command": "node tools/check-exam-cancel-fee.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "exam-cancel-fee.log"
+    },
+    {
+      "gate": "check:exam-canonical-ledger",
+      "command": "node tools/check-exam-canonical-ledger.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "exam-canonical-ledger.log"
+    },
+    {
+      "gate": "check:exam-auto-select-paid",
+      "command": "node tools/check-exam-auto-select-paid.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "exam-auto-select-paid.log"
+    },
+    {
+      "gate": "check:exam-registration-count",
+      "command": "node tools/check-exam-registration-count.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "exam-registration-count.log"
+    },
+    {
+      "gate": "check:exam-upgrade-finance-separation",
+      "command": "node tools/check-exam-upgrade-finance-separation.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "exam-upgrade-finance-separation.log"
+    },
+    {
+      "gate": "check:exam-fee-ui-cleanup",
+      "command": "node tools/check-exam-fee-ui-cleanup.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "exam-fee-ui-cleanup.log"
+    },
+    {
+      "gate": "check:ui-mobile-app-shell",
+      "command": "node tools/check-ui-mobile-app-shell.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "ui-mobile-app-shell.log"
+    },
+    {
+      "gate": "check:production-security-trust-boundary",
+      "command": "node tools/check-production-security-trust-boundary.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "production-security-trust-boundary.log"
+    },
+    {
+      "gate": "check:production-authority-closure",
+      "command": "node tools/check-production-authority-closure.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "production-authority-closure.log"
+    }
+  ]
+}

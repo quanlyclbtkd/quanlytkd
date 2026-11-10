@@ -32,9 +32,34 @@ function _asDate(value) {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
+let mobileMenuOpener = null;
+
+function releaseMobileMenuFocus(sheet, opener, doc) {
+  function inside() { return !!doc.activeElement && sheet.contains(doc.activeElement); }
+  if (!inside()) return true;
+  const selector = '[aria-controls="mobileMenuSheet"]';
+  const triggers = [opener, ...Array.from(doc.querySelectorAll(selector))];
+  for (const trigger of triggers) {
+    if (!trigger || !trigger.isConnected || trigger.disabled || trigger.hidden
+        || typeof trigger.matches !== 'function' || !trigger.matches(selector)
+        || sheet.contains(trigger) || trigger.getAttribute('aria-disabled') === 'true'
+        || (typeof trigger.closest === 'function' && trigger.closest('[inert], [aria-hidden="true"]'))
+        || (typeof trigger.getClientRects === 'function' && !trigger.getClientRects().length)
+        || typeof trigger.focus !== 'function') continue;
+    try { trigger.focus({ preventScroll: true }); } catch (_) {}
+    if (!inside()) return true;
+  }
+  try { doc.activeElement.blur(); } catch (_) {}
+  return !inside();
+}
+
 export function openMobileMenu() {
   const sheet = _getElement('mobileMenuSheet');
   if (!sheet) return false;
+  const active = document.activeElement;
+  if (active?.isConnected && !active.disabled && active.matches?.('[aria-controls="mobileMenuSheet"]') && !sheet.contains(active)) {
+    mobileMenuOpener = active;
+  } else if (!mobileMenuOpener?.isConnected) mobileMenuOpener = null;
 
   const adminBtn = _getElement('mmsAdminBtn');
   if (adminBtn) {
@@ -50,6 +75,7 @@ export function openMobileMenu() {
     coachAction.style.display = v?.ready === true && ['admin','owner','super_admin'].includes(v.role)
       && window.userRole === v.role && window.__store?.currentUser?.uid === v.uid ? 'flex' : 'none';
   }
+  if (typeof sheet.removeAttribute === 'function') sheet.removeAttribute('inert');
   sheet.classList.add('open');
   sheet.setAttribute('aria-hidden', 'false');
   document.querySelectorAll('[aria-controls="mobileMenuSheet"]').forEach((trigger) => {
@@ -61,9 +87,13 @@ export function openMobileMenu() {
 
 export function closeMobileMenu() {
   const sheet = _getElement('mobileMenuSheet');
+  const opener = mobileMenuOpener;
+  mobileMenuOpener = null;
   if (!sheet) return false;
+  if (!releaseMobileMenuFocus(sheet, opener, document)) return false;
   sheet.classList.remove('open');
   sheet.setAttribute('aria-hidden', 'true');
+  sheet.setAttribute('inert', '');
   document.querySelectorAll('[aria-controls="mobileMenuSheet"]').forEach((trigger) => {
     trigger.setAttribute('aria-expanded', 'false');
   });

@@ -1,0 +1,40 @@
+{
+  "phase": "A9R18-EXAM-SEARCH-MOBILE-FOCUS-R1",
+  "status": "BROWSER_FOCUS_PROOF_ENV_BLOCKED",
+  "realBrowserContractVerified": false,
+  "candidateChromiumWarningAbsent": null,
+  "baselineChromiumWarningReproduced": null,
+  "fullSpaNavigationVerified": false,
+  "attempts": [
+    {
+      "scope": "LOCAL_PLAYWRIGHT_DEFAULT",
+      "libraryVersion": "1.62.1",
+      "status": "BLOCKED",
+      "reason": "Installed default chromium_headless_shell-1234 executable unavailable."
+    },
+    {
+      "scope": "LOCAL_PLAYWRIGHT_SYSTEM_CHROMIUM",
+      "executable": "/usr/bin/chromium",
+      "status": "BLOCKED",
+      "reason": "FATAL:chrome/browser/process_singleton_posix.cc:297 Check failed: . socket() failed: Operation not permitted (1)",
+      "browserVersion": null
+    },
+    {
+      "scope": "CLOUD_CHROMIUM_HTTP_FIXTURE",
+      "status": "BLOCKED",
+      "reason": "http://127.0.0.1:8769 returned ERR_CONNECTION_REFUSED."
+    },
+    {
+      "scope": "CLOUD_CHROMIUM_SHARED_FILE_FIXTURE",
+      "status": "BLOCKED",
+      "reason": "Browser security policy rejects file: protocol; only http:/https: allowed. No workaround or indirect execution attempted after rejection."
+    }
+  ],
+  "localEvidenceSource": "Observed tool execution outputs in this phase; no browser warning or screenshot invented.",
+  "nativeScenarioRows": [],
+  "syntheticFocusEvidence": "09_CANDIDATE_FOCUS_MATRIX.json",
+  "resumeHarness": "node tools/exam-search-mobile-focus-r1/browser.mjs . evidence/EXAM_SEARCH_MOBILE_FOCUS_R1/browser-rerun.json",
+  "resumeDependencies": "Existing locked Playwright 1.62.1 and a normal Chromium-capable environment. No new browser library required.",
+  "runtimeBusinessChangedForBrowserTest": false,
+  "productionConnectionAttempted": false
+}

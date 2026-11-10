@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "pairs": 129,
+  "mismatches": [],
+  "modifiedPairs": [
+    "app.js",
+    "index.html",
+    "js/modules/searchRuntime.js",
+    "js/listeners/exam.listeners.js",
+    "js/ui/legacyUiShell.js",
+    "js/legacy/legacyUiFallbacks.js"
+  ],
+  "allPairsCompared": true
+}
