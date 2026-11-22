@@ -1,0 +1,57 @@
+{
+  "status": "NOT_RUN",
+  "sourceRequired": "native PerformanceNavigationTiming and PerformanceResourceTiming",
+  "requiredGroups": [
+    "HTML",
+    "Firebase SDK modules",
+    "app.js",
+    "main.js",
+    "listeners.js",
+    "major module resources",
+    "CSS",
+    "fonts"
+  ],
+  "fields": [
+    "requestStart",
+    "responseEnd",
+    "transferSize",
+    "encodedBodySize",
+    "decodedBodySize"
+  ],
+  "entries": [],
+  "scenarios": [
+    {
+      "id": "A1",
+      "status": "NOT_RUN",
+      "entries": []
+    },
+    {
+      "id": "A2",
+      "status": "NOT_RUN",
+      "entries": []
+    },
+    {
+      "id": "A3",
+      "status": "NOT_RUN",
+      "entries": []
+    },
+    {
+      "id": "A4",
+      "status": "NOT_RUN",
+      "entries": []
+    },
+    {
+      "id": "C1",
+      "status": "NOT_RUN",
+      "entries": []
+    },
+    {
+      "id": "C2",
+      "status": "NOT_RUN",
+      "entries": []
+    }
+  ],
+  "repositoryFileSizesSubstituted": false,
+  "taoDetailAvailability": null,
+  "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE"
+}

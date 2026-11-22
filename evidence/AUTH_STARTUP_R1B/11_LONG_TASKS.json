@@ -1,0 +1,194 @@
+{
+  "status": "NOT_RUN",
+  "sourceRequired": "native browser PerformanceObserver longtask entries",
+  "scenarios": [
+    {
+      "id": "A1",
+      "status": "NOT_RUN",
+      "windows": {
+        "navigationToAuthCommit": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "authCommitToShell": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "shellToFirstSafeReady": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "firstSafeReadyToIdle": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        }
+      },
+      "entries": []
+    },
+    {
+      "id": "A2",
+      "status": "NOT_RUN",
+      "windows": {
+        "navigationToAuthCommit": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "authCommitToShell": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "shellToFirstSafeReady": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "firstSafeReadyToIdle": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        }
+      },
+      "entries": []
+    },
+    {
+      "id": "A3",
+      "status": "NOT_RUN",
+      "windows": {
+        "navigationToAuthCommit": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "authCommitToShell": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "shellToFirstSafeReady": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "firstSafeReadyToIdle": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        }
+      },
+      "entries": []
+    },
+    {
+      "id": "A4",
+      "status": "NOT_RUN",
+      "windows": {
+        "navigationToAuthCommit": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "authCommitToShell": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "shellToFirstSafeReady": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "firstSafeReadyToIdle": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        }
+      },
+      "entries": []
+    },
+    {
+      "id": "C1",
+      "status": "NOT_RUN",
+      "windows": {
+        "navigationToAuthCommit": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "authCommitToShell": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "shellToFirstSafeReady": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "firstSafeReadyToIdle": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        }
+      },
+      "entries": []
+    },
+    {
+      "id": "C2",
+      "status": "NOT_RUN",
+      "windows": {
+        "navigationToAuthCommit": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "authCommitToShell": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "shellToFirstSafeReady": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        },
+        "firstSafeReadyToIdle": {
+          "range": null,
+          "count": null,
+          "totalDurationMs": null,
+          "maxDurationMs": null
+        }
+      },
+      "entries": []
+    }
+  ],
+  "unsupportedAndNotRunMustNotBecomeZero": true,
+  "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE"
+}

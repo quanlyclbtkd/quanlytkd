@@ -1,0 +1,13 @@
+{
+  "appNavigationAttempted": false,
+  "productionFirebaseTraffic": 0,
+  "realStartupTraces": 0,
+  "status": "BROWSER_STARTUP_BLOCKED",
+  "reason": "SOCKET_OPERATION_NOT_PERMITTED",
+  "diagnosticLines": [
+    "[pid=REDACTED][err] [16:16:1110/230909.343812:FATAL:chrome/browser/process_singleton_posix.cc:297] Check failed: . socket() failed: Operation not permitted (1)",
+    "[pid=REDACTED][err] [1110/230909.344763:ERROR:third_party/crashpad/crashpad/util/linux/scoped_ptrace_attach.cc:27] ptrace: Operation not permitted (1)",
+    "\u001b[2m  - [pid=REDACTED][err] [16:16:1110/230909.343812:FATAL:chrome/browser/process_singleton_posix.cc:297] Check failed: . socket() failed: Operation not permitted (1)\u001b[22m",
+    "\u001b[2m  - [pid=REDACTED][err] [1110/230909.344763:ERROR:third_party/crashpad/crashpad/util/linux/scoped_ptrace_attach.cc:27] ptrace: Operation not permitted (1)\u001b[22m"
+  ]
+}

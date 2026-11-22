@@ -1964,7 +1964,7 @@ window.invCustomCategories = [];
 
     async function initSaaSDatabase(clubId) {
         // Phase 4K-6V5U5: protected runtime may mount only after one verified auth commit.
-        const _verifiedAuth = window.__verifiedAuthContextState;
+        const _verifiedAuth = window.__verifiedAuthContextState ? { ...window.__verifiedAuthContextState } : null;
         const _expectedClubId = String(clubId || '');
         const _currentUid = String(auth.currentUser?.uid || '');
         if (!_verifiedAuth || _verifiedAuth.ready !== true || !_currentUid || _verifiedAuth.uid !== _currentUid || String(_verifiedAuth.clubId || '') !== _expectedClubId || String(_verifiedAuth.role || '') !== String(window.userRole || '')) {
@@ -1972,6 +1972,7 @@ window.invCustomCategories = [];
             await _showLoginError('Không thể khởi tạo dữ liệu vì phiên phân quyền chưa được xác minh. Vui lòng đăng nhập lại.');
             return false;
         }
+        const isCurrentAuthInit = () => _isCurrentClubBootstrapGeneration({ uid: _verifiedAuth.uid, clubId, authGeneration: _verifiedAuth.generation });
         const _loginOverlay = document.getElementById('loginOverlay');
         const _mainApp = document.getElementById('mainApp');
         const _passInput = document.getElementById('passInput'); if (_passInput) _passInput.value = '';
@@ -2004,6 +2005,7 @@ window.invCustomCategories = [];
             // [HOTFIX] Race condition: ensureSuperAdminModule và main.js có thể chưa xong khi
             // initSaaSDatabase chạy ngay sau login. Dùng safe async retry thay vì gọi thẳng.
             (async () => {
+                if (!isCurrentAuthInit()) return;
                 const _listEl = document.getElementById('sysClubListMain');
                 // Thử ngay nếu module đã có
                 if (window.SuperAdminModule?.loadSuperAdminDashboard) {
@@ -2013,10 +2015,12 @@ window.invCustomCategories = [];
                 // Đây là tình huống main.js ES module chưa finish bootstrapping
                 for (let _i = 0; _i < 20; _i++) {
                     await new Promise(r => setTimeout(r, 150));
+                    if (!isCurrentAuthInit()) return;
                     if (typeof window.ensureSuperAdminModule === 'function') break;
                 }
                 if (typeof window.ensureSuperAdminModule === 'function') {
                     const _ok = await window.ensureSuperAdminModule('initSaaSDatabase');
+                    if (!isCurrentAuthInit()) return;
                     if (_ok && window.SuperAdminModule?.loadSuperAdminDashboard) {
                         return window.SuperAdminModule.loadSuperAdminDashboard();
                     }
@@ -2040,6 +2044,7 @@ window.invCustomCategories = [];
         // downstream source. Its first snapshot owns access bootstrap; the same listener stays realtime.
         const _clubBootstrap = _mountClubRootAuthority(clubId, _verifiedAuth);
         const _clubFirstSnapshot = await _clubBootstrap.firstSnapshotPromise;
+        if (!isCurrentAuthInit()) return false;
         if (!_isCurrentClubBootstrapGeneration({ uid: _verifiedAuth.uid, clubId, authGeneration: _verifiedAuth.generation })) return false;
         if (!_clubFirstSnapshot?.accepted || _clubAccessBootstrapState.ready !== true) return false;
 
@@ -2187,6 +2192,7 @@ window.invCustomCategories = [];
         };
         const _settingsOwnerAtMount = _receiptPrincipalFingerprint();
         const _settingsCb = (docSnap) => {
+            if (!isCurrentAuthInit()) return;
             if (window.markListenerSnapshot) window.markListenerSnapshot(_settingsKey);
             if(docSnap.exists()) {
                 clubConfig = { ...clubConfig, ...docSnap.data() };
@@ -2195,7 +2201,7 @@ window.invCustomCategories = [];
                 _acceptReceiptSettingsSnapshot(docSnap, clubId, _settingsOwnerAtMount);
                 const _coachAttendanceOnly = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true;
                 if (!_coachAttendanceOnly && typeof window.syncCanonicalTransactionReadModeFromConfig === 'function') {
-                    setTimeout(() => window.syncCanonicalTransactionReadModeFromConfig('settings-snapshot'), 0);
+                    setTimeout(() => { if (isCurrentAuthInit()) window.syncCanonicalTransactionReadModeFromConfig('settings-snapshot'); }, 0);
                 }
                 if (!_coachAttendanceOnly && typeof window.refreshCanonicalTransactionOptimizerButton === 'function') {
                     window.refreshCanonicalTransactionOptimizerButton();
@@ -2235,6 +2241,7 @@ window.invCustomCategories = [];
         // No activeListeners.push needed — registry is source of cleanup.
         const _invStatsKey = 'global:invStats:' + clubId;
         const _invStatsCb = (snap) => {
+            if (!isCurrentAuthInit()) return;
             if (window.markListenerSnapshot) window.markListenerSnapshot(_invStatsKey);
             if(snap.exists()) inventoryStats = snap.data();
             else inventoryStats = {};
@@ -2341,6 +2348,7 @@ window.invCustomCategories = [];
             // Fallback Admin only: full profiles listener (Phase 3.6D pattern — khi module chưa load)
             let _fallbackProfilesInitialSeen = false;
             const _u_profiles = onSnapshot(profRef, (snap) => {
+                if (!isCurrentAuthInit()) return;
                 if (typeof window.recordFirestoreSnapshotAttribution === 'function') window.recordFirestoreSnapshotAttribution('profiles.fullFallbackListener', snap, { initial: !_fallbackProfilesInitialSeen, reason: 'app-module-not-ready' });
                 _fallbackProfilesInitialSeen = true;
                 // Phase 4.0B-4E: Guard — không overwrite legacy-root data bằng primary rỗng
@@ -2715,6 +2723,7 @@ window.invCustomCategories = [];
         };
 
         const _inventoryDebtCb = (snap) => {
+            if (!isCurrentAuthInit()) return;
             if (window.markListenerSnapshot) window.markListenerSnapshot(_inventoryDebtKey);
             const rawItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             const debts = window.__inventoryStore && typeof window.__inventoryStore.deriveFinanceInventoryDebts === 'function'
@@ -2766,6 +2775,7 @@ window.invCustomCategories = [];
         };
 
         const _inventoryDebtError = (err) => {
+            if (!isCurrentAuthInit()) return;
             window.__inventoryReadMetrics.debtListenerErrors++;
             window.__inventoryReadMetrics.lastReason = 'inventory-active-debt-listener-error';
             window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
@@ -2829,6 +2839,7 @@ window.invCustomCategories = [];
         // canonical listener cannot be created or fails before its first successful snapshot.
         if (window.userRole === 'admin' || window.userRole === 'super_admin') {
             setTimeout(() => {
+                if (!isCurrentAuthInit()) return;
                 if (typeof window.setupNotifListener === 'function') window.setupNotifListener();
             }, 1200);
         }
@@ -3412,8 +3423,16 @@ window.invCustomCategories = [];
         return;
     };
 
+    // R1A: private callback freshness only; canonical auth generation stays unchanged.
+    let _authObserverEpoch = 0;
+    const _authBootstrapDefaultClubConfig = Object.freeze({ ...clubConfig });
+    const _authTenantShellDefaults = Array.from(document.querySelectorAll(
+        '.tab-btn, .tab-content, .mhb-pill, .desktop-action-btns button, #mainTabsWrapper, #filterArea, #transactionForm, #inventoryForm, #expenseForm, #examExpenseForm, #btnAddStudent'
+    ), el => ({ el, display: el.style.display, active: el.classList.contains('active') }));
+
     // ── Ghi nhận lịch sử đăng nhập (chỉ 1 lần mỗi session) ──────────────
-    async function _recordLoginEvent(user, role, clubId) {
+    async function _recordLoginEvent(user, role, clubId, isCurrent = () => String(auth.currentUser?.uid || '') === String(user?.uid || '')) {
+        if (!isCurrent()) return;
         let sessionKey = '';
         let blockedKey = '';
         try {
@@ -3471,6 +3490,7 @@ window.invCustomCategories = [];
                 }
             }
 
+            if (!isCurrent()) return;
             const now = new Date();
             await addDoc(collection(db, "login_history"), {
                 email: user.email || '',
@@ -3484,8 +3504,10 @@ window.invCustomCategories = [];
                 deviceName: deviceName || '',
             });
             // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
+            if (!isCurrent()) return;
             sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
+            if (!isCurrent()) return;
             const code = String(e?.code || '').toLowerCase();
             const permissionDenied = code.includes('permission-denied') || /missing or insufficient permissions/i.test(String(e?.message || ''));
             if (permissionDenied) {
@@ -3563,6 +3585,7 @@ window.invCustomCategories = [];
     const _commitVerifiedAuthContext = (user, input, options = {}) => {
         const ctx = _normalizeAuthContext({ ...input, uid: user?.uid || input?.uid || '' });
         if (!user || !ctx.uid || ctx.uid !== String(user.uid || '')) throw new Error('Auth context UID không hợp lệ.');
+        if (ctx.uid !== String(auth.currentUser?.uid || '') || options.isCurrent?.() === false) return null;
         if (!ctx.role || (ctx.role !== 'super_admin' && !ctx.clubId)) throw new Error('Auth context thiếu role/clubId.');
         if (ctx.role === 'coach' && (!ctx.coachBranch || !ctx.allowedBranches?.includes(ctx.coachBranch))) throw new Error('Auth context HLV thiếu cơ sở canonical.');
 
@@ -3649,7 +3672,7 @@ window.invCustomCategories = [];
         const uid = state.uid, club = state.clubId, generation = state.generation;
         const user = window.__store?.currentUser;
         const isCurrent = () => sequence === _coachBranchSelectionSequence && (state.ready === true || options.revalidate) &&
-            state.uid === uid && state.clubId === club && state.generation === generation && window.__store?.currentUser?.uid === uid;
+            state.uid === uid && state.clubId === club && state.generation === generation && window.__store?.currentUser?.uid === uid && String(auth.currentUser?.uid || '') === uid;
         state.branchSelectionPending = true;
         state.branchGeneration = Number(state.branchGeneration || 0) + 1;
         try {
@@ -3719,6 +3742,9 @@ window.invCustomCategories = [];
     // Phase 4K-6V5U4 — converge legacy ROOT email bootstrap to a canonical
     // server-authoritative super_admins/{uid} principal before any SuperAdmin list/read.
     const _ensureSuperAdminPrincipal = async (user) => {
+        const principalEpoch = _authObserverEpoch;
+        const isCurrent = () => principalEpoch === _authObserverEpoch && String(auth.currentUser?.uid || '') === String(user?.uid || '');
+        if (!isCurrent()) return false;
         const uid = String(user?.uid || '').trim();
         const email = String(user?.email || '').trim().toLowerCase();
         if (!uid || email !== _SUPER_ADMIN_BOOTSTRAP_EMAIL) return false;
@@ -3726,6 +3752,7 @@ window.invCustomCategories = [];
         const principalRef = doc(db, 'super_admins', uid);
         try {
             const existing = await getDoc(principalRef);
+            if (!isCurrent()) return false;
             if (existing.exists()) {
                 const principalData = existing.data() || {};
                 if (principalData.enabled === true) return true;
@@ -3734,10 +3761,12 @@ window.invCustomCategories = [];
                 throw disabledErr;
             }
         } catch (readErr) {
+            if (!isCurrent()) return false;
             // V5U4+ Rules allow this exact ROOT identity to get only its own principal doc.
             if (readErr?.code !== 'permission-denied') throw readErr;
         }
 
+        if (!isCurrent()) return false;
         try {
             await setDoc(principalRef, {
                 enabled: true,
@@ -3745,8 +3774,10 @@ window.invCustomCategories = [];
                 createdAt: Date.now(),
                 source: 'bootstrap-email-v1',
             });
+            if (!isCurrent()) return false;
             return true;
         } catch (writeErr) {
+            if (!isCurrent()) return false;
             const err = new Error(
                 'Firestore chưa cấp đường bootstrap SuperAdmin. Hãy deploy firestore.rules V5U4/V5U5, sau đó đăng xuất và đăng nhập lại. Không mở Rules public.'
             );
@@ -3760,7 +3791,11 @@ window.invCustomCategories = [];
 
     // Helper: reset UI đăng nhập + sign out + thông báo lỗi rõ ràng
     // [SỬA] _showLoginError — hiển thị lỗi inline, không dùng alert() chặn UI
-    const _showLoginError = async (msg) => {
+    const _showLoginError = async (msg, isCurrent = () => true) => {
+        if (!isCurrent()) return;
+        const errorEpoch = _authObserverEpoch;
+        const errorUid = String(auth.currentUser?.uid || '');
+        const errorStillCurrent = () => (_authObserverEpoch === errorEpoch && String(auth.currentUser?.uid || '') === errorUid) || (!auth.currentUser && _authObserverEpoch <= errorEpoch + 1);
         document.getElementById('loginOverlay').style.display = 'flex';
         const _btn  = document.getElementById('btnLogin');
         const _text = document.getElementById('loginText');
@@ -3768,118 +3803,28 @@ window.invCustomCategories = [];
         if (_btn)  _btn.disabled = false;
         if (_text) _text.innerText = 'ĐĂNG NHẬP';
         if (_load) _load.classList.add('hidden');
+        if (!isCurrent() || errorEpoch !== _authObserverEpoch || errorUid !== String(auth.currentUser?.uid || '')) return;
         try { await signOut(auth); } catch(_) {}
+        if (!errorStillCurrent()) return;
         // [SỬA] Dùng inline error thay alert() — lỗi hiện ngay trong màn hình, không chặn UI
         _setLoginError(msg);
         // [THÊM] Auto-focus lại ô email sau khi hiện lỗi
-        setTimeout(() => { const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);
+        setTimeout(() => { if (!errorStillCurrent()) return; const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);
     };
 
     onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            try {
-                // ── Phase 4K-6V5U4: SuperAdmin principal convergence ──
-                // V5U5 keeps ROOT email as bootstrap identity only, then commits through
-                // the same canonical auth-context writer used by every verified role.
-                if (user.email && user.email.toLowerCase() === _SUPER_ADMIN_BOOTSTRAP_EMAIL) {
-                    try {
-                        const principalReady = await _ensureSuperAdminPrincipal(user);
-                        if (!principalReady) throw new Error('Không xác nhận được SuperAdmin principal.');
-                    } catch (_principalErr) {
-                        _clearAuthCache();
-                        await _showLoginError(_principalErr?.message || 'Không thể xác nhận quyền SuperAdmin.');
-                        return;
-                    }
-                    const _saContext = _commitVerifiedAuthContext(user, {
-                        role: 'super_admin', clubId: '', coachBranch: ''
-                    }, { source: 'super_admins/{uid}' });
-                    try { await initSaaSDatabase(_saContext.clubId); } catch(_ie) { console.error('initSaaSDatabase(super_admin):', _ie); }
-                    _recordLoginEvent(user, _saContext.role, _saContext.clubId).catch(() => {});
-                    return;
-                }
-
-                // Cache is intentionally read only as a hint/diagnostic. It never writes
-                // role/club/branch and never calls initSaaSDatabase before verification.
-                const _cached = _getAuthCache(user.uid);
-
-                let userDocSnap = null;
-                try {
-                    userDocSnap = await _readUserAuthorizationProfileOnce(user);
-                } catch(_readErr) {
-                    console.warn('users/{uid} verification failed:', _readErr.code || _readErr.message);
-                    _clearAuthCache();
-                    await _showLoginError(
-                        _readErr?.code === 'permission-denied'
-                            ? 'Không thể xác minh quyền tài khoản (permission-denied). Vui lòng đăng nhập lại hoặc liên hệ quản trị viên.'
-                            : 'Không thể kết nối Firestore (' + (_readErr.code || _readErr.message) + '). Vui lòng kiểm tra mạng và thử lại.'
-                    );
-                    return;
-                }
-
-                if (!userDocSnap || !userDocSnap.exists()) {
-                    _clearAuthCache();
-                    await _showLoginError('Không tìm thấy hồ sơ phân quyền users/{uid}. Admin cần đồng bộ lại tài khoản trước khi đăng nhập.');
-                    return;
-                }
-
-                const _ud = userDocSnap.data() || {};
-                if (_normalizeAuthRole(_ud.role) === 'coach' && (userDocSnap.metadata?.fromCache !== false || userDocSnap.metadata?.hasPendingWrites !== false)) throw Object.assign(new Error('Chưa xác minh được hồ sơ quyền HLV từ máy chủ.'), {code:'auth/coach-assignment-unverified'});
-                if (_isDisabledUserAuthorization(_ud)) {
-                    _clearAuthCache();
-                    await _showLoginError('Tài khoản đã bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ quản trị viên hệ thống.');
-                    return;
-                }
-
-                let _freshContext = _normalizeAuthContext({
-                    uid: user.uid,
-                    role: _ud.role || '',
-                    clubId: _ud.clubId,
-                    branch: _ud.branch || _ud.coachBranch || '',
-                    ...('allowedBranches' in _ud ? {allowedBranches:_ud.allowedBranches} : {}),
-                    defaultBranch: _ud.defaultBranch || '',
-                    // A9: keep the server-confirmed Coach mirror authority in the
-                    // actual login path before it reaches canonical comparison.
-                    primaryCoachBranch: _ud.primaryCoachBranch || '',
-                    assignmentVersion: _ud.assignmentVersion || 'legacy'
-                });
-                if (_freshContext.role === 'coach') {
-                    _freshContext = await _resolveCoachBranchContext(user, _freshContext);
-                }
-
-                if (_freshContext.role === 'coach' && !_freshContext.coachBranch) {
-                    _clearAuthCache();
-                    await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể (CS1...CS10) rồi đăng nhập lại.');
-                    return;
-                }
-                if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) {
-                    _clearAuthCache();
-                    await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.');
-                    return;
-                }
-
-                // Stale cache is discarded before runtime mount; no rebind/reload is needed
-                // because no protected listener has been mounted from cache.
-                if (_cached && !_sameAuthContext(_freshContext, _cached)) {
-                    console.info('[AuthContext] Cache cũ đã bị bỏ qua sau xác minh Firestore.');
-                }
-
-                const _committed = _commitVerifiedAuthContext(user, _freshContext, { source: 'users/{uid}' });
-                _recordLoginEvent(user, _committed.role, _committed.clubId).catch(() => {});
-                try { await initSaaSDatabase(_committed.clubId); } catch(_ie) { console.error('initSaaSDatabase(verified):', _ie); }
-                setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
-            } catch(e) {
-                console.error('Auth flow error:', e);
-                _clearAuthCache();
-                await _showLoginError(
-                    e.code === 'auth/coach-branch-mirror-sync-failed' ? e.message : e.code === 'permission-denied'
-                        ? 'Lỗi phân quyền Firestore (permission-denied). Vui lòng deploy firestore.rules canonical rồi đăng nhập lại.'
-                        : 'Lỗi xác thực hệ thống (' + (e.code || e.message) + ').\nVui lòng kiểm tra kết nối mạng và thử lại.'
-                );
-            }
-        } else {
+        const eventEpoch = ++_authObserverEpoch;
+        const expectedUid = String(user?.uid || '');
+        const isCurrentAuthEvent = () => eventEpoch === _authObserverEpoch && String(auth.currentUser?.uid || '') === expectedUid;
+        if (!isCurrentAuthEvent()) return;
+        const previousUid = String(window.__verifiedAuthContextState?.uid || window.__store?.currentUser?.uid || '');
+        if (!user || previousUid) {
+            // Hide before clearing ownership; B's event has not authorized any tenant yet.
+            const protectedApp = document.getElementById('mainApp'); if (protectedApp) protectedApp.style.display = 'none';
             _clearAuthCache();
-            _verifiedUserProfileFlight = { uid: '', promise: null };
-            _resetVerifiedAuthContext('logout');
+            if (!user || previousUid !== expectedUid) _verifiedUserProfileFlight = { uid: '', promise: null };
+            if (user) _resetVerifiedAuthContext('auth-identity-change');
+            else _resetVerifiedAuthContext('logout');
             _clubAccessBootstrapFlight = null;
             _commitClubAccessBootstrapState({ generation: Number(window.__verifiedAuthContextState?.generation || 0), clubId: '', listenerKey: '', status: 'idle', firstSnapshotSeen: false, ready: false, blockedReason: '', snapshotSource: '', readyAt: 0, legacyExpiryFallback: false });
             // Xóa toàn bộ cờ lịch sử đăng nhập (cả format cũ lẫn mới) khi logout
@@ -3934,7 +3879,167 @@ window.invCustomCategories = [];
             document.getElementById('loginOverlay').style.display = 'flex'; document.getElementById('mainApp').style.display = 'none';
             // [THÊM] Auto-focus ô email khi màn hình đăng nhập hiện ra — người dùng gõ luôn không cần click
             // [SỬA] Auto-focus nhanh hơn
-            setTimeout(() => { const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);
+            if (!user) setTimeout(() => { if (!isCurrentAuthEvent()) return; const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);
+            window.resetStore?.();
+            window.__moduleResetStore?.();
+            window.__inventoryStore?.resetInventoryStore?.('auth-identity-change');
+            window.AttendanceModule?.resetForClub?.('');
+            clubData = {}; allProfiles = {}; allTransactions = []; allInventory = []; inventoryStats = {};
+            clubConfig = { ..._authBootstrapDefaultClubConfig };
+            colRef = null; profRef = null; invRef = null;
+            if (window.__store) Object.assign(window.__store, {
+                clubData, profiles: allProfiles, transactions: allTransactions, inventory: allInventory, inventoryStats, clubConfig,
+                colRef: null, profRef: null, invRef: null, tabHtmlCache: {}, activeDataSource: '', _lastBStats: null,
+                _lastSelectPaidStudents: null, __settingsSnapshotReady: false
+            });
+            window.__settingsSnapshotReady = false;
+            window.__receiptSettingsAuthority = null;
+            window.__dbReadyEventDispatched = false;
+            window._liveInvMap = {};
+            window.__completeInventoryDebts = [];
+            window.__inventoryDebtCompleteness = 'loading';
+            window.invCustomCategories = [];
+            _authTenantShellDefaults.forEach(({ el, display, active }) => {
+                el.style.display = display;
+                if (active) el.classList.add('active'); else el.classList.remove('active');
+            });
+            // Only rendered data hosts are cleared; form structure and handlers stay intact.
+            for (const id of ['txList','debtList','inventoryList','uniformTxList','examList','examExpenseList','expenseList','activeList','quitList','reportList','branchStatsGrid','sysClubListMain','superAdminStats','saRevenueContent','admin_notif_list','attendanceGrid','attendanceSummary','coach_att_info','admin_daily_branch_summary','admin_daily_branch_body','att_monthly_cards','att_monthly_body','all_session_notes_list','skippedThisMonthList','coachAccountsList','mi_history_list','mi_inv_debt_list','autocomplete-list','inv-autocomplete-list','mi-autocomplete-list']) {
+                const el = document.getElementById(id); if (el) el.replaceChildren();
+            }
+            for (const id of ['displayClubName','mhbClubName','r_club_name']) {
+                const el = document.getElementById(id); if (el) el.textContent = 'HỆ THỐNG QUẢN LÝ CLB';
+            }
+            for (const id of ['mhbActiveCount','mhbDebtCount','mhbIncome','activeStudentCount','debtCount','totalIncomeDashboard','sum_debt_count_tab','txTabCountBadge','debtTabCountBadge']) {
+                const el = document.getElementById(id); if (el) el.textContent = '—';
+            }
+            document.querySelectorAll('.modal, .ui-shell-overlay').forEach(el => { el.style.display = 'none'; });
+            document.querySelectorAll('.club-logo-img').forEach(el => { el.style.display = 'none'; el.removeAttribute('src'); });
+            document.querySelectorAll('#mainApp input, #mainApp textarea, .modal input, .modal textarea').forEach(el => {
+                if (['date','month','time','datetime-local','hidden'].includes(el.type)) return;
+                if (el.type === 'checkbox' || el.type === 'radio') el.checked = el.defaultChecked;
+                else el.value = el.defaultValue;
+            });
+            const saView = document.getElementById('superAdminView'); if (saView) saView.style.display = 'none';
+            const subtitle = document.getElementById('displaySubtitle'); if (subtitle) subtitle.textContent = '';
+            window._clearLoginError?.();
+            if (user) {
+                const label = document.getElementById('loginText'); if (label) label.textContent = 'Đang xác minh tài khoản...';
+                const spinner = document.getElementById('loginLoading'); if (spinner) spinner.classList.remove('hidden');
+            }
+        }
+        if (user) {
+            try {
+                // ── Phase 4K-6V5U4: SuperAdmin principal convergence ──
+                // V5U5 keeps ROOT email as bootstrap identity only, then commits through
+                // the same canonical auth-context writer used by every verified role.
+                if (user.email && user.email.toLowerCase() === _SUPER_ADMIN_BOOTSTRAP_EMAIL) {
+                    try {
+                        const principalReady = await _ensureSuperAdminPrincipal(user);
+                        if (!isCurrentAuthEvent()) return;
+                        if (!principalReady) throw new Error('Không xác nhận được SuperAdmin principal.');
+                    } catch (_principalErr) {
+                        if (!isCurrentAuthEvent()) return;
+                        _clearAuthCache();
+                        await _showLoginError(_principalErr?.message || 'Không thể xác nhận quyền SuperAdmin.', isCurrentAuthEvent);
+                        return;
+                    }
+                    if (!isCurrentAuthEvent()) return;
+                    const _saContext = _commitVerifiedAuthContext(user, {
+                        role: 'super_admin', clubId: '', coachBranch: ''
+                    }, { source: 'super_admins/{uid}', isCurrent: isCurrentAuthEvent });
+                    if (!_saContext) return;
+                    try { await initSaaSDatabase(_saContext.clubId); } catch(_ie) { if (isCurrentAuthEvent()) console.error('initSaaSDatabase(super_admin):', _ie); }
+                    if (!isCurrentAuthEvent()) return;
+                    _recordLoginEvent(user, _saContext.role, _saContext.clubId, isCurrentAuthEvent).catch(() => {});
+                    return;
+                }
+
+                // Cache is intentionally read only as a hint/diagnostic. It never writes
+                // role/club/branch and never calls initSaaSDatabase before verification.
+                const _cached = _getAuthCache(user.uid);
+
+                let userDocSnap = null;
+                try {
+                    userDocSnap = await _readUserAuthorizationProfileOnce(user);
+                    if (!isCurrentAuthEvent()) return;
+                } catch(_readErr) {
+                    if (!isCurrentAuthEvent()) return;
+                    console.warn('users/{uid} verification failed:', _readErr.code || _readErr.message);
+                    _clearAuthCache();
+                    await _showLoginError(
+                        _readErr?.code === 'permission-denied'
+                            ? 'Không thể xác minh quyền tài khoản (permission-denied). Vui lòng đăng nhập lại hoặc liên hệ quản trị viên.'
+                            : 'Không thể kết nối Firestore (' + (_readErr.code || _readErr.message) + '). Vui lòng kiểm tra mạng và thử lại.', isCurrentAuthEvent
+                    );
+                    return;
+                }
+
+                if (!userDocSnap || !userDocSnap.exists()) {
+                    _clearAuthCache();
+                    await _showLoginError('Không tìm thấy hồ sơ phân quyền users/{uid}. Admin cần đồng bộ lại tài khoản trước khi đăng nhập.', isCurrentAuthEvent);
+                    return;
+                }
+
+                const _ud = userDocSnap.data() || {};
+                if (_normalizeAuthRole(_ud.role) === 'coach' && (userDocSnap.metadata?.fromCache !== false || userDocSnap.metadata?.hasPendingWrites !== false)) throw Object.assign(new Error('Chưa xác minh được hồ sơ quyền HLV từ máy chủ.'), {code:'auth/coach-assignment-unverified'});
+                if (_isDisabledUserAuthorization(_ud)) {
+                    _clearAuthCache();
+                    await _showLoginError('Tài khoản đã bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ quản trị viên hệ thống.', isCurrentAuthEvent);
+                    return;
+                }
+
+                let _freshContext = _normalizeAuthContext({
+                    uid: user.uid,
+                    role: _ud.role || '',
+                    clubId: _ud.clubId,
+                    branch: _ud.branch || _ud.coachBranch || '',
+                    ...('allowedBranches' in _ud ? {allowedBranches:_ud.allowedBranches} : {}),
+                    defaultBranch: _ud.defaultBranch || '',
+                    // A9: keep the server-confirmed Coach mirror authority in the
+                    // actual login path before it reaches canonical comparison.
+                    primaryCoachBranch: _ud.primaryCoachBranch || '',
+                    assignmentVersion: _ud.assignmentVersion || 'legacy'
+                });
+                if (_freshContext.role === 'coach') {
+                    _freshContext = await _resolveCoachBranchContext(user, _freshContext);
+                    if (!isCurrentAuthEvent()) return;
+                }
+
+                if (_freshContext.role === 'coach' && !_freshContext.coachBranch) {
+                    _clearAuthCache();
+                    await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể (CS1...CS10) rồi đăng nhập lại.', isCurrentAuthEvent);
+                    return;
+                }
+                if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) {
+                    _clearAuthCache();
+                    await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.', isCurrentAuthEvent);
+                    return;
+                }
+
+                // Stale cache is discarded before runtime mount; no rebind/reload is needed
+                // because no protected listener has been mounted from cache.
+                if (_cached && !_sameAuthContext(_freshContext, _cached)) {
+                    console.info('[AuthContext] Cache cũ đã bị bỏ qua sau xác minh Firestore.');
+                }
+
+                if (!isCurrentAuthEvent()) return;
+                const _committed = _commitVerifiedAuthContext(user, _freshContext, { source: 'users/{uid}', isCurrent: isCurrentAuthEvent });
+                if (!_committed) return;
+                _recordLoginEvent(user, _committed.role, _committed.clubId, isCurrentAuthEvent).catch(() => {});
+                try { await initSaaSDatabase(_committed.clubId); } catch(_ie) { if (isCurrentAuthEvent()) console.error('initSaaSDatabase(verified):', _ie); }
+                if (!isCurrentAuthEvent()) return;
+                setTimeout(() => { if(isCurrentAuthEvent() && typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
+            } catch(e) {
+                if (!isCurrentAuthEvent()) return;
+                console.error('Auth flow error:', e);
+                _clearAuthCache();
+                await _showLoginError(
+                    e.code === 'auth/coach-branch-mirror-sync-failed' ? e.message : e.code === 'permission-denied'
+                        ? 'Lỗi phân quyền Firestore (permission-denied). Vui lòng deploy firestore.rules canonical rồi đăng nhập lại.'
+                        : 'Lỗi xác thực hệ thống (' + (e.code || e.message) + ').\nVui lòng kiểm tra kết nối mạng và thử lại.', isCurrentAuthEvent
+                );
+            }
         }
     });
 
@@ -5010,15 +5115,38 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (!memo || memo.length > maxMemoLength) throw _receiptError('MEMO_TOO_LONG','intent');
         return memo;
     }
-    function _receiptTuitionMemo(name, monthsStr, verboseMemo) {
-        // A9R6: only shorten a verbose tuition memo when it exceeds 40 ASCII
-        // characters. 40 is a conservative local trigger, NOT a claimed VietQR
-        // provider limit (Quick Link documents up to 50). Do not truncate names,
-        // months or account references. The decoded final QR must still match.
-        if (verboseMemo.length <= 40) return verboseMemo;
+    function _receiptTuitionReference(participantKey) {
+        const fail=()=>{throw _receiptError('MEMO_REFERENCE_UNAVAILABLE','intent');};
+        const coverage=window.getDebtProfileCoverageStatus?.();
+        if (coverage?.ready !== true || coverage.clubId !== currentClubId) fail();
+        const profiles=window.__store?.profiles || allProfiles || {}, key=String(participantKey||'').trim();
+        if (!key || !Object.prototype.hasOwnProperty.call(profiles,key)) fail();
+        const ids=p=>['memberId','memberID','studentId'].map(field=>String(p?.[field]??'').trim()).filter(id=>/^[A-Za-z0-9]{1,8}$/.test(id)).map(id=>id.toUpperCase());
+        const hashKey=value=>{let hash=2166136261;for(let i=0;i<value.length;i++)hash=Math.imul(hash^value.charCodeAt(i),16777619)>>>0;return 'K'+hash.toString(36).toUpperCase().padStart(7,'0');};
+        // Scan the same complete club authority, including inactive profiles and
+        // all ID aliases/hash tokens. No new read, persisted ID, or cached proof.
+        const others=Object.entries(profiles).filter(([otherKey])=>otherKey!==key);
+        const conflicts=ref=>others.some(([otherKey,p])=>ids(p).includes(ref)||hashKey(otherKey)===ref);
+        const p=profiles[key]||{}, candidates=ids(p);
+        let reference=candidates.find(ref=>!conflicts(ref));
+        if (!reference) {
+            if (candidates.length) fail();
+            reference=hashKey(key);
+            if (conflicts(reference)) fail();
+        }
+        const displayName=window.ProfileCanonicalStore?.resolveDisplayName?.(key,p) || p.displayName || p.name || p.fullName || p.studentName || key;
+        const tokens=_receiptPaymentMemo(displayName,'',512).split(' ').filter(Boolean);
+        return {reference,nameToken:tokens[tokens.length-1]||''};
+    }
+    function _receiptTuitionMemo(name, monthsStr, verboseMemo, participantKey = name) {
+        // Preserve existing <=40-character memos. Larger periods may use an
+        // exact range; names may use a collision-checked local reference only.
+        // The conservative 40-character cap and exact pixel checks remain.
         const months=String(monthsStr||'').split(',').map(s=>s.trim());
         if (!months.length || months.some(m=>!/^20\d{2}-(0[1-9]|1[0-2])$/.test(m)) ||
             new Set(months).size !== months.length) throw _receiptError('MEMO_PERIOD_INVALID','intent');
+        if (verboseMemo.length <= 40) return verboseMemo;
+        months.sort();
         const groups=new Map();
         for (const m of months) {
             const year=m.slice(0,4), month=String(Number(m.slice(5)));
@@ -5031,11 +5159,21 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (readable.length<=40) return readable;
         // Retain full name and every month/year when spacing alone exceeds the existing cap.
         const tight=ordered.map(([year,list])=>list.map(m=>'T'+m).join('')+' '+year).join(' ');
-        const compact=_receiptPaymentMemo(name,'HP '+tight);
-        // Refuse excessive descriptions rather than losing student name or
-        // calendar months. Do not silently accept a provider-modified QR.
-        if (compact.length > 40) throw _receiptError('MEMO_TOO_LONG','intent');
-        return compact;
+        const compact=_receiptPaymentMemo(name,'HP '+tight,512);
+        if (compact.length <= 40) return compact;
+        const ordinal=m=>Number(m.slice(0,4))*12+Number(m.slice(5))-1;
+        const contiguous=months.every((m,i)=>!i||ordinal(m)===ordinal(months[i-1])+1);
+        const lossless=contiguous && months.length>1
+            ? months[0].replace('-','')+' DEN '+months[months.length-1].replace('-','')
+            : months.map(m=>m.replace('-','')).join(' ');
+        const fullNameMemo=_receiptPaymentMemo(name,'HP '+lossless,512);
+        if (fullNameMemo.length <= 40) return fullNameMemo;
+        if (lossless.length+4>40) throw _receiptError('MEMO_TOO_LONG','intent');
+        const {reference,nameToken}=_receiptTuitionReference(participantKey);
+        const humanMemo=`HP ${nameToken} R${reference} ${lossless}`;
+        const memo=humanMemo.length<=40 ? humanMemo : `HP R${reference} ${lossless}`;
+        if (!/^[A-Za-z0-9 ]+$/.test(memo) || memo.length>40) throw _receiptError('MEMO_TOO_LONG','intent');
+        return memo;
     }
     function _receiptQrMismatch(stage, failure, details = {}) {
         const e=_receiptError('QR_EMV_MISMATCH',stage);
@@ -5087,11 +5225,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             ACCOUNT_DISABLED:'Tài khoản được gán đã tắt hoặc không tồn tại. Admin cần kiểm tra Cài đặt.',ACCOUNT_INCOMPLETE:'Bổ sung mã ngân hàng, số tài khoản dạng chữ và tên chủ tài khoản trong Cài đặt.',
             BANK_CODE_UNRECOGNIZED:'Mã ngân hàng chưa có trong danh mục đã xác minh.',BANK_IDENTITY_CONFLICT:'Các mã/tên ngân hàng trong cùng tài khoản đang mâu thuẫn.',BANK_BIN_INVALID:'Mã BIN ngân hàng không hợp lệ.',
             INVALID_AMOUNT:'Số tiền hoặc tổng các dòng chi tiết không hợp lệ.',AUTH_STALE:'Phiên đăng nhập hoặc CLB đã đổi. Mở lại CLB và tạo phiếu mới.',CONFIG_STALE:'Cấu hình nhận tiền đã đổi. Tạo lại phiếu.',
-            QR_VERIFICATION_UNAVAILABLE:'Trình duyệt chưa có bộ giải mã QR được kiểm chứng. Chưa thể xuất phiếu an toàn trên thiết bị này.',MEMO_TOO_LONG:'Nội dung chuyển khoản vẫn quá dài dù đã rút gọn mã kỳ học phí; không được cắt tên hoặc các tháng.',MEMO_PERIOD_INVALID:'Kỳ học phí của phiếu báo không đúng định dạng hoặc có tháng trùng. Cần kiểm tra dữ liệu nợ.',
+            QR_VERIFICATION_UNAVAILABLE:'Trình duyệt chưa có bộ giải mã QR được kiểm chứng. Chưa thể xuất phiếu an toàn trên thiết bị này.',MEMO_TOO_LONG:'Nội dung chuyển khoản vẫn quá dài dù đã rút gọn an toàn; không được bỏ võ sinh hoặc các tháng học phí.',MEMO_PERIOD_INVALID:'Kỳ học phí của phiếu báo không đúng định dạng hoặc có tháng trùng. Cần kiểm tra dữ liệu nợ.',
             QR_FETCH_NETWORK:'Không tải được mã QR. Kiểm tra kết nối rồi thử lại.',QR_FETCH_REDIRECT:'Địa chỉ ảnh QR chuyển hướng ngoài nguồn được phép. Đã chặn tải.',QR_FETCH_HTTP:'Nhà cung cấp QR trả lỗi. Thử tạo phiếu lại sau.',
             QR_TIMEOUT:'Tải hoặc kiểm tra QR quá thời hạn. Thử lại khi mạng ổn định.',QR_EMV_MISMATCH:'Nội dung mã QR không khớp phiếu. Đã chặn tải ảnh.',QR_DECODE_FAILED:'Không đọc được mã QR trong ảnh. Đã chặn tải ảnh.',
             QR_MIME:'Định dạng ảnh QR không được hỗ trợ.',QR_SVG_UNSAFE:'Ảnh QR có nội dung không được phép. Đã chặn tạo phiếu.',QR_BYTES_INVALID:'Dữ liệu ảnh QR không hợp lệ.',QR_MEDIA_INVALID:'Ảnh QR bị méo hoặc thiếu viền trắng.',CANVAS_EXPORT_FAILED:'Không xuất được ảnh phiếu. Kiểm tra trình duyệt.',PREVIEW_FAILED:'Không mở được ảnh xem trước.',MODAL_NOT_VISIBLE:'Khung xem phiếu chưa hiển thị.',DEBT_NOT_READY:'Báo nợ chưa có dữ liệu đã xác thực. Đợi tải xong rồi tạo lại.'};
         if (reason === 'FAMILY_MEMO_REFERENCE_UNAVAILABLE') return `Chưa tạo được phiếu báo [${reason}]. Mã tham chiếu võ sinh bị trùng hoặc chưa thể xác định an toàn. Kiểm tra mã hội viên rồi tạo lại phiếu gia đình.`;
+        if (reason === 'MEMO_REFERENCE_UNAVAILABLE') return `Chưa tạo được phiếu báo [${reason}]. Cần hồ sơ đầy đủ của CLB và mã võ sinh không trùng để rút gọn nội dung chuyển khoản an toàn.`;
         if (reason === 'FAMILY_MEMO_METADATA_INVALID') return `Chưa tạo được phiếu báo [${reason}]. Dữ liệu võ sinh hoặc kỳ học phí trong phiếu gia đình chưa hợp lệ. Mở lại phiếu gia đình.`;
         return `Chưa tạo được phiếu báo [${reason}]. ${messages[reason] || 'Vui lòng mở lại phiếu và thử lại.'}`;
     }
@@ -6831,7 +6970,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 os:/iPad|iPhone|iPod/.test(ua)?'iOS':/Android/.test(ua)?'Android':ua?'desktop':'unknown'};
         };
         const _kind=isReceiptRequestCurrent.kind || _receiptKindFromTitle(receiptTitle);
-        const _assertCurrent=() => {if (!isReceiptRequestCurrent()) throw _receiptError(isReceiptRequestCurrent.failureReason?.() || 'JOB_STALE',_stage);};
+        let _memoStillCurrent=null;
+        const _assertCurrent=() => {if (!isReceiptRequestCurrent()) throw _receiptError(isReceiptRequestCurrent.failureReason?.() || 'JOB_STALE',_stage);if (_memoStillCurrent && !_memoStillCurrent()) throw _receiptError('MEMO_REFERENCE_UNAVAILABLE',_stage);};
         try {
             _clearReceiptPreview();
             _assertCurrent();
@@ -6924,7 +7064,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 const _familyTuitionReport=Array.isArray(breakdown) && breakdown.some(row=>row?.familyParticipant === true);
                 const _verboseMemo=_familyTuitionReport ? '' : _receiptPaymentMemo(qrName,_memoPaymentContent,_tuitionMemoMonths ? 512 : 48);
                 const _canonicalMemo=_familyTuitionReport ? _receiptFamilyTuitionMemo(breakdown) : (_tuitionMemoMonths
-                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo) : _verboseMemo);
+                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo,cleanName) : _verboseMemo);
+                if (!_familyTuitionReport && _tuitionMemoMonths) _memoStillCurrent=()=>_receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo,cleanName)===_canonicalMemo;
                 const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only', _canonicalMemo);
                 _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_canonicalMemo,intentKind:_kind});
                 _expectedMemoLength=_intent.memo.length;_providerEndpoint='vietqr-qr-only-svg';
@@ -7709,12 +7850,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const filterBelt = document.getElementById('exam_filter_belt').value; const uiExam = document.getElementById('examList'); if(!uiExam) return;
         const selMonth = document.getElementById('filterMonth').value;
         const isSingleBranch = clubConfig.branchCount === 1;
-        const searchTerm = String(document.getElementById('searchInput')?.value || '').trim();
-        const matchedProfileIds = searchTerm && typeof window.StudentSearchIndex?.searchStudents === 'function'
-            ? new Set(window.StudentSearchIndex.searchStudents(searchTerm, {
-                mode: 'all', includeAllStatuses: true, limit: Math.max(1, Object.keys(allProfiles).length),
-            }).entries.map(entry => String(entry.id)))
-            : null;
+        const normalizeExamSearch = typeof window.normalizeVNForSearch === 'function'
+            ? window.normalizeVNForSearch
+            : value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim().replace(/\s+/g, ' ');
+        const examSearchTerm = normalizeExamSearch((window.__store || {})._globalSearchTerm || '');
 
         // Phase 4K-5C: Dùng canonical ledger — paidStudents luôn dedupe + nhất quán
         const examLedger = typeof window.buildCanonicalExamPaymentLedger === 'function'
@@ -7759,23 +7898,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         Object.keys(allProfiles).sort().forEach(name => {
             const p = allProfiles[name];
-            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active') return;
-            const upgradeEligible = (p.belt || 'Đai trắng - Cấp 10') === filterBelt;
-            if (searchTerm) {
-                const matches = matchedProfileIds ? matchedProfileIds.has(String(name))
-                    : typeof window.studentMatchesSearch === 'function'
-                        ? window.studentMatchesSearch(name, p, searchTerm)
-                            || window.studentMatchesSearch(p.displayName || p.name || p.fullName || p.studentName || name, p, searchTerm)
-                        : typeof window.normalizeVNForSearch === 'function'
-                            && window.normalizeVNForSearch([name, p.displayName, p.name, p.phone, p.parentPhone, p.contactPhone, p.memberId, p.studentCode, p.belt].filter(Boolean).join(' '))
-                                .includes(window.normalizeVNForSearch(searchTerm));
-                if (!matches) return;
-            } else if (!upgradeEligible) return;
+            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
 
             let isPaid = paidStudents[name]; const _examNameToken = encodeURIComponent(String(name || '')).replace(/'/g, '%27');
             const examDisplayName = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
                 ? window.ProfileCanonicalStore.resolveDisplayName(name, p)
                 : String(p.displayName || p.name || p.fullName || p.studentName || name || '').trim();
+            if (examSearchTerm && !normalizeExamSearch([examDisplayName, name, p.name, p.fullName, p.studentName, p.phone, p.memberId, p.belt || 'Đai trắng - Cấp 10'].filter(Boolean).join(' ')).includes(examSearchTerm)) return;
             let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.escapeHtml(String(window.getBranchNameDisplay(p.branch || 'CS1') || ''))}</span></td>`;
             let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${Number(isPaid.amount).toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
             let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', decodeURIComponent('${_examNameToken}'))">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam(decodeURIComponent('${_examNameToken}'))">💰 Thu phí</button>` : '');
@@ -7785,10 +7914,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 : (p.upgradedAt && String(p.upgradedAt).slice(0, 7) >= selMonth.substring(0, 7) && p.upgradedFrom);
             const newBadge = isNewlyUpgraded ? `<span class="ml-1 text-[0.65rem] font-black bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded uppercase" title="Vừa thăng từ ${window.escapeHtml(String(p.upgradedFrom || ''))} tháng ${window.escapeHtml(String(p.upgradedAt || ''))}">↑ Mới lên</span>` : '';
 
-            const selection = upgradeEligible ? `<input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}">` : '—';
-            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td>${selection}</td><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_examNameToken}'))">${window.escapeHtml(String(examDisplayName || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
+            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}"></td><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${_examNameToken}'))">${window.escapeHtml(String(examDisplayName || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
 
-            if(isNewlyUpgraded && !searchTerm) { htmlNewlyUpgraded += row; newlyUpgradedCount++; }
+            if(isNewlyUpgraded) { htmlNewlyUpgraded += row; newlyUpgradedCount++; }
             else { htmlOriginal += row; }
         });
 
@@ -7799,7 +7927,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             htmlExam += htmlNewlyUpgraded;
         }
 
-        uiExam.innerHTML = htmlExam || `<tr><td colspan="${isSingleBranch ? 5 : 6}" class="text-center text-slate-400 py-8 italic">${searchTerm ? 'Không tìm thấy võ sinh phù hợp' : 'Không có võ sinh nào ở cấp đai này'}</td></tr>`;
+        uiExam.innerHTML = htmlExam || `<tr><td colspan="${isSingleBranch ? 5 : 6}" class="text-center text-slate-400 py-8 italic">Không có võ sinh nào ở cấp đai này</td></tr>`;
 
         // Phase 4K-5C: Cập nhật thẻ ĐÃ ĐĂNG KÝ + TỔNG THU từ canonical ledger
         if (examLedger) {

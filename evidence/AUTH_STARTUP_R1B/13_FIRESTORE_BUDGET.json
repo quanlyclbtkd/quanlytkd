@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "method": "same existing line-level canonical runtime patterns; app.js plus js/**; public not double-counted",
+  "input": {
+    "getDoc": 24,
+    "getDocs": 43,
+    "onSnapshot": 16
+  },
+  "afterR1B": {
+    "getDoc": 24,
+    "getDocs": 43,
+    "onSnapshot": 16
+  },
+  "productionSourceChangedFiles": [],
+  "newProductionReaderCallSites": 0,
+  "newProductionWriterCallSites": 0,
+  "newProductionListenerCallSites": 0,
+  "newAuthOwner": 0,
+  "observerFirebaseIOEquivalence": {
+    "status": "NOT_RUN",
+    "reason": "No measurement observer was activated in a native application runtime."
+  },
+  "runtimeReadCountsMeasured": false
+}

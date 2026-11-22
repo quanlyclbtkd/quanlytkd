@@ -1,0 +1,15 @@
+{
+  "networkTrafficToProduction": 0,
+  "probes": [
+    {
+      "probe": "IPv4 loopback listener",
+      "status": "AVAILABLE"
+    },
+    {
+      "probe": "Unix domain socket",
+      "status": "BLOCKED",
+      "errno": 1,
+      "reason": "Operation not permitted"
+    }
+  ]
+}

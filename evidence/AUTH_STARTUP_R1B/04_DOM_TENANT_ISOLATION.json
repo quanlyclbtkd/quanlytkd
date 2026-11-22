@@ -1,0 +1,15 @@
+{
+  "status": "NOT_RUN",
+  "observation": "frame-level native browser observation required",
+  "markers": [
+    "CLUB_A_ONLY_MARKER",
+    "CLUB_B_ONLY_MARKER"
+  ],
+  "frameSamples": [],
+  "frameCount": null,
+  "staleFramesAfterBAuthoritative": null,
+  "visibleAMarkerAfterBAuthoritative": null,
+  "passed": null,
+  "cutoffDefinition": "Record both B auth-event reception and B verified/club-authority acceptance. During verification the protected screen must be neutral; no speculative B tenant data. After B is authoritative any visible A marker is fatal.",
+  "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE"
+}

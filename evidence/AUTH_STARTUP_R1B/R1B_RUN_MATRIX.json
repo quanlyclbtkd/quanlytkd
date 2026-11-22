@@ -1,0 +1,112 @@
+{
+  "realAuthCases": [
+    {
+      "id": "T01",
+      "scenario": "A normal native login"
+    },
+    {
+      "id": "T02",
+      "scenario": "B normal native login"
+    },
+    {
+      "id": "T03",
+      "scenario": "A → logout → B"
+    },
+    {
+      "id": "T04",
+      "scenario": "direct A → B without null"
+    },
+    {
+      "id": "T05",
+      "scenario": "A actual delayed authority success → B"
+    },
+    {
+      "id": "T06",
+      "scenario": "A actual delayed authority error → B"
+    },
+    {
+      "id": "T07",
+      "scenario": "A stale error cannot signOut current B"
+    },
+    {
+      "id": "T08",
+      "scenario": "Coach A CS1 → Coach B CS2"
+    },
+    {
+      "id": "T09",
+      "scenario": "Admin → Coach"
+    },
+    {
+      "id": "T10",
+      "scenario": "Coach → Admin"
+    },
+    {
+      "id": "T11",
+      "scenario": "SuperAdmin stale → Admin"
+    },
+    {
+      "id": "T12",
+      "scenario": "Admin stale → SuperAdmin"
+    },
+    {
+      "id": "T13",
+      "scenario": "same-origin native multi-tab A → B"
+    },
+    {
+      "id": "T14",
+      "scenario": "same-UID A reentry"
+    }
+  ],
+  "acceptanceIncludes": [
+    "sameUidReentry",
+    "frameLevelDom",
+    "actualListenerDetach",
+    "canonicalAdminProfiles",
+    "coachFailClosed",
+    "mainFailure",
+    "slowMain",
+    "firebaseBridgeBeforeApp"
+  ],
+  "requiredTimingMarks": [
+    "navigationStart",
+    "domInteractive",
+    "firebaseSdkReady",
+    "appJsRequestStart",
+    "appJsRequestEnd",
+    "appJsEvaluated",
+    "authObserverRegistered",
+    "authEventReceived",
+    "usersReadStart",
+    "usersReadEnd",
+    "coachVerificationStart",
+    "coachVerificationEnd",
+    "verifiedAuthCommit",
+    "mainJsRequestStart",
+    "mainJsRequestEnd",
+    "mainJsExecuted",
+    "listenerRegistryReady",
+    "clubListenerRegistered",
+    "clubFirstSnapshot",
+    "clubAuthorityAccepted",
+    "shellShown",
+    "defaultTabRuntimeReady",
+    "firstSafeUserInteractionReady",
+    "startupIdle",
+    "loginSubmit"
+  ],
+  "resourceFields": [
+    "requestStart",
+    "responseEnd",
+    "transferSize",
+    "encodedBodySize",
+    "decodedBodySize"
+  ],
+  "longTaskWindows": [
+    "navigationToAuthCommit",
+    "authCommitToShell",
+    "shellToFirstSafeReady",
+    "firstSafeReadyToIdle"
+  ],
+  "collectionActivated": false,
+  "productionSourceMayBeModified": false
+}

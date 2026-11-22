@@ -6,9 +6,13 @@ import vm from 'node:vm';
 import crypto from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {parse} from './v11r2/vendor/acorn.mjs';
+import { resolveCheckerAuthority } from './current-lineage-governance-r1-1/checker-authority.mjs';
 
 // Same executable assertions run against the untouched parent and candidate.
 const root = path.resolve(process.env.FINANCE_LATENCY_SOURCE_ROOT || process.cwd());
+const { identity, currentManifest } = resolveCheckerAuthority(root);
+console.log(`FINANCE_LATENCY_SOURCE_IDENTITY=${identity.id}`);
+if (currentManifest) console.log(`FINANCE_LATENCY_CURRENT_MANIFEST_SHA256=${identity.manifestSHA256}`);
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
 const sha = s => crypto.createHash('sha256').update(s).digest('hex');
 const deferred = () => {let resolve, reject; const promise = new Promise((a,b) => {resolve=a;reject=b;}); return {promise,resolve,reject};};
@@ -175,12 +179,13 @@ for(const size of [1,3,6,9,12]) {
   check(`${size} months preserve first-month failure stop`,()=>{assert.equal(d.status,'UNKNOWN');assert.equal(calls.length,1);});
 }
 const protectedFiles=['app.js','js/services/finance.service.js','js/core/tuitionCommandBoundary.js','js/core/tuitionDebtCanonical.js','js/core/debtProfileReadBoundary.js','js/listeners/profiles.listeners.js','js/core/transactionCanonicalBoundary.js','firestore.rules','firestore.indexes.json'];
-const parentManifest=JSON.parse(read('tools/v11r2/manifests/V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B.json'));
-for(const file of protectedFiles) check('protected financial source unchanged: '+file,()=>assert.equal(sha(read(file)),parentManifest.canonicalRuntimeFiles[file] || parentManifest[file==='firestore.rules'?'rulesSHA256':'indexesSHA256']));
+const sourceManifest=currentManifest ?? JSON.parse(read('tools/v11r2/manifests/V11R6_A9R18_REACHABLE_DOM_TRUST_BOUNDARY_R1_4B.json'));
+for(const file of protectedFiles) check('protected financial source unchanged: '+file,()=>assert.equal(sha(read(file)),sourceManifest.canonicalRuntimeFiles[file] || sourceManifest[file==='firestore.rules'?'rulesSHA256':'indexesSHA256']));
 // Exact parent files are authenticated by the source registry; this gate also
 // verifies no financial operations entered the UI adapter patch.
 check('UI adapter contains no direct Firestore reads or listeners',()=>assert(!/\b(getDoc|getDocs|onSnapshot)\s*\(/.test(source)));
 check('new progress feedback has no polling or fixed wait',()=>{const p=source.slice(source.indexOf('function _beginTuitionFeedback'),source.indexOf('/** @deprecated'));assert(!/setTimeout|setInterval|requestAnimationFrame/.test(p));});
 check('root/public Finance adapter parity',()=>assert.equal(read('public/js/modules/finance.js'),source));
 console.log(JSON.stringify({gate:'FINANCE_WRITE_LATENCY_R1_SAFE_FEEDBACK',passed,failed,sourceRoot:root}));
+if (currentManifest) console.log(`FINANCE_LATENCY_CURRENT_LINEAGE_RESULT=${failed ? 'FAIL' : 'PASS'}`);
 if(failed)process.exitCode=1;

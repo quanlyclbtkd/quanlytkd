@@ -1,0 +1,276 @@
+{
+  "kind": "EXACT_R1A_AUTH_CORRECTNESS_DIFF_NOT_PERFORMANCE_WAIVER",
+  "baseAppSHA256": "922c86bab2b085b36ec8eeb23f4d0bdc3652cf1eb131ac466939a2a5bf5a9619",
+  "candidateAppSHA256": "4b6066e8fc9fc613cad3471353a5d86fcda87c8ab10ed43b44042ece732ba0eb",
+  "baseRuntimeSHA256": "3e4e56fc385ef13bc74b5d6f2df1182137d38355d65eed4394a807de58f9e3da",
+  "allowedRuntimeChangedFiles": [
+    "app.js",
+    "public/app.js"
+  ],
+  "edits": [
+    {
+      "beforeByteOffset": 119725,
+      "afterByteOffset": 119725,
+      "beforeLine": 1967,
+      "afterLine": 1967,
+      "before": "        const _verifiedAuth = window.__verifiedAuthContextState;\n",
+      "after": "        const _verifiedAuth = window.__verifiedAuthContextState ? { ...window.__verifiedAuthContextState } : null;\n"
+    },
+    {
+      "beforeByteOffset": 120447,
+      "afterByteOffset": 120497,
+      "beforeLine": 1975,
+      "afterLine": 1975,
+      "before": "",
+      "after": "        const isCurrentAuthInit = () => _isCurrentClubBootstrapGeneration({ uid: _verifiedAuth.uid, clubId, authGeneration: _verifiedAuth.generation });\n"
+    },
+    {
+      "beforeByteOffset": 122875,
+      "afterByteOffset": 123078,
+      "beforeLine": 2007,
+      "afterLine": 2008,
+      "before": "",
+      "after": "                if (!isCurrentAuthInit()) return;\n"
+    },
+    {
+      "beforeByteOffset": 123476,
+      "afterByteOffset": 123729,
+      "beforeLine": 2016,
+      "afterLine": 2018,
+      "before": "",
+      "after": "                    if (!isCurrentAuthInit()) return;\n"
+    },
+    {
+      "beforeByteOffset": 123742,
+      "afterByteOffset": 124049,
+      "beforeLine": 2020,
+      "afterLine": 2023,
+      "before": "",
+      "after": "                    if (!isCurrentAuthInit()) return;\n"
+    },
+    {
+      "beforeByteOffset": 125386,
+      "afterByteOffset": 125747,
+      "beforeLine": 2043,
+      "afterLine": 2047,
+      "before": "",
+      "after": "        if (!isCurrentAuthInit()) return false;\n"
+    },
+    {
+      "beforeByteOffset": 135800,
+      "afterByteOffset": 136209,
+      "beforeLine": 2190,
+      "afterLine": 2195,
+      "before": "",
+      "after": "            if (!isCurrentAuthInit()) return;\n"
+    },
+    {
+      "beforeByteOffset": 136479,
+      "afterByteOffset": 136934,
+      "beforeLine": 2198,
+      "afterLine": 2204,
+      "before": "                    setTimeout(() => window.syncCanonicalTransactionReadModeFromConfig('settings-snapshot'), 0);\n",
+      "after": "                    setTimeout(() => { if (isCurrentAuthInit()) window.syncCanonicalTransactionReadModeFromConfig('settings-snapshot'); }, 0);\n"
+    },
+    {
+      "beforeByteOffset": 139105,
+      "afterByteOffset": 139590,
+      "beforeLine": 2238,
+      "afterLine": 2244,
+      "before": "",
+      "after": "            if (!isCurrentAuthInit()) return;\n"
+    },
+    {
+      "beforeByteOffset": 145907,
+      "afterByteOffset": 146438,
+      "beforeLine": 2344,
+      "afterLine": 2351,
+      "before": "",
+      "after": "                if (!isCurrentAuthInit()) return;\n"
+    },
+    {
+      "beforeByteOffset": 167688,
+      "afterByteOffset": 168269,
+      "beforeLine": 2718,
+      "afterLine": 2726,
+      "before": "",
+      "after": "            if (!isCurrentAuthInit()) return;\n"
+    },
+    {
+      "beforeByteOffset": 170915,
+      "afterByteOffset": 171542,
+      "beforeLine": 2769,
+      "afterLine": 2778,
+      "before": "",
+      "after": "            if (!isCurrentAuthInit()) return;\n"
+    },
+    {
+      "beforeByteOffset": 175237,
+      "afterByteOffset": 175910,
+      "beforeLine": 2832,
+      "afterLine": 2842,
+      "before": "",
+      "after": "                if (!isCurrentAuthInit()) return;\n"
+    },
+    {
+      "beforeByteOffset": 218765,
+      "afterByteOffset": 219488,
+      "beforeLine": 3415,
+      "afterLine": 3426,
+      "before": "",
+      "after": "    // R1A: private callback freshness only; canonical auth generation stays unchanged.\n    let _authObserverEpoch = 0;\n    const _authBootstrapDefaultClubConfig = Object.freeze({ ...clubConfig });\n    const _authTenantShellDefaults = Array.from(document.querySelectorAll(\n        '.tab-btn, .tab-content, .mhb-pill, .desktop-action-btns button, #mainTabsWrapper, #filterArea, #transactionForm, #inventoryForm, #expenseForm, #examExpenseForm, #btnAddStudent'\n    ), el => ({ el, display: el.style.display, active: el.classList.contains('active') }));\n\n"
+    },
+    {
+      "beforeByteOffset": 218889,
+      "afterByteOffset": 220164,
+      "beforeLine": 3416,
+      "afterLine": 3434,
+      "before": "    async function _recordLoginEvent(user, role, clubId) {\n",
+      "after": "    async function _recordLoginEvent(user, role, clubId, isCurrent = () => String(auth.currentUser?.uid || '') === String(user?.uid || '')) {\n        if (!isCurrent()) return;\n"
+    },
+    {
+      "beforeByteOffset": 222281,
+      "afterByteOffset": 223673,
+      "beforeLine": 3474,
+      "afterLine": 3493,
+      "before": "",
+      "after": "            if (!isCurrent()) return;\n"
+    },
+    {
+      "beforeByteOffset": 222823,
+      "afterByteOffset": 224253,
+      "beforeLine": 3487,
+      "afterLine": 3507,
+      "before": "",
+      "after": "            if (!isCurrent()) return;\n"
+    },
+    {
+      "beforeByteOffset": 222897,
+      "afterByteOffset": 224365,
+      "beforeLine": 3489,
+      "afterLine": 3510,
+      "before": "",
+      "after": "            if (!isCurrent()) return;\n"
+    },
+    {
+      "beforeByteOffset": 227527,
+      "afterByteOffset": 229033,
+      "beforeLine": 3566,
+      "afterLine": 3588,
+      "before": "",
+      "after": "        if (ctx.uid !== String(auth.currentUser?.uid || '') || options.isCurrent?.() === false) return null;\n"
+    },
+    {
+      "beforeByteOffset": 232561,
+      "afterByteOffset": 234176,
+      "beforeLine": 3652,
+      "afterLine": 3675,
+      "before": "            state.uid === uid && state.clubId === club && state.generation === generation && window.__store?.currentUser?.uid === uid;\n",
+      "after": "            state.uid === uid && state.clubId === club && state.generation === generation && window.__store?.currentUser?.uid === uid && String(auth.currentUser?.uid || '') === uid;\n"
+    },
+    {
+      "beforeByteOffset": 238339,
+      "afterByteOffset": 240001,
+      "beforeLine": 3722,
+      "afterLine": 3745,
+      "before": "",
+      "after": "        const principalEpoch = _authObserverEpoch;\n        const isCurrent = () => principalEpoch === _authObserverEpoch && String(auth.currentUser?.uid || '') === String(user?.uid || '');\n        if (!isCurrent()) return false;\n"
+    },
+    {
+      "beforeByteOffset": 238666,
+      "afterByteOffset": 240557,
+      "beforeLine": 3729,
+      "afterLine": 3755,
+      "before": "",
+      "after": "            if (!isCurrent()) return false;\n"
+    },
+    {
+      "beforeByteOffset": 239077,
+      "afterByteOffset": 241012,
+      "beforeLine": 3737,
+      "afterLine": 3764,
+      "before": "",
+      "after": "            if (!isCurrent()) return false;\n"
+    },
+    {
+      "beforeByteOffset": 239251,
+      "afterByteOffset": 241230,
+      "beforeLine": 3741,
+      "afterLine": 3769,
+      "before": "",
+      "after": "        if (!isCurrent()) return false;\n"
+    },
+    {
+      "beforeByteOffset": 239461,
+      "afterByteOffset": 241480,
+      "beforeLine": 3748,
+      "afterLine": 3777,
+      "before": "",
+      "after": "            if (!isCurrent()) return false;\n"
+    },
+    {
+      "beforeByteOffset": 239515,
+      "afterByteOffset": 241578,
+      "beforeLine": 3750,
+      "afterLine": 3780,
+      "before": "",
+      "after": "            if (!isCurrent()) return false;\n"
+    },
+    {
+      "beforeByteOffset": 240246,
+      "afterByteOffset": 242353,
+      "beforeLine": 3763,
+      "afterLine": 3794,
+      "before": "    const _showLoginError = async (msg) => {\n",
+      "after": "    const _showLoginError = async (msg, isCurrent = () => true) => {\n        if (!isCurrent()) return;\n        const errorEpoch = _authObserverEpoch;\n        const errorUid = String(auth.currentUser?.uid || '');\n        const errorStillCurrent = () => (_authObserverEpoch === errorEpoch && String(auth.currentUser?.uid || '') === errorUid) || (!auth.currentUser && _authObserverEpoch <= errorEpoch + 1);\n"
+    },
+    {
+      "beforeByteOffset": 240691,
+      "afterByteOffset": 243157,
+      "beforeLine": 3771,
+      "afterLine": 3806,
+      "before": "",
+      "after": "        if (!isCurrent() || errorEpoch !== _authObserverEpoch || errorUid !== String(auth.currentUser?.uid || '')) return;\n"
+    },
+    {
+      "beforeByteOffset": 240740,
+      "afterByteOffset": 243329,
+      "beforeLine": 3772,
+      "afterLine": 3808,
+      "before": "",
+      "after": "        if (!errorStillCurrent()) return;\n"
+    },
+    {
+      "beforeByteOffset": 240943,
+      "afterByteOffset": 243574,
+      "beforeLine": 3775,
+      "afterLine": 3812,
+      "before": "        setTimeout(() => { const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);\n",
+      "after": "        setTimeout(() => { if (!errorStillCurrent()) return; const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);\n"
+    },
+    {
+      "beforeByteOffset": 241105,
+      "afterByteOffset": 243770,
+      "beforeLine": 3779,
+      "afterLine": 3816,
+      "before": "        if (user) {\n            try {\n                // ── Phase 4K-6V5U4: SuperAdmin principal convergence ──\n                // V5U5 keeps ROOT email as bootstrap identity only, then commits through\n                // the same canonical auth-context writer used by every verified role.\n                if (user.email && user.email.toLowerCase() === _SUPER_ADMIN_BOOTSTRAP_EMAIL) {\n                    try {\n                        const principalReady = await _ensureSuperAdminPrincipal(user);\n                        if (!principalReady) throw new Error('Không xác nhận được SuperAdmin principal.');\n                    } catch (_principalErr) {\n                        _clearAuthCache();\n                        await _showLoginError(_principalErr?.message || 'Không thể xác nhận quyền SuperAdmin.');\n                        return;\n                    }\n                    const _saContext = _commitVerifiedAuthContext(user, {\n                        role: 'super_admin', clubId: '', coachBranch: ''\n                    }, { source: 'super_admins/{uid}' });\n                    try { await initSaaSDatabase(_saContext.clubId); } catch(_ie) { console.error('initSaaSDatabase(super_admin):', _ie); }\n                    _recordLoginEvent(user, _saContext.role, _saContext.clubId).catch(() => {});\n                    return;\n                }\n\n                // Cache is intentionally read only as a hint/diagnostic. It never writes\n                // role/club/branch and never calls initSaaSDatabase before verification.\n                const _cached = _getAuthCache(user.uid);\n\n                let userDocSnap = null;\n                try {\n                    userDocSnap = await _readUserAuthorizationProfileOnce(user);\n                } catch(_readErr) {\n                    console.warn('users/{uid} verification failed:', _readErr.code || _readErr.message);\n                    _clearAuthCache();\n                    await _showLoginError(\n                        _readErr?.code === 'permission-denied'\n                            ? 'Không thể xác minh quyền tài khoản (permission-denied). Vui lòng đăng nhập lại hoặc liên hệ quản trị viên.'\n                            : 'Không thể kết nối Firestore (' + (_readErr.code || _readErr.message) + '). Vui lòng kiểm tra mạng và thử lại.'\n                    );\n                    return;\n                }\n\n                if (!userDocSnap || !userDocSnap.exists()) {\n                    _clearAuthCache();\n                    await _showLoginError('Không tìm thấy hồ sơ phân quyền users/{uid}. Admin cần đồng bộ lại tài khoản trước khi đăng nhập.');\n                    return;\n                }\n\n                const _ud = userDocSnap.data() || {};\n                if (_normalizeAuthRole(_ud.role) === 'coach' && (userDocSnap.metadata?.fromCache !== false || userDocSnap.metadata?.hasPendingWrites !== false)) throw Object.assign(new Error('Chưa xác minh được hồ sơ quyền HLV từ máy chủ.'), {code:'auth/coach-assignment-unverified'});\n                if (_isDisabledUserAuthorization(_ud)) {\n                    _clearAuthCache();\n                    await _showLoginError('Tài khoản đã bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ quản trị viên hệ thống.');\n                    return;\n                }\n\n                let _freshContext = _normalizeAuthContext({\n                    uid: user.uid,\n                    role: _ud.role || '',\n                    clubId: _ud.clubId,\n                    branch: _ud.branch || _ud.coachBranch || '',\n                    ...('allowedBranches' in _ud ? {allowedBranches:_ud.allowedBranches} : {}),\n                    defaultBranch: _ud.defaultBranch || '',\n                    // A9: keep the server-confirmed Coach mirror authority in the\n                    // actual login path before it reaches canonical comparison.\n                    primaryCoachBranch: _ud.primaryCoachBranch || '',\n                    assignmentVersion: _ud.assignmentVersion || 'legacy'\n                });\n                if (_freshContext.role === 'coach') {\n                    _freshContext = await _resolveCoachBranchContext(user, _freshContext);\n                }\n\n                if (_freshContext.role === 'coach' && !_freshContext.coachBranch) {\n                    _clearAuthCache();\n                    await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể (CS1...CS10) rồi đăng nhập lại.');\n                    return;\n                }\n                if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) {\n                    _clearAuthCache();\n                    await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.');\n                    return;\n                }\n\n                // Stale cache is discarded before runtime mount; no rebind/reload is needed\n                // because no protected listener has been mounted from cache.\n                if (_cached && !_sameAuthContext(_freshContext, _cached)) {\n                    console.info('[AuthContext] Cache cũ đã bị bỏ qua sau xác minh Firestore.');\n                }\n\n                const _committed = _commitVerifiedAuthContext(user, _freshContext, { source: 'users/{uid}' });\n                _recordLoginEvent(user, _committed.role, _committed.clubId).catch(() => {});\n                try { await initSaaSDatabase(_committed.clubId); } catch(_ie) { console.error('initSaaSDatabase(verified):', _ie); }\n                setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);\n            } catch(e) {\n                console.error('Auth flow error:', e);\n                _clearAuthCache();\n                await _showLoginError(\n                    e.code === 'auth/coach-branch-mirror-sync-failed' ? e.message : e.code === 'permission-denied'\n                        ? 'Lỗi phân quyền Firestore (permission-denied). Vui lòng deploy firestore.rules canonical rồi đăng nhập lại.'\n                        : 'Lỗi xác thực hệ thống (' + (e.code || e.message) + ').\\nVui lòng kiểm tra kết nối mạng và thử lại.'\n                );\n            }\n        } else {\n",
+      "after": "        const eventEpoch = ++_authObserverEpoch;\n        const expectedUid = String(user?.uid || '');\n        const isCurrentAuthEvent = () => eventEpoch === _authObserverEpoch && String(auth.currentUser?.uid || '') === expectedUid;\n        if (!isCurrentAuthEvent()) return;\n        const previousUid = String(window.__verifiedAuthContextState?.uid || window.__store?.currentUser?.uid || '');\n        if (!user || previousUid) {\n            // Hide before clearing ownership; B's event has not authorized any tenant yet.\n            const protectedApp = document.getElementById('mainApp'); if (protectedApp) protectedApp.style.display = 'none';\n"
+    },
+    {
+      "beforeByteOffset": 247594,
+      "afterByteOffset": 244447,
+      "beforeLine": 3881,
+      "afterLine": 3825,
+      "before": "            _verifiedUserProfileFlight = { uid: '', promise: null };\n            _resetVerifiedAuthContext('logout');\n",
+      "after": "            if (!user || previousUid !== expectedUid) _verifiedUserProfileFlight = { uid: '', promise: null };\n            if (user) _resetVerifiedAuthContext('auth-identity-change');\n            else _resetVerifiedAuthContext('logout');\n"
+    },
+    {
+      "beforeByteOffset": 251885,
+      "afterByteOffset": 248858,
+      "beforeLine": 3937,
+      "afterLine": 3882,
+      "before": "            setTimeout(() => { const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);\n",
+      "after": "            if (!user) setTimeout(() => { if (!isCurrentAuthEvent()) return; const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);\n            window.resetStore?.();\n            window.__moduleResetStore?.();\n            window.__inventoryStore?.resetInventoryStore?.('auth-identity-change');\n            window.AttendanceModule?.resetForClub?.('');\n            clubData = {}; allProfiles = {}; allTransactions = []; allInventory = []; inventoryStats = {};\n            clubConfig = { ..._authBootstrapDefaultClubConfig };\n            colRef = null; profRef = null; invRef = null;\n            if (window.__store) Object.assign(window.__store, {\n                clubData, profiles: allProfiles, transactions: allTransactions, inventory: allInventory, inventoryStats, clubConfig,\n                colRef: null, profRef: null, invRef: null, tabHtmlCache: {}, activeDataSource: '', _lastBStats: null,\n                _lastSelectPaidStudents: null, __settingsSnapshotReady: false\n            });\n            window.__settingsSnapshotReady = false;\n            window.__receiptSettingsAuthority = null;\n            window.__dbReadyEventDispatched = false;\n            window._liveInvMap = {};\n            window.__completeInventoryDebts = [];\n            window.__inventoryDebtCompleteness = 'loading';\n            window.invCustomCategories = [];\n            _authTenantShellDefaults.forEach(({ el, display, active }) => {\n                el.style.display = display;\n                if (active) el.classList.add('active'); else el.classList.remove('active');\n            });\n            // Only rendered data hosts are cleared; form structure and handlers stay intact.\n            for (const id of ['txList','debtList','inventoryList','uniformTxList','examList','examExpenseList','expenseList','activeList','quitList','reportList','branchStatsGrid','sysClubListMain','superAdminStats','saRevenueContent','admin_notif_list','attendanceGrid','attendanceSummary','coach_att_info','admin_daily_branch_summary','admin_daily_branch_body','att_monthly_cards','att_monthly_body','all_session_notes_list','skippedThisMonthList','coachAccountsList','mi_history_list','mi_inv_debt_list','autocomplete-list','inv-autocomplete-list','mi-autocomplete-list']) {\n                const el = document.getElementById(id); if (el) el.replaceChildren();\n            }\n            for (const id of ['displayClubName','mhbClubName','r_club_name']) {\n                const el = document.getElementById(id); if (el) el.textContent = 'HỆ THỐNG QUẢN LÝ CLB';\n            }\n            for (const id of ['mhbActiveCount','mhbDebtCount','mhbIncome','activeStudentCount','debtCount','totalIncomeDashboard','sum_debt_count_tab','txTabCountBadge','debtTabCountBadge']) {\n                const el = document.getElementById(id); if (el) el.textContent = '—';\n            }\n            document.querySelectorAll('.modal, .ui-shell-overlay').forEach(el => { el.style.display = 'none'; });\n            document.querySelectorAll('.club-logo-img').forEach(el => { el.style.display = 'none'; el.removeAttribute('src'); });\n            document.querySelectorAll('#mainApp input, #mainApp textarea, .modal input, .modal textarea').forEach(el => {\n                if (['date','month','time','datetime-local','hidden'].includes(el.type)) return;\n                if (el.type === 'checkbox' || el.type === 'radio') el.checked = el.defaultChecked;\n                else el.value = el.defaultValue;\n            });\n            const saView = document.getElementById('superAdminView'); if (saView) saView.style.display = 'none';\n            const subtitle = document.getElementById('displaySubtitle'); if (subtitle) subtitle.textContent = '';\n            window._clearLoginError?.();\n            if (user) {\n                const label = document.getElementById('loginText'); if (label) label.textContent = 'Đang xác minh tài khoản...';\n                const spinner = document.getElementById('loginLoading'); if (spinner) spinner.classList.remove('hidden');\n            }\n        }\n        if (user) {\n            try {\n                // ── Phase 4K-6V5U4: SuperAdmin principal convergence ──\n                // V5U5 keeps ROOT email as bootstrap identity only, then commits through\n                // the same canonical auth-context writer used by every verified role.\n                if (user.email && user.email.toLowerCase() === _SUPER_ADMIN_BOOTSTRAP_EMAIL) {\n                    try {\n                        const principalReady = await _ensureSuperAdminPrincipal(user);\n                        if (!isCurrentAuthEvent()) return;\n                        if (!principalReady) throw new Error('Không xác nhận được SuperAdmin principal.');\n                    } catch (_principalErr) {\n                        if (!isCurrentAuthEvent()) return;\n                        _clearAuthCache();\n                        await _showLoginError(_principalErr?.message || 'Không thể xác nhận quyền SuperAdmin.', isCurrentAuthEvent);\n                        return;\n                    }\n                    if (!isCurrentAuthEvent()) return;\n                    const _saContext = _commitVerifiedAuthContext(user, {\n                        role: 'super_admin', clubId: '', coachBranch: ''\n                    }, { source: 'super_admins/{uid}', isCurrent: isCurrentAuthEvent });\n                    if (!_saContext) return;\n                    try { await initSaaSDatabase(_saContext.clubId); } catch(_ie) { if (isCurrentAuthEvent()) console.error('initSaaSDatabase(super_admin):', _ie); }\n                    if (!isCurrentAuthEvent()) return;\n                    _recordLoginEvent(user, _saContext.role, _saContext.clubId, isCurrentAuthEvent).catch(() => {});\n                    return;\n                }\n\n                // Cache is intentionally read only as a hint/diagnostic. It never writes\n                // role/club/branch and never calls initSaaSDatabase before verification.\n                const _cached = _getAuthCache(user.uid);\n\n                let userDocSnap = null;\n                try {\n                    userDocSnap = await _readUserAuthorizationProfileOnce(user);\n                    if (!isCurrentAuthEvent()) return;\n                } catch(_readErr) {\n                    if (!isCurrentAuthEvent()) return;\n                    console.warn('users/{uid} verification failed:', _readErr.code || _readErr.message);\n                    _clearAuthCache();\n                    await _showLoginError(\n                        _readErr?.code === 'permission-denied'\n                            ? 'Không thể xác minh quyền tài khoản (permission-denied). Vui lòng đăng nhập lại hoặc liên hệ quản trị viên.'\n                            : 'Không thể kết nối Firestore (' + (_readErr.code || _readErr.message) + '). Vui lòng kiểm tra mạng và thử lại.', isCurrentAuthEvent\n                    );\n                    return;\n                }\n\n                if (!userDocSnap || !userDocSnap.exists()) {\n                    _clearAuthCache();\n                    await _showLoginError('Không tìm thấy hồ sơ phân quyền users/{uid}. Admin cần đồng bộ lại tài khoản trước khi đăng nhập.', isCurrentAuthEvent);\n                    return;\n                }\n\n                const _ud = userDocSnap.data() || {};\n                if (_normalizeAuthRole(_ud.role) === 'coach' && (userDocSnap.metadata?.fromCache !== false || userDocSnap.metadata?.hasPendingWrites !== false)) throw Object.assign(new Error('Chưa xác minh được hồ sơ quyền HLV từ máy chủ.'), {code:'auth/coach-assignment-unverified'});\n                if (_isDisabledUserAuthorization(_ud)) {\n                    _clearAuthCache();\n                    await _showLoginError('Tài khoản đã bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ quản trị viên hệ thống.', isCurrentAuthEvent);\n                    return;\n                }\n\n                let _freshContext = _normalizeAuthContext({\n                    uid: user.uid,\n                    role: _ud.role || '',\n                    clubId: _ud.clubId,\n                    branch: _ud.branch || _ud.coachBranch || '',\n                    ...('allowedBranches' in _ud ? {allowedBranches:_ud.allowedBranches} : {}),\n                    defaultBranch: _ud.defaultBranch || '',\n                    // A9: keep the server-confirmed Coach mirror authority in the\n                    // actual login path before it reaches canonical comparison.\n                    primaryCoachBranch: _ud.primaryCoachBranch || '',\n                    assignmentVersion: _ud.assignmentVersion || 'legacy'\n                });\n                if (_freshContext.role === 'coach') {\n                    _freshContext = await _resolveCoachBranchContext(user, _freshContext);\n                    if (!isCurrentAuthEvent()) return;\n                }\n\n                if (_freshContext.role === 'coach' && !_freshContext.coachBranch) {\n                    _clearAuthCache();\n                    await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể (CS1...CS10) rồi đăng nhập lại.', isCurrentAuthEvent);\n                    return;\n                }\n                if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) {\n                    _clearAuthCache();\n                    await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.', isCurrentAuthEvent);\n                    return;\n                }\n\n                // Stale cache is discarded before runtime mount; no rebind/reload is needed\n                // because no protected listener has been mounted from cache.\n                if (_cached && !_sameAuthContext(_freshContext, _cached)) {\n                    console.info('[AuthContext] Cache cũ đã bị bỏ qua sau xác minh Firestore.');\n                }\n\n                if (!isCurrentAuthEvent()) return;\n                const _committed = _commitVerifiedAuthContext(user, _freshContext, { source: 'users/{uid}', isCurrent: isCurrentAuthEvent });\n                if (!_committed) return;\n                _recordLoginEvent(user, _committed.role, _committed.clubId, isCurrentAuthEvent).catch(() => {});\n                try { await initSaaSDatabase(_committed.clubId); } catch(_ie) { if (isCurrentAuthEvent()) console.error('initSaaSDatabase(verified):', _ie); }\n                if (!isCurrentAuthEvent()) return;\n                setTimeout(() => { if(isCurrentAuthEvent() && typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);\n            } catch(e) {\n                if (!isCurrentAuthEvent()) return;\n                console.error('Auth flow error:', e);\n                _clearAuthCache();\n                await _showLoginError(\n                    e.code === 'auth/coach-branch-mirror-sync-failed' ? e.message : e.code === 'permission-denied'\n                        ? 'Lỗi phân quyền Firestore (permission-denied). Vui lòng deploy firestore.rules canonical rồi đăng nhập lại.'\n                        : 'Lỗi xác thực hệ thống (' + (e.code || e.message) + ').\\nVui lòng kiểm tra kết nối mạng và thử lại.', isCurrentAuthEvent\n                );\n            }\n"
+    }
+  ]
+}

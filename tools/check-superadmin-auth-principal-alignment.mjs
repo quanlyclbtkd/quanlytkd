@@ -50,16 +50,16 @@ check('App cache-bust keeps V5U4 compatibility and advances to V5U5', index.incl
 check('Package exposes this gate', pkg.scripts?.['check:superadmin-auth-principal-alignment'] === 'node tools/check-superadmin-auth-principal-alignment.mjs');
 
 if (ensureBlock) {
-  const makeEnsure = new Function('db','_SUPER_ADMIN_BOOTSTRAP_EMAIL','doc','getDoc','setDoc', `${ensureBlock}; return _ensureSuperAdminPrincipal;`);
+  const makeEnsure = new Function('db','_SUPER_ADMIN_BOOTSTRAP_EMAIL','doc','getDoc','setDoc','auth','_authObserverEpoch', `${ensureBlock}; return _ensureSuperAdminPrincipal;`);
   const user={uid:'root-uid',email:'admin@tstquynhon.com'};
   let setCalls=0;
-  const disabledFn=makeEnsure({},'admin@tstquynhon.com',()=>({}),async()=>({exists:()=>true,data:()=>({enabled:false})}),async()=>{setCalls++;});
+  const disabledFn=makeEnsure({},'admin@tstquynhon.com',()=>({}),async()=>({exists:()=>true,data:()=>({enabled:false})}),async()=>{setCalls++;},{currentUser:user},0);
   let disabledCode='';
   try { await disabledFn(user); } catch (e) { disabledCode=e?.code||''; }
   check('Dynamic disabled principal throws canonical code', disabledCode==='auth/superadmin-principal-disabled', disabledCode);
   check('Dynamic disabled principal performs zero setDoc', setCalls===0, `setCalls=${setCalls}`);
   setCalls=0;
-  const enabledFn=makeEnsure({},'admin@tstquynhon.com',()=>({}),async()=>({exists:()=>true,data:()=>({enabled:true})}),async()=>{setCalls++;});
+  const enabledFn=makeEnsure({},'admin@tstquynhon.com',()=>({}),async()=>({exists:()=>true,data:()=>({enabled:true})}),async()=>{setCalls++;},{currentUser:user},0);
   check('Dynamic enabled principal returns true', await enabledFn(user)===true && setCalls===0);
 }
 

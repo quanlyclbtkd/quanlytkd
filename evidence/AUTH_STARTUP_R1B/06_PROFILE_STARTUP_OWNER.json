@@ -1,0 +1,23 @@
+{
+  "status": "NOT_RUN",
+  "PROFILE_STARTUP_OWNER": null,
+  "acceptedOwnerRequired": "CANONICAL_ACTIVE",
+  "rejectedNormalOwner": "LEGACY_FULL_FALLBACK",
+  "normalAdminRuns": 0,
+  "canonicalFunctionAvailableAtActualMount": null,
+  "actualCanonicalPathMounted": null,
+  "legacyFallbackObserved": null,
+  "coachCanonicalUnavailable": {
+    "status": "NOT_RUN",
+    "failedClosed": null,
+    "adminFullProfilesFallbackUsed": null
+  },
+  "mandatoryFutureStartupRegressionGate": true,
+  "sourceFactsOnly": {
+    "canonicalExportLineInMain": 2223,
+    "registryBridgeLineInMain": 2126,
+    "canonicalFilesUnchanged": true,
+    "sourceAssignmentDoesNotProveRuntimeMounted": true
+  },
+  "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE"
+}

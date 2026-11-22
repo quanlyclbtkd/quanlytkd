@@ -1,0 +1,51 @@
+{
+  "scope": "OFFLINE_SOURCE_AND_AUTH_HARNESS_ONLY",
+  "realBrowserVerified": false,
+  "realFirebaseAuthVerified": false,
+  "productionNetworkAccess": 0,
+  "total": 9,
+  "passed": 9,
+  "counts": {
+    "getDoc": 24,
+    "getDocs": 43,
+    "onSnapshot": 16
+  },
+  "checks": [
+    {
+      "name": "exact auth-only diff reconstructs accepted baseline",
+      "status": "PASS"
+    },
+    {
+      "name": "current lineage, mirrored runtime and frozen cache graph",
+      "status": "PASS"
+    },
+    {
+      "name": "one existing auth observer",
+      "status": "PASS"
+    },
+    {
+      "name": "private callback epoch is not a public/business authority",
+      "status": "PASS"
+    },
+    {
+      "name": "registry module remains frozen",
+      "status": "PASS"
+    },
+    {
+      "name": "main module remains frozen",
+      "status": "PASS"
+    },
+    {
+      "name": "exact Firestore reader call-site budget 24/43/16",
+      "status": "PASS"
+    },
+    {
+      "name": "run-isolation.mjs exact-source fixtures",
+      "status": "PASS"
+    },
+    {
+      "name": "run-controls.mjs exact-source fixtures",
+      "status": "PASS"
+    }
+  ]
+}

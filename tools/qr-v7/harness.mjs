@@ -104,6 +104,8 @@ export async function createHarness({config=bankConfig(), hydrate=true,metadata=
     Blob,FileReader,AbortController,URL,Uint8Array,Uint8ClampedArray,TextEncoder,TextDecoder,
     console:{error:(...a)=>events.push(a),warn:(...a)=>events.push(a),log(){}},setTimeout,clearTimeout,Date,Math,Number,Promise,
     requestAnimationFrame:f=>f(),getComputedStyle:()=>({display:'flex',visibility:'visible',opacity:'1',zIndex:'10001'}),
+    // R1A fixture supplies the captured init owner used by the real callback.
+    isCurrentAuthInit:()=>true,
     _updateHydrationMetrics(){},applyClubConfigUI(){},scheduleRender(){},CustomEvent:class{},alert:x=>events.push(['ALERT',x]),
     setDoc:failWrite,addDoc:failWrite,updateDoc:failWrite,deleteDoc:failWrite,writeBatch:failWrite,runTransaction:failWrite,
   };

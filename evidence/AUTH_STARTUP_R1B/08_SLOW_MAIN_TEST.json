@@ -1,0 +1,38 @@
+{
+  "status": "NOT_RUN",
+  "sourceConstants": {
+    "listenerRegistryReadyTimeoutMs": 10000,
+    "legacyDependencyBootstrapDeadlineMs": 15000
+  },
+  "constantsModified": false,
+  "runs": [
+    {
+      "id": "S01",
+      "scenario": "main delayed beyond observed registry-wait start + current registry threshold",
+      "status": "NOT_RUN",
+      "actualDelayMs": null,
+      "actualClassification": null
+    },
+    {
+      "id": "S02",
+      "scenario": "main fetch delayed near 15s legacy bootstrap deadline; observe which clock actually applies",
+      "status": "NOT_RUN",
+      "actualDelayMs": null,
+      "actualClassification": null
+    },
+    {
+      "id": "S03",
+      "scenario": "legacy bootstrap dependency readiness itself reaches existing deadline",
+      "status": "NOT_RUN",
+      "actualDelayMs": null,
+      "actualClassification": null
+    }
+  ],
+  "allowedObservedClassifications": [
+    "LISTENER_REGISTRY_TIMEOUT",
+    "MAIN_BOOTSTRAP_DEADLINE",
+    "RECOVERED"
+  ],
+  "importantSourceDistinction": "BOOT_TIMEOUT_MS guards legacy prerequisites before main.js injection, not an independent fetch timeout once a main.js request is issued. Do not conflate the two timers.",
+  "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE"
+}

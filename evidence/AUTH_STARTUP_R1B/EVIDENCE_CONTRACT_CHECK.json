@@ -1,0 +1,7 @@
+{
+  "kind": "REPORT_CONSISTENCY_ONLY_NOT_BROWSER_ACCEPTANCE",
+  "valid": true,
+  "classification": "STARTUP_MEASUREMENT_BLOCKED",
+  "realBrowserAcceptanceCertifiedByThisTool": false,
+  "errors": []
+}

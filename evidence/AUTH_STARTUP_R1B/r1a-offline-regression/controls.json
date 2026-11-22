@@ -1,0 +1,92 @@
+{
+  "kind": "EXACT_SOURCE_VM_CONTROL_CASES",
+  "productionNetworkAccess": 0,
+  "total": 21,
+  "passed": 21,
+  "checks": [
+    {
+      "name": "missing users document: current failure still signs out the failing user",
+      "status": "PASS"
+    },
+    {
+      "name": "missing users document: no verified authority or protected shell",
+      "status": "PASS"
+    },
+    {
+      "name": "missing users document: inline error is retained",
+      "status": "PASS"
+    },
+    {
+      "name": "missing users document: zero business listeners",
+      "status": "PASS"
+    },
+    {
+      "name": "disabled users document: current failure still signs out the failing user",
+      "status": "PASS"
+    },
+    {
+      "name": "disabled users document: no verified authority or protected shell",
+      "status": "PASS"
+    },
+    {
+      "name": "disabled users document: inline error is retained",
+      "status": "PASS"
+    },
+    {
+      "name": "disabled users document: zero business listeners",
+      "status": "PASS"
+    },
+    {
+      "name": "missing club ID: current failure still signs out the failing user",
+      "status": "PASS"
+    },
+    {
+      "name": "missing club ID: no verified authority or protected shell",
+      "status": "PASS"
+    },
+    {
+      "name": "missing club ID: inline error is retained",
+      "status": "PASS"
+    },
+    {
+      "name": "missing club ID: zero business listeners",
+      "status": "PASS"
+    },
+    {
+      "name": "genuine signOut failure retains current-session error",
+      "status": "PASS"
+    },
+    {
+      "name": "Firebase UID drift before next observer dispatch: success has no stale effects",
+      "status": "PASS"
+    },
+    {
+      "name": "Firebase UID drift before next observer dispatch: error has no stale effects",
+      "status": "PASS"
+    },
+    {
+      "name": "login history remains detached from usable shell",
+      "status": "PASS"
+    },
+    {
+      "name": "current detached login history can complete",
+      "status": "PASS"
+    },
+    {
+      "name": "Coach selection checks current Firebase UID after its await",
+      "status": "PASS"
+    },
+    {
+      "name": "stale Coach selection emits no continuation effects",
+      "status": "PASS"
+    },
+    {
+      "name": "logout clears tenant refs",
+      "status": "PASS"
+    },
+    {
+      "name": "logout removes all listeners and protected DOM",
+      "status": "PASS"
+    }
+  ]
+}

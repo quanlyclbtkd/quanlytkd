@@ -1,0 +1,194 @@
+{
+  "status": "NOT_RUN",
+  "acceptance": "NOT_ACCEPTED",
+  "nativeBrowserAuthRuns": 0,
+  "environmentPreflight": {
+    "cloudBrowser": {
+      "name": "Chrome",
+      "blankPageOpened": true,
+      "localEndpointLoaded": false,
+      "nativeAppRuntimeLoaded": false,
+      "projectIdentityVerified": false,
+      "reason": "BROWSER_URL_POLICY_DENIED_AND_CONNECTION_REFUSED",
+      "attemptedEndpoint": "http://127.0.0.1:8766/preflight.html",
+      "policyBoundary": "No alternate URL, raw CDP, browser surface or workaround attempted after denial."
+    },
+    "localChromium": {
+      "appNavigationAttempted": false,
+      "productionFirebaseTraffic": 0,
+      "realStartupTraces": 0,
+      "status": "BROWSER_STARTUP_BLOCKED",
+      "reason": "SOCKET_OPERATION_NOT_PERMITTED",
+      "diagnosticLines": [
+        "[pid=REDACTED][err] [16:16:1110/230909.343812:FATAL:chrome/browser/process_singleton_posix.cc:297] Check failed: . socket() failed: Operation not permitted (1)",
+        "[pid=REDACTED][err] [1110/230909.344763:ERROR:third_party/crashpad/crashpad/util/linux/scoped_ptrace_attach.cc:27] ptrace: Operation not permitted (1)",
+        "\u001b[2m  - [pid=REDACTED][err] [16:16:1110/230909.343812:FATAL:chrome/browser/process_singleton_posix.cc:297] Check failed: . socket() failed: Operation not permitted (1)\u001b[22m",
+        "\u001b[2m  - [pid=REDACTED][err] [1110/230909.344763:ERROR:third_party/crashpad/crashpad/util/linux/scoped_ptrace_attach.cc:27] ptrace: Operation not permitted (1)\u001b[22m"
+      ]
+    },
+    "headlessDependency": {
+      "installed": false,
+      "exitCode": 1,
+      "reason": "DOWNLOAD_NOT_VALID_ZIP",
+      "log": "headless-dependency-install.log"
+    },
+    "emulator": {
+      "auth": "NOT_STARTED",
+      "firestore": "NOT_STARTED",
+      "fixtures": "NOT_PROVISIONED",
+      "reason": "Real browser cannot run against this local test environment."
+    },
+    "staging": {
+      "authorizedProjectIdProvided": false,
+      "verifiedNonProductionURLProvided": false
+    },
+    "applicationNavigationAttempted": false,
+    "authRaceAttempts": 0,
+    "realStartupTraces": 0,
+    "localTransportProbeServerStopped": true
+  },
+  "productionAuthRaceAttempts": 0,
+  "cases": [
+    {
+      "id": "T01",
+      "scenario": "A normal native login",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T02",
+      "scenario": "B normal native login",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T03",
+      "scenario": "A → logout → B",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T04",
+      "scenario": "direct A → B without null",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T05",
+      "scenario": "A actual delayed authority success → B",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T06",
+      "scenario": "A actual delayed authority error → B",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T07",
+      "scenario": "A stale error cannot signOut current B",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T08",
+      "scenario": "Coach A CS1 → Coach B CS2",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T09",
+      "scenario": "Admin → Coach",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T10",
+      "scenario": "Coach → Admin",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T11",
+      "scenario": "SuperAdmin stale → Admin",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T12",
+      "scenario": "Admin stale → SuperAdmin",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T13",
+      "scenario": "same-origin native multi-tab A → B",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    },
+    {
+      "id": "T14",
+      "scenario": "same-UID A reentry",
+      "status": "NOT_RUN",
+      "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+      "actualFirebaseRuntime": null,
+      "actualOutcome": null
+    }
+  ],
+  "sameUidReentry": {
+    "status": "NOT_RUN",
+    "fullTeardownRemountObserved": null,
+    "duplicateTenantListeners": null,
+    "staleTenantListeners": null,
+    "crossTenantState": null,
+    "permanentRuntimeBreakage": null,
+    "duplicateWriter": null,
+    "duplicateBootstrapFlight": null,
+    "triggerMechanismObserved": null,
+    "rule": "Report whether native SDK emits the repeated same UID; do not label a manually invoked callback as a naturally emitted native Auth event."
+  },
+  "observerOffOnEquivalence": {
+    "status": "NOT_RUN",
+    "authTenantBehaviorEquivalent": null,
+    "promiseIdentityEquivalent": null,
+    "firebaseIOEquivalent": null,
+    "executionOrderEquivalent": null
+  },
+  "r1aOfflineRegression": {
+    "scope": "VM_ONLY_NOT_R1B_BROWSER_ACCEPTANCE",
+    "caseCount": 27,
+    "passed": 27,
+    "assertions": 570,
+    "controlChecks": 21,
+    "controlChecksPassed": 21,
+    "countsTowardR1BAcceptance": false
+  },
+  "fixtureMethodRequired": "Real Firebase SDK against Auth+Firestore Emulator or verified isolated staging; actual native authority responses must be delayed without blocking B. No mock Auth/currentUser or direct commit-call substitute."
+}

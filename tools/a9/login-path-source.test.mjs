@@ -11,7 +11,7 @@ const branch=fs.readFileSync('js/core/branchIdentity.js','utf8');
 const base={role:'coach',clubId:'A',branch:'CS1',coachBranch:'CS1',primaryCoachBranch:'CS1',defaultBranch:'CS1',allowedBranches:['CS1','CS2'],assignmentVersion:'version-11111111111111111111',status:'active'};
 function make({mirror={},canonical={},meta={fromCache:false,hasPendingWrites:false},exists=true}={}){
  const record={...base,...canonical},userProfile={...base,...mirror},window={__appLoaded:true,console,BranchIdentity:undefined,_fb_init:{doc:(_,...segments)=>segments.join('/'),getDoc:async()=>({exists:()=>exists,data:()=>record,metadata:meta})}};
- const context=vm.createContext({window,console,document:{getElementById:()=>null},setTimeout(){throw Error('Unexpected schedule')},_canonicalBranch:(v)=>v});
+ const context=vm.createContext({isCurrentAuthEvent:()=>true,window,console,document:{getElementById:()=>null},setTimeout(){throw Error('Unexpected schedule')},_canonicalBranch:(v)=>v});
  vm.runInContext(branch,context);vm.runInContext(coaches,context);
  vm.runInContext(app.slice(start,end)+'\nthis._normalizeAuthContext=_normalizeAuthContext;',context);
  const user={uid:'C'};context.user=user;context._ud=userProfile;

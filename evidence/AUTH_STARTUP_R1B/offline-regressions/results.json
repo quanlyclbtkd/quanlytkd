@@ -1,0 +1,189 @@
+{
+  "scope": "OFFLINE_PROTECTED_REGRESSIONS_ONLY",
+  "realAuthAcceptanceRuns": 0,
+  "realStartupTraces": 0,
+  "total": 30,
+  "passed": 30,
+  "results": [
+    {
+      "gate": "precheck",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "precheck.log"
+    },
+    {
+      "gate": "check:syntax",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_syntax.log"
+    },
+    {
+      "gate": "check:production-authority-closure",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_production-authority-closure.log"
+    },
+    {
+      "gate": "check:production-security-trust-boundary",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_production-security-trust-boundary.log"
+    },
+    {
+      "gate": "check:security-coach-branch-boundary",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_security-coach-branch-boundary.log"
+    },
+    {
+      "gate": "check:coach-branch-runtime-repair",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_coach-branch-runtime-repair.log"
+    },
+    {
+      "gate": "check:attendance-canonical-ownership",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_attendance-canonical-ownership.log"
+    },
+    {
+      "gate": "check:attendance-explicit-shift-authority",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_attendance-explicit-shift-authority.log"
+    },
+    {
+      "gate": "check:attendance-daily-single-refresh-authority",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_attendance-daily-single-refresh-authority.log"
+    },
+    {
+      "gate": "check:d1c3b7r2r2-attendance-role-authority",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_d1c3b7r2r2-attendance-role-authority.log"
+    },
+    {
+      "gate": "check:mobile-startup-performance",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_mobile-startup-performance.log"
+    },
+    {
+      "gate": "check:auth-context-single-writer",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_auth-context-single-writer.log"
+    },
+    {
+      "gate": "check:superadmin-auth-principal-alignment",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_superadmin-auth-principal-alignment.log"
+    },
+    {
+      "gate": "check:admin-credential-single-source",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_admin-credential-single-source.log"
+    },
+    {
+      "gate": "check:listener-ownership-boundary",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_listener-ownership-boundary.log"
+    },
+    {
+      "gate": "check:club-bootstrap-single-read-authority",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_club-bootstrap-single-read-authority.log"
+    },
+    {
+      "gate": "check:club-initial-snapshot-access-gate",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_club-initial-snapshot-access-gate.log"
+    },
+    {
+      "gate": "check:club-listener-bootstrap-readiness",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_club-listener-bootstrap-readiness.log"
+    },
+    {
+      "gate": "check:startup-read-budget-freeze",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_startup-read-budget-freeze.log"
+    },
+    {
+      "gate": "check:finance-students-bstats-ownership-r1",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_finance-students-bstats-ownership-r1.log"
+    },
+    {
+      "gate": "check:canonical-transaction-safe-cutover",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_canonical-transaction-safe-cutover.log"
+    },
+    {
+      "gate": "check:tuition-debt-source-of-truth",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_tuition-debt-source-of-truth.log"
+    },
+    {
+      "gate": "check:debt-authoritative-tuition-coverage",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_debt-authoritative-tuition-coverage.log"
+    },
+    {
+      "gate": "check:debt-profile-read-boundary",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_debt-profile-read-boundary.log"
+    },
+    {
+      "gate": "check:inventory-stock-authority-r1",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_inventory-stock-authority-r1.log"
+    },
+    {
+      "gate": "check:inventory-ledger-reconciliation",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_inventory-ledger-reconciliation.log"
+    },
+    {
+      "gate": "check:family-combo-autofill-r1",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_family-combo-autofill-r1.log"
+    },
+    {
+      "gate": "check:family-combo-qr-r1",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_family-combo-qr-r1.log"
+    },
+    {
+      "gate": "check:reachable-dom-trust-boundary-r1-4b",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_reachable-dom-trust-boundary-r1-4b.log"
+    },
+    {
+      "gate": "check:root-public-parity",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "check_root-public-parity.log"
+    }
+  ]
+}

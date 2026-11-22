@@ -1,0 +1,45 @@
+{
+  "cloudBrowser": {
+    "name": "Chrome",
+    "blankPageOpened": true,
+    "localEndpointLoaded": false,
+    "nativeAppRuntimeLoaded": false,
+    "projectIdentityVerified": false,
+    "reason": "BROWSER_URL_POLICY_DENIED_AND_CONNECTION_REFUSED",
+    "attemptedEndpoint": "http://127.0.0.1:8766/preflight.html",
+    "policyBoundary": "No alternate URL, raw CDP, browser surface or workaround attempted after denial."
+  },
+  "localChromium": {
+    "appNavigationAttempted": false,
+    "productionFirebaseTraffic": 0,
+    "realStartupTraces": 0,
+    "status": "BROWSER_STARTUP_BLOCKED",
+    "reason": "SOCKET_OPERATION_NOT_PERMITTED",
+    "diagnosticLines": [
+      "[pid=REDACTED][err] [16:16:1110/230909.343812:FATAL:chrome/browser/process_singleton_posix.cc:297] Check failed: . socket() failed: Operation not permitted (1)",
+      "[pid=REDACTED][err] [1110/230909.344763:ERROR:third_party/crashpad/crashpad/util/linux/scoped_ptrace_attach.cc:27] ptrace: Operation not permitted (1)",
+      "\u001b[2m  - [pid=REDACTED][err] [16:16:1110/230909.343812:FATAL:chrome/browser/process_singleton_posix.cc:297] Check failed: . socket() failed: Operation not permitted (1)\u001b[22m",
+      "\u001b[2m  - [pid=REDACTED][err] [1110/230909.344763:ERROR:third_party/crashpad/crashpad/util/linux/scoped_ptrace_attach.cc:27] ptrace: Operation not permitted (1)\u001b[22m"
+    ]
+  },
+  "headlessDependency": {
+    "installed": false,
+    "exitCode": 1,
+    "reason": "DOWNLOAD_NOT_VALID_ZIP",
+    "log": "headless-dependency-install.log"
+  },
+  "emulator": {
+    "auth": "NOT_STARTED",
+    "firestore": "NOT_STARTED",
+    "fixtures": "NOT_PROVISIONED",
+    "reason": "Real browser cannot run against this local test environment."
+  },
+  "staging": {
+    "authorizedProjectIdProvided": false,
+    "verifiedNonProductionURLProvided": false
+  },
+  "applicationNavigationAttempted": false,
+  "authRaceAttempts": 0,
+  "realStartupTraces": 0,
+  "localTransportProbeServerStopped": true
+}

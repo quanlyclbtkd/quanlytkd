@@ -171,11 +171,6 @@ export function requestExamPresentationRefresh(reason = 'profiles-server-fresh',
     });
 }
 
-// Search changes presentation without changing the Profiles authority token.
-export function requestExamUiRefresh(reason = 'exam-ui-refresh') {
-    return _triggerExamRender(reason, { dedupeProfileAuthority: false });
-}
-
 /**
  * Mount exam tab listeners.
  *

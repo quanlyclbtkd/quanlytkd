@@ -1,0 +1,13 @@
+{
+  "status": "NOT_RUN",
+  "nativeAuthResolved": null,
+  "mainJsRequestFailureInjected": false,
+  "firstSafeUserInteractionReady": null,
+  "usableShellClaimed": null,
+  "businessActionsEnabledAsSuccessful": null,
+  "clearBootstrapFailureState": null,
+  "correctTenantIsolation": null,
+  "passed": null,
+  "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+  "rule": "First-safe readiness cannot be derived from visible mainApp/shellShown alone."
+}

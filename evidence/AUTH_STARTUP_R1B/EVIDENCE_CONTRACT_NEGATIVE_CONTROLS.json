@@ -1,0 +1,32 @@
+{
+  "kind": "TOOLING_REPORT_GOVERNANCE_ONLY",
+  "nativeBrowserTestsExecuted": 0,
+  "total": 6,
+  "passed": 6,
+  "results": [
+    {
+      "name": "blocked report keeps native evidence unverified",
+      "status": "PASS"
+    },
+    {
+      "name": "reject accepted classification with zero native traces",
+      "status": "PASS"
+    },
+    {
+      "name": "reject invented zero-millisecond timing in NOT_RUN trace",
+      "status": "PASS"
+    },
+    {
+      "name": "reject unobserved canonical profile-owner claim",
+      "status": "PASS"
+    },
+    {
+      "name": "reject optimization recommendation without measurement",
+      "status": "PASS"
+    },
+    {
+      "name": "reject canonical source-change report",
+      "status": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "status": "NOT_RUN",
+  "realSameOriginTabs": null,
+  "nativePersistenceTransportObserved": null,
+  "AInvalidated": null,
+  "BVerified": null,
+  "onlyBMounted": null,
+  "lateAEffects": null,
+  "nativeRuns": 0,
+  "syntheticAuthBusAcceptedAsEvidence": false,
+  "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+  "required": "Two real same-origin browser tabs, shared native Firebase persistence and observed auth transition; never substitute the R1A VM bus."
+}

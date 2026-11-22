@@ -1,0 +1,45 @@
+{
+  "status": "NOT_RUN",
+  "nativeSubscriptionEvidence": null,
+  "generationGuardAloneAccepted": false,
+  "afterBCurrent": {
+    "club root": {
+      "oldClubActiveCount": null,
+      "unsubscribeObserved": null,
+      "registryOwnerVerified": null
+    },
+    "settings": {
+      "oldClubActiveCount": null,
+      "unsubscribeObserved": null,
+      "registryOwnerVerified": null
+    },
+    "profiles": {
+      "oldClubActiveCount": null,
+      "unsubscribeObserved": null,
+      "registryOwnerVerified": null
+    },
+    "transactions": {
+      "oldClubActiveCount": null,
+      "unsubscribeObserved": null,
+      "registryOwnerVerified": null
+    },
+    "inventory": {
+      "oldClubActiveCount": null,
+      "unsubscribeObserved": null,
+      "registryOwnerVerified": null
+    },
+    "notifications": {
+      "oldClubActiveCount": null,
+      "unsubscribeObserved": null,
+      "registryOwnerVerified": null
+    }
+  },
+  "oldClubTotalActiveListeners": null,
+  "passed": null,
+  "reason": "BROWSER_EXECUTION_OR_LOCAL_TEST_TRANSPORT_UNAVAILABLE",
+  "sameUid": {
+    "duplicateListeners": null,
+    "bootstrapFlights": null,
+    "fullTeardownRemount": null
+  }
+}
