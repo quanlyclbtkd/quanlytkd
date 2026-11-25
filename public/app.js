@@ -5115,7 +5115,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (!memo || memo.length > maxMemoLength) throw _receiptError('MEMO_TOO_LONG','intent');
         return memo;
     }
-    function _receiptTuitionReference(participantKey) {
+    const RECEIPT_QR_PROVIDER_MEMO_MAX = 40;
+
+    function _receiptParticipantReference(participantKey) {
         const fail=()=>{throw _receiptError('MEMO_REFERENCE_UNAVAILABLE','intent');};
         const coverage=window.getDebtProfileCoverageStatus?.();
         if (coverage?.ready !== true || coverage.clubId !== currentClubId) fail();
@@ -5137,6 +5139,27 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const displayName=window.ProfileCanonicalStore?.resolveDisplayName?.(key,p) || p.displayName || p.name || p.fullName || p.studentName || key;
         const tokens=_receiptPaymentMemo(displayName,'',512).split(' ').filter(Boolean);
         return {reference,nameToken:tokens[tokens.length-1]||''};
+    }
+    function _receiptNonTuitionMemo(name, breakdown, participantKey) {
+        const purposes = { exam: 'THI', inventory: 'KHO', inventoryDebt: 'KHO', other: 'KHAC' };
+        const kinds = new Set(breakdown.map(row => row?.kind));
+        if (!kinds.size || [...kinds].some(kind => !Object.hasOwn(purposes, kind))) {
+            throw _receiptError('MEMO_REPORT_METADATA_INVALID', 'intent');
+        }
+        const purpose = kinds.size === 1 ? purposes[kinds.values().next().value] : 'THU';
+        const detail = breakdown.map(row =>
+            (row.kind === 'exam' && row.examTitle) || row.label || purposes[row.kind]).join(' ');
+        let verbose;
+        try {
+            verbose = _receiptPaymentMemo(name, detail, 512);
+        } catch (error) {
+            if (error?.code !== 'MEMO_TOO_LONG') throw error;
+        }
+        if (verbose && verbose.length <= RECEIPT_QR_PROVIDER_MEMO_MAX) return verbose;
+
+        const {reference, nameToken} = _receiptParticipantReference(participantKey);
+        const readable = purpose + ' ' + nameToken + ' R' + reference;
+        return readable.length <= RECEIPT_QR_PROVIDER_MEMO_MAX ? readable : purpose + ' R' + reference;
     }
     function _receiptTuitionMemo(name, monthsStr, verboseMemo, participantKey = name) {
         // Preserve existing <=40-character memos. Larger periods may use an
@@ -5169,7 +5192,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const fullNameMemo=_receiptPaymentMemo(name,'HP '+lossless,512);
         if (fullNameMemo.length <= 40) return fullNameMemo;
         if (lossless.length+4>40) throw _receiptError('MEMO_TOO_LONG','intent');
-        const {reference,nameToken}=_receiptTuitionReference(participantKey);
+        const {reference,nameToken}=_receiptParticipantReference(participantKey);
         const humanMemo=`HP ${nameToken} R${reference} ${lossless}`;
         const memo=humanMemo.length<=40 ? humanMemo : `HP R${reference} ${lossless}`;
         if (!/^[A-Za-z0-9 ]+$/.test(memo) || memo.length>40) throw _receiptError('MEMO_TOO_LONG','intent');
@@ -5323,7 +5346,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     function generateVietQR(amount, studentName, detailDesc, branchOrAccount, qrTemplate = 'compact2', memoOverride = null) {
         const addInfoText = memoOverride === null ? _receiptPaymentMemo(studentName,detailDesc) : memoOverride;
         // The receipt owner supplies the same frozen memo for both URL and EMV audit.
-        if (typeof addInfoText !== 'string' || !addInfoText || addInfoText.length > 48 ||
+        if (typeof addInfoText !== 'string' || !addInfoText.trim() || addInfoText.length > RECEIPT_QR_PROVIDER_MEMO_MAX ||
             !/^[A-Za-z0-9 ]+$/.test(addInfoText)) throw _receiptError('MEMO_TOO_LONG','intent');
         let _qrAcct = null;
         if (branchOrAccount && typeof branchOrAccount === 'object' && branchOrAccount.accountNo) {
@@ -7062,10 +7085,20 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
                 _setStage('intent');
                 const _familyTuitionReport=Array.isArray(breakdown) && breakdown.some(row=>row?.familyParticipant === true);
-                const _verboseMemo=_familyTuitionReport ? '' : _receiptPaymentMemo(qrName,_memoPaymentContent,_tuitionMemoMonths ? 512 : 48);
-                const _canonicalMemo=_familyTuitionReport ? _receiptFamilyTuitionMemo(breakdown) : (_tuitionMemoMonths
-                    ? _receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo,cleanName) : _verboseMemo);
-                if (!_familyTuitionReport && _tuitionMemoMonths) _memoStillCurrent=()=>_receiptTuitionMemo(qrName,_tuitionMemoMonths,_verboseMemo,cleanName)===_canonicalMemo;
+                const _nonTuitionReport = !_familyTuitionReport && !_tuitionMemoMonths && Array.isArray(breakdown)
+                    && breakdown.some(row => row?.kind) && !breakdown.some(row => row?.kind === 'tuition');
+                const _verboseMemo= _familyTuitionReport || _nonTuitionReport ? ''
+                    : _receiptPaymentMemo(qrName, _memoPaymentContent, _tuitionMemoMonths ? 512 : RECEIPT_QR_PROVIDER_MEMO_MAX);
+                let _canonicalMemo = _verboseMemo;
+                if (_familyTuitionReport) {
+                    _canonicalMemo = _receiptFamilyTuitionMemo(breakdown);
+                } else if (_tuitionMemoMonths) {
+                    _canonicalMemo = _receiptTuitionMemo(qrName, _tuitionMemoMonths, _verboseMemo, cleanName);
+                    _memoStillCurrent = () => _receiptTuitionMemo(qrName, _tuitionMemoMonths, _verboseMemo, cleanName) === _canonicalMemo;
+                } else if (_nonTuitionReport) {
+                    _canonicalMemo = _receiptNonTuitionMemo(qrName, breakdown, cleanName);
+                    _memoStillCurrent = () => _receiptNonTuitionMemo(qrName, breakdown, cleanName) === _canonicalMemo;
+                }
                 const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only', _canonicalMemo);
                 _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_canonicalMemo,intentKind:_kind});
                 _expectedMemoLength=_intent.memo.length;_providerEndpoint='vietqr-qr-only-svg';
@@ -9737,16 +9770,17 @@ window.processMultiItem = async (action) => {
     if(isTuitionEnabled && tuition > 0) {
         breakdown.push({ kind: 'tuition', label: 'Học phí ' + (typeof window.formatTuitionMonthList === 'function' ? window.formatTuitionMonthList(packageMonths) : window.formatMonthCompact(packageMonths.join(','))), amount: tuition, packageMonths: packageMonths.slice() });
     }
-    if(hasExam && examFee > 0) breakdown.push({ label: examTitle, amount: examFee });
-    if(hasInv && invTotal > 0) breakdown.push({ label: invCat + ' ' + invSize + ' x' + invQty, amount: invTotal });
+    if(hasExam && examFee > 0) breakdown.push({ kind: 'exam', type: 'Lệ phí thi', label: examTitle, examTitle, amount: examFee });
+    if(hasInv && invTotal > 0) breakdown.push({ kind: 'inventory', type: 'Kho', label: invCat + ' ' + invSize + ' x' + invQty,
+        category: invCat, size: invSize, qty: invQty, amount: invTotal });
     if(invDebtTotal > 0) {
         invDebtChecks.forEach(c => {
             const itemLabel = c.getAttribute('data-label') || 'Kho Đồ';
             const itemAmt = Number(c.getAttribute('data-amount')) || 0;
-            if(itemAmt > 0) breakdown.push({ label: '📦 Nợ kho: ' + itemLabel, amount: itemAmt });
+            if(itemAmt > 0) breakdown.push({ kind: 'inventoryDebt', type: 'Nợ kho', label: '📦 Nợ kho: ' + itemLabel, amount: itemAmt });
         });
     }
-    if(hasOther && otherFee > 0) breakdown.push({ label: otherDesc, amount: otherFee });
+    if(hasOther && otherFee > 0) breakdown.push({ kind: 'other', type: 'Thu khác', label: otherDesc || 'Khoản khác', amount: otherFee });
 
     // ── Xây dựng nhãn danh mục kho (hiện tên danh mục thực thay vì chỉ "Kho Đồ") ──
     const hasInvDebt = invDebtTotal > 0;
@@ -9993,8 +10027,8 @@ window.processMultiItem = async (action) => {
         }
         if(action==='pay'&&!_miContextCurrent()){window.showToast?.('✅ Khoản thu đã được ghi tại CLB trước. Phiên hiện tại đã thay đổi nên biên lai chưa tự mở. Không thu lại khoản tiền này.');return;}
         const receiptTitle = action === 'report' ? 'PHIẾU BÁO HỌC PHÍ' : 'BIÊN LAI THU TIỀN';
-        // Truyền refMonth thay vì tuitionMonth để tránh lỗi khi học phí bị tắt.
-        const _miReceiptResult = await window.exportReceipt(name, total, receiptTypeLabel, getLocalToday(), refMonth, branch, examTitle, receiptTitle, breakdown, action === 'report' ? 'multiItemModal' : undefined);
+        const receiptRefMonth = hasTuition && packageMonths.length ? refMonth : '';
+        const _miReceiptResult = await window.exportReceipt(name, total, receiptTypeLabel, getLocalToday(), receiptRefMonth, branch, examTitle, receiptTitle, breakdown, action === 'report' ? 'multiItemModal' : undefined);
         if (action === 'report' && !_miReceiptResult?.ok) return _miReceiptResult;
         document.getElementById('multiItemModal').style.display = 'none';
         if (action === 'report') return _miReceiptResult;

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {runtimeHash} from './v11r2/cutover.mjs';
-import {verifySourceIdentity} from './v11r2/source-identity.mjs';
+import { QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE, verifySourceIdentity } from './v11r2/source-identity.mjs';
 const root=process.cwd();
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
@@ -35,6 +35,28 @@ export function verifyQrMultiitemMemoR1_2DAppWaiver(targetRoot=root){
  try{
   const source=fs.readFileSync(path.join(targetRoot,'app.js'),'utf8');
   const exactRuntime=runtimeHash(targetRoot);
+  if (exactRuntime===QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE.runtimeSHA256) {
+    const pin=verifySourceIdentity(targetRoot,exactRuntime);
+    if (runtimeHash(path.join(targetRoot,'public'))!==exactRuntime) return {ok:false,reason:'GENERIC_MEMO_PUBLIC_RUNTIME_MISMATCH'};
+    const slice=(a,b)=>{
+      const i=source.indexOf(a), j=source.indexOf(b,i);
+      if(i<0 || j<=i) throw Error('GENERIC_MEMO_GUARD_BOUNDARY_MISSING');
+      return source.slice(i,j);
+    };
+    const originalName=text=>text.replace('_receiptParticipantReference','_receiptTuitionReference');
+    const participant=sha(originalName(slice('    function _receiptParticipantReference(', '    function _receiptNonTuitionMemo(')));
+    const tuition=sha(originalName(slice('    function _receiptTuitionMemo(', '    function _receiptQrMismatch(')));
+    const family=sha(slice('    function _receiptFamilyTuitionMemo(', '    function _receiptPaymentMemo('));
+    const pixels=sha(slice('    function _receiptQrMismatch(', '    function _receiptFailureMessage('));
+    if (participant!=='56c8e44b93fe3b4d6617bf226d69cf23ec53501c7d9d483a4730405f07918ad9' ||
+        tuition!==longNameCandidate.tuitionHelperSHA256 ||
+        family!=='f636ad2274a3c39689d4b19904e506e7eb68d2572f190161e9cc9fb8fe3cfa9f' ||
+        pixels!=='f9f6e8c303de502cc8002dd044b27a3b430dd4a8b6b08c15dde801582dfcac29') {
+      return {ok:false,reason:'GENERIC_MEMO_PROTECTED_QR_HUNK_DRIFT'};
+    }
+    return {ok:true,appSHA256:sha(source),pin:pin.id,testOnly:true,exactRuntimeAndPublic:true,
+      tuitionHelperUnchanged:true,pixelValidatorUnchanged:true};
+  }
   if (exactRuntime===longNameCandidate.runtimeSHA256) {
     if (runtimeHash(path.join(targetRoot,'public'))!==exactRuntime) return {ok:false,reason:'LONG_NAME_PUBLIC_RUNTIME_MISMATCH'};
     if (sha(source)!==longNameCandidate.appSHA256) return {ok:false,reason:'LONG_NAME_APP_SHA_MISMATCH'};

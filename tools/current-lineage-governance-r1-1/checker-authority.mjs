@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runtimeHash } from '../v11r2/cutover.mjs';
-import { verifySourceIdentity } from '../v11r2/source-identity.mjs';
+import { QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE, verifySourceIdentity } from '../v11r2/source-identity.mjs';
 import { expectedRuntime, manifestPath, pinId, sha, sourceZip } from '../current-lineage-governance-r1/build-manifest.mjs';
 
 export const coachAssignmentContract = 'server-verified-multi-branch-v1';
@@ -27,16 +27,18 @@ export function resolveCheckerAuthority(root) {
   // Historical checkers keep their original baselines for exact registered pins.
   // Staging-derived identities are outside these source-lineage test contracts.
   requireCondition(!identity.derivedFrom, 'CHECKER_SOURCE_LINEAGE_NOT_ACCEPTED');
-  if (identity.id !== currentPin.id) return { identity, currentManifest: null };
+  const selectedPin = identity.id === QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE.id
+    ? QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE : identity.id === currentPin.id ? currentPin : null;
+  if (!selectedPin) return { identity, currentManifest: null };
 
-  for (const [field, expected] of Object.entries(currentPin)) {
+  for (const [field, expected] of Object.entries(selectedPin)) {
     requireCondition(identity[field] === expected, 'CURRENT_LINEAGE_PIN_MISMATCH');
   }
   requireCondition(identity.coachAssignmentContract === coachAssignmentContract, 'CURRENT_LINEAGE_COACH_CONTRACT_INVALID');
 
   // The canonical verifier authenticated all runtime files, rules, indexes
   // and the build tag. Bind the checker baseline to that same artifact.
-  const bytes = fs.readFileSync(path.join(root, currentPin.manifest));
-  requireCondition(sha(bytes) === currentPin.manifestSHA256, 'SOURCE_MANIFEST_NOT_ACCEPTED');
+  const bytes = fs.readFileSync(path.join(root, selectedPin.manifest));
+  requireCondition(sha(bytes) === selectedPin.manifestSHA256, 'SOURCE_MANIFEST_NOT_ACCEPTED');
   return { identity, currentManifest: JSON.parse(bytes) };
 }
