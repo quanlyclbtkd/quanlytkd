@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runtimeHash } from '../v11r2/cutover.mjs';
-import { QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE, verifySourceIdentity } from '../v11r2/source-identity.mjs';
+import { QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE, QR_REPORT_RELEASE_CLOSURE_R1_1_SOURCE, verifySourceIdentity } from '../v11r2/source-identity.mjs';
 import { expectedRuntime, manifestPath, pinId, sha, sourceZip } from '../current-lineage-governance-r1/build-manifest.mjs';
 
 export const coachAssignmentContract = 'server-verified-multi-branch-v1';
@@ -27,8 +27,8 @@ export function resolveCheckerAuthority(root) {
   // Historical checkers keep their original baselines for exact registered pins.
   // Staging-derived identities are outside these source-lineage test contracts.
   requireCondition(!identity.derivedFrom, 'CHECKER_SOURCE_LINEAGE_NOT_ACCEPTED');
-  const selectedPin = identity.id === QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE.id
-    ? QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE : identity.id === currentPin.id ? currentPin : null;
+  const selectedPin = [currentPin, QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE, QR_REPORT_RELEASE_CLOSURE_R1_1_SOURCE]
+    .find(pin => pin.id === identity.id);
   if (!selectedPin) return { identity, currentManifest: null };
 
   for (const [field, expected] of Object.entries(selectedPin)) {

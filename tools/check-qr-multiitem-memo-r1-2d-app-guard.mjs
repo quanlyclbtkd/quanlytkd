@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {runtimeHash} from './v11r2/cutover.mjs';
-import { QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE, verifySourceIdentity } from './v11r2/source-identity.mjs';
+import { QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE, QR_REPORT_RELEASE_CLOSURE_R1_1_SOURCE, verifySourceIdentity } from './v11r2/source-identity.mjs';
+import { APP_SHA256 } from './qr-report-release-closure-r1-1/release-policy.mjs';
 const root=process.cwd();
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
@@ -35,8 +36,10 @@ export function verifyQrMultiitemMemoR1_2DAppWaiver(targetRoot=root){
  try{
   const source=fs.readFileSync(path.join(targetRoot,'app.js'),'utf8');
   const exactRuntime=runtimeHash(targetRoot);
-  if (exactRuntime===QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE.runtimeSHA256) {
+  if (exactRuntime===QR_GENERIC_NON_TUITION_REPORT_MEMO_R1_SOURCE.runtimeSHA256 ||
+      exactRuntime===QR_REPORT_RELEASE_CLOSURE_R1_1_SOURCE.runtimeSHA256) {
     const pin=verifySourceIdentity(targetRoot,exactRuntime);
+    if (sha(source)!==APP_SHA256) return {ok:false,reason:'GENERIC_MEMO_APP_SHA_MISMATCH'};
     if (runtimeHash(path.join(targetRoot,'public'))!==exactRuntime) return {ok:false,reason:'GENERIC_MEMO_PUBLIC_RUNTIME_MISMATCH'};
     const slice=(a,b)=>{
       const i=source.indexOf(a), j=source.indexOf(b,i);
@@ -54,7 +57,7 @@ export function verifyQrMultiitemMemoR1_2DAppWaiver(targetRoot=root){
         pixels!=='f9f6e8c303de502cc8002dd044b27a3b430dd4a8b6b08c15dde801582dfcac29') {
       return {ok:false,reason:'GENERIC_MEMO_PROTECTED_QR_HUNK_DRIFT'};
     }
-    return {ok:true,appSHA256:sha(source),pin:pin.id,testOnly:true,exactRuntimeAndPublic:true,
+    return {ok:true,appSHA256:APP_SHA256,pin:pin.id,testOnly:pin.testOnly===true,exactRuntimeAndPublic:true,
       tuitionHelperUnchanged:true,pixelValidatorUnchanged:true};
   }
   if (exactRuntime===longNameCandidate.runtimeSHA256) {
